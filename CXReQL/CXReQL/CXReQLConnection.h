@@ -2,7 +2,7 @@
 #ifndef CXREQL_CONNECTION_H
 #define CXREQL_CONNECTION_H
 
-//#include <CoreTransport/ctReQL.h>
+//#include <CoreTransport/CTSockets.h>
 #include "CXReQLCursor.h"
 #include <map>
 #include <functional>
@@ -30,21 +30,21 @@ static unsigned long					CX_REQL_RESPONSE_BUFF_SIZE  = 0;	//Response buffer size
 	class CXREQL_API CXReQLConnection// : public Microsoft::WRL::RuntimeClass<ABI::Windows::ApplicationModel::Core::IFrameworkView>
 	{
 		public:
-			CXReQLConnection::CXReQLConnection(ReqlConnection *conn, ReqlThreadQueue rxQueue, ReqlThreadQueue txQueue);
+			CXReQLConnection::CXReQLConnection(CTConnection *conn, CTThreadQueue rxQueue, CTThreadQueue txQueue);
 			~CXReQLConnection(void);
-			ReqlThreadQueue queryQueue();
-			ReqlThreadQueue responseQueue();
+			CTThreadQueue queryQueue();
+			CTThreadQueue responseQueue();
 
 			//template<typename CXReQLQueryClosure>
-			void addQueryCallbackForKey(std::function<void(ReqlError* error, CXReQLCursor* cursor)> const &callback, uint64_t queryToken) {_queries.insert(std::make_pair(queryToken, callback));}
+			void addQueryCallbackForKey(std::function<void(CTError* error, CXReQLCursor* cursor)> const &callback, uint64_t queryToken) {_queries.insert(std::make_pair(queryToken, callback));}
 			void removeQueryCallbackForKey(uint64_t queryToken) {_queries.erase(queryToken);}
-			std::function<void(ReqlError* error, CXReQLCursor* cursor)> getQueryCallbackForKey(uint64_t queryToken) { return _queries.at(queryToken); }
+			std::function<void(CTError* error, CXReQLCursor* cursor)> getQueryCallbackForKey(uint64_t queryToken) { return _queries.at(queryToken); }
 
 			void printQueries()
 			{
 
-				std::map<uint64_t, std::function<void(ReqlError* error, CXReQLCursor* cursor)>>::iterator it = _queries.begin();
-				std::map<uint64_t, std::function<void(ReqlError* error, CXReQLCursor* cursor)>>::iterator endIt = _queries.end();
+				std::map<uint64_t, std::function<void(CTError* error, CXReQLCursor* cursor)>>::iterator it = _queries.begin();
+				std::map<uint64_t, std::function<void(CTError* error, CXReQLCursor* cursor)>>::iterator endIt = _queries.end();
 				for( it; it!=endIt; ++it)
 				{
 					std::cout << "Existing Key (" << it->first << ')\n';
@@ -56,26 +56,26 @@ static unsigned long					CX_REQL_RESPONSE_BUFF_SIZE  = 0;	//Response buffer size
 			void close();
 		//protected:
 
-			ReqlConnection* connection() { return &_conn; };
+			CTConnection* connection() { return &_conn; };
 		private:
-			ReqlConnection	_conn;
+			CTConnection	_conn;
 
 			void reserveConnectionMemory();
-			ReqlDispatchSource startConnectionThreadQueues(ReqlThreadQueue rxQueue, ReqlThreadQueue txQueue);
+			CTDispatchSource startConnectionThreadQueues(CTThreadQueue rxQueue, CTThreadQueue txQueue);
 			//unsigned long __stdcall EncryptQueryCallback(LPVOID lpParameter);
 			//unsigned long __stdcall DecryptResponseCallback(LPVOID lpParameter);
 
 
-			ReqlThreadQueue _rxQueue, _txQueue;
+			CTThreadQueue _rxQueue, _txQueue;
 			//dispatch_source_t _source;
 
 			//template<typename CXReQLQueryClosure>
-			std::map<uint64_t, std::function<void(ReqlError* error, CXReQLCursor* cursor)>>    _queries;
+			std::map<uint64_t, std::function<void(CTError* error, CXReQLCursor* cursor)>>    _queries;
 	};
 
-	typedef int(*CXReQLConnectionClosure)(ReqlError *error, CXReQLConnection *connection);
-	//typedef void(*ReqlConnectionCallback)(ReqlError * err, ReqlConnection * conn);
-	typedef void(*CXReQLConnectFunc)(ReqlService *service, CXReQLConnectionClosure *callback);
+	typedef int(*CXReQLConnectionClosure)(CTError *error, CXReQLConnection *connection);
+	//typedef void(*CTConnectionCallback)(CTError * err, CTConnection * conn);
+	typedef void(*CXReQLConnectFunc)(CTTarget *service, CXReQLConnectionClosure *callback);
 }
 
 #endif

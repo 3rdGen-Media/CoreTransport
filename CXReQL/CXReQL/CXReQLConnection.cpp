@@ -8,7 +8,7 @@ using namespace CoreTransport;
 void CXReQLConnection::reserveConnectionMemory()
 {
 	// Reserve pages in the virtual address space of the process.	
-	unsigned long pageSize = ReqlPageSize();
+	unsigned long pageSize = CTPageSize();
 
 	//Calculate query (send) buffer size based on system page size
 	CX_REQL_QUERY_BUFF_SIZE = (CX_REQL_QUERY_BUFF_PAGES * pageSize);
@@ -51,15 +51,15 @@ void CXReQLConnection::reserveConnectionMemory()
 #endif
 }
 
-CXReQLConnection::CXReQLConnection(ReqlConnection *conn, ReqlThreadQueue rxQueue, ReqlThreadQueue txQueue)
+CXReQLConnection::CXReQLConnection(CTConnection *conn, CTThreadQueue rxQueue, CTThreadQueue txQueue)
 {
-	//copy the from ReqlConnection ReqlC memory to CXReQLConnection managed memory (because it will go out of scope)
-	memcpy(&_conn, conn, sizeof(ReqlConnection));
+	//copy the from CTConnection ReqlC memory to CXReQLConnection managed memory (because it will go out of scope)
+	memcpy(&_conn, conn, sizeof(CTConnection));
 
 	//Reserve/allocate memory for the connection's query and response buffers 
 	reserveConnectionMemory();
 
-	//create a dispatch source / handler for the ReqlConnection's socket
+	//create a dispatch source / handler for the CTConnection's socket
 	if (!rxQueue)
 		_rxQueue = _conn.socketContext.rxQueue;
 	else 
@@ -81,15 +81,15 @@ CXReQLConnection::~CXReQLConnection()
 
 void CXReQLConnection::close()
 {
-	ReqlCloseConnection(&_conn);
+	CTCloseConnection(&_conn);
 }
 
-ReqlThreadQueue CXReQLConnection::queryQueue()
+CTThreadQueue CXReQLConnection::queryQueue()
 {
 	return _txQueue;
 }
 
-ReqlThreadQueue CXReQLConnection::responseQueue()
+CTThreadQueue CXReQLConnection::responseQueue()
 {
 	return _rxQueue;
 }
@@ -101,7 +101,7 @@ void CXReQLConnection::distributeMessageWithCursor(char * msg, unsigned long msg
 		printf("CXReQLConnection::distributeMessageWithCursor::Header Query Token = %llu\n", header->token);
 		printf("CXReQLConnection::distributeMessageWithCursor::Header Query Length = %d\n", header->length);
 
-		//Create a ReqlCursor (assume CXReQLConnection internal ReqlConnection was used
+		//Create a ReqlCursor (assume CXReQLConnection internal CTConnection was used
 		struct ReqlCursor cursor = {header, header->length + sizeof(ReqlQueryMessageHeader), &_conn};
 		//Wrap the ReqlCursor in a CXReQLCursor object
 		CXReQLCursor cxCursor( cursor );
@@ -179,8 +179,8 @@ static unsigned long __stdcall CXReQLDecryptResponseCallback(LPVOID lpParameter)
 
 	unsigned long NumBytesRecv = 0;
 
-	ReqlSSLStatus scRet = 0;
-	ReqlDriverError reqlError = ReqlSuccess;
+	CTSSLStatus scRet = 0;
+	CTClientError reqlError = CTSuccess;
 
 	CXReQLConnection * cxConn = (CXReQLConnection*)lpParameter;
 	HANDLE hCompletionPort = cxConn->responseQueue();// (HANDLE)lpParameter;
@@ -218,7 +218,7 @@ static unsigned long __stdcall CXReQLDecryptResponseCallback(LPVOID lpParameter)
 				//Use the ReQLC API to synchronously
 				//Issue a blocking call to read and decrypt from the socket using CoReQL's internal SSL platform provider
 				printf("CXReQLConnection::DecryptResponseCallback::Starting ReqlSSLRead blocking socket read + decrypt...\n");
-				NumBytesRecv = ReqlSSLRead(overlappedResponse->conn->socket, overlappedResponse->conn->sslContext, (void*)overlappedResponse, &numBytesToRecv);
+				NumBytesRecv = CTSSLRead(overlappedResponse->conn->socket, overlappedResponse->conn->sslContext, (void*)overlappedResponse, &numBytesToRecv);
 
 				if (NumBytesRecv > 0)
 				{
@@ -245,8 +245,8 @@ static unsigned long __stdcall CXReQLDecryptResponseCallback(LPVOID lpParameter)
 				assert(overlappedResponse->conn);
 #endif
 				//Issue a blocking call to decrypt the message (again, only if using non-zero read path, which is exclusively used with MBEDTLS at current)
-#ifndef REQL_USE_MBED_TLS
-				scRet = ReqlSSLDecryptMessage(overlappedResponse->conn->sslContext, overlappedResponse->wsaBuf.buf, &NumBytesRecv);
+#ifndef CTRANSPORT_USE_MBED_TLS
+				scRet = CTSSLDecryptMessage(overlappedResponse->conn->sslContext, overlappedResponse->wsaBuf.buf, &NumBytesRecv);
 				//printf("Decrypted data: %d bytes", NumBytesRecv); PrintText(NumBytesRecv, (PBYTE)(overlappedResponse->wsaBuf.buf + overlappedResponse->conn->sslContext->Sizes.cbHeader));
 				cxConn->distributeMessageWithCursor(  overlappedResponse->wsaBuf.buf + overlappedResponse->conn->sslContext->Sizes.cbHeader, NumBytesRecv);
 #endif
@@ -344,9 +344,9 @@ static unsigned long __stdcall CXReQLEncryptQueryCallback(LPVOID lpParameter)
 				//Use the ReQLC API to synchronously
 				//a)	encrypt the query message in the query buffer
 				//b)	send the encrypted query data over the socket
-				scRet = ReqlSSLWrite(overlappedQuery->conn->socket, overlappedQuery->conn->sslContext, overlappedQuery->buf, &NumBytesSent);
+				scRet = CTSSLWrite(overlappedQuery->conn->socket, overlappedQuery->conn->sslContext, overlappedQuery->buf, &NumBytesSent);
 
-#ifdef REQL_USE_MBED_TLS
+#ifdef CTRANSPORT_USE_MBED_TLS
 				//Issuing a zero buffer read will tell iocp to let us know when there is data available for reading from the socket
 				//so we can issue our own blocking read
 				recvMsgLength = 0;
@@ -363,7 +363,7 @@ static unsigned long __stdcall CXReQLEncryptQueryCallback(LPVOID lpParameter)
 				//Use WSASockets + IOCP to asynchronously do one of the following (depending on the usage of our underlying ssl context):
 				//a)	notify us when data is available for reading from the socket via the rxQueue/thread (ie MBEDTLS path)
 				//b)	read the encrypted response message from the socket into the response buffer and then notify us on the rxQueue/thread (ie SCHANNEL path)
-				if ((reqlError = ReqlAsyncRecv(overlappedQuery->conn, (void*)&(overlappedQuery->conn->response_buffers[(queryToken%CX_REQL_MAX_INFLIGHT_QUERIES) * CX_REQL_RESPONSE_BUFF_SIZE]), &recvMsgLength)) != ReqlIOPending)
+				if ((reqlError = CTAsyncRecv(overlappedQuery->conn, (void*)&(overlappedQuery->conn->response_buffers[(queryToken%CX_REQL_MAX_INFLIGHT_QUERIES) * CX_REQL_RESPONSE_BUFF_SIZE]), &recvMsgLength)) != ReqlIOPending)
 				{
 					//the async operation returned immediately
 					if (reqlError == ReqlSuccess)
@@ -418,7 +418,7 @@ ReqlDispatchSource CXReQLConnection::startConnectionThreadQueues(ReqlThreadQueue
 	int i;
 	HANDLE hThread;
 
-	//1  Create a single worker thread, respectively, for the ReqlConnection's (Socket) Tx and Rx Queues
+	//1  Create a single worker thread, respectively, for the CTConnection's (Socket) Tx and Rx Queues
 	//   We associate our associated processing callbacks for each by associating the callback with the thread(s) we associate with the queues
 	//   Note:  On Win32, "Queues" are actually IO Completion Ports
 	for (i = 0; i < 1; ++i)

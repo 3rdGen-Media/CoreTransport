@@ -16,7 +16,7 @@ CXReQLSession::~CXReQLSession()
 }
 
 
-static int _CXReQLSessionConnectionCallback(ReqlError* err, ReqlConnection * conn)
+static int _CXReQLSessionConnectionCallback(ReqlError* err, CTConnection * conn)
 {
 	//conn should always exist, so it can contain the input ReqlService pointer
 	//which contains the client context
@@ -34,6 +34,9 @@ static int _CXReQLSessionConnectionCallback(ReqlError* err, ReqlConnection * con
 	callback = serviceCallbackContext.first;
 	conn->service->ctx = serviceCallbackContext.second;
 
+	//  Complete the RethinkDB 2.3+ connection: Perform RethinkDB ReQL SASL Layer Auth Handshake (using SCRAM HMAC SHA-256 Auth) over TCP
+    err->id = CTReQLSASLHandshake(conn, conn->service);
+
 	//Parse any errors
 	if (err->id != ReqlSuccess)
 	{
@@ -45,13 +48,13 @@ static int _CXReQLSessionConnectionCallback(ReqlError* err, ReqlConnection * con
 	else //Handle successfull connection!!!
 	//if (conn)
 	{
-		//For WIN32 each ReqlConnection gets its own pair of tx/rx iocp queues internal to the ReQL C API (but the client must assign thread(s) to these)
+		//For WIN32 each CTConnection gets its own pair of tx/rx iocp queues internal to the ReQL C API (but the client must assign thread(s) to these)
 		//For Darwin + GCD, these queue handles are currently owned by NSReQLSession and still need to be moved into ReQLConnection->socketContext	
 		//*Note:  On platforms where the SSL Context is not thread safe, such as Darwin w/ SecureTransport, we need to manually specify the same [GCD] thread queue for send and receive
 		//because the SSL Context API (SecureTransport) is not thread safe when reading and writing simultaneously
 
-		//Wrap the ReqlConnection in a C++ CXReQLConnection Object
-		//A CXReQLConnection gets created with a ReqlConnection (socket + ssl context) and a dedicated thread queue for reading from the connection's socket
+		//Wrap the CTConnection in a C++ CXReQLConnection Object
+		//A CXReQLConnection gets created with a CTConnection (socket + ssl context) and a dedicated thread queue for reading from the connection's socket
 		cxConnection = new CXReQLConnection(conn, conn->socketContext.rxQueue, conn->socketContext.txQueue);
 
 		//  Store CXReQLConnection in internal NXReQLSession connections array/map/hash or whatever

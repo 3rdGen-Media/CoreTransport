@@ -137,7 +137,7 @@ CXReQLQuery& CXReQLQuery::table(const char * name)
  *  Sends a message buffer to a dedicated platform "Queue" mechanism
  *  for encryption and then transmission over socket
  ***/
-ReqlDriverError CXReQLQuery::CXReQLSendWithQueue(ReqlConnection* conn, void * msg, unsigned long * msgLength)
+ReqlDriverError CXReQLQuery::CXReQLSendWithQueue(CTConnection* conn, void * msg, unsigned long * msgLength)
 {
 #ifdef _WIN32
 
@@ -192,7 +192,7 @@ ReqlDriverError CXReQLQuery::CXReQLSendWithQueue(ReqlConnection* conn, void * ms
 }
 
 
-uint64_t CXReQLQuery::CXReQLRunQueryWithTokenOnQueue(ReqlConnection * conn, uint64_t queryToken)//, void * options)//, ReqlQueryClosure callback)
+uint64_t CXReQLQuery::CXReQLRunQueryWithTokenOnQueue(CTConnection * conn, uint64_t queryToken)//, void * options)//, ReqlQueryClosure callback)
 {
 
 	//a string/stream for serializing the json query to char*	

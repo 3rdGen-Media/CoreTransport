@@ -35,8 +35,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{79614634-7BAC-4BAB-896D-BF328A8C3348}</ProjectGuid>
-    <RootNamespace>CXReQL</RootNamespace>
+    <ProjectGuid>{F206EB7D-A6EF-49A3-8271-E5DAA79F8FB6}</ProjectGuid>
+    <RootNamespace>CTransport</RootNamespace>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -124,15 +124,18 @@
     <OutDir>$(SolutionDir)lib\x64\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <IntDir>$(Configuration)\</IntDir>
     <TargetName>$(ProjectName)d</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <TargetName>$(ProjectName)d</TargetName>
+    <IntDir>$(Configuration)\d</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug (Static)|Win32'">
+    <IntDir>$(Configuration)\</IntDir>
     <TargetName>$(ProjectName)d</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug (Static)|x64'">
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <TargetName>$(ProjectName)d</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -152,18 +155,21 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>$(VLD_DIR)\include;..\include;..\include\CoreTransport;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_DEBUG;_WIN32;_WINDLL;_CXREQL_BUILD_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_WIN32;_WINDLL;_CTRANSPORT_BUILD_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\lib\x86;$(VLD_DIR)\lib\Win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>ctSCRAMd.lib;CTransportd.lib;ws2_32.lib;secur32.lib;crypt32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <ImportLibrary>$(SolutionDir)lib\x86\CXReQLd.lib</ImportLibrary>
+      <AdditionalDependencies>ctSCRAMd.lib;ws2_32.lib;secur32.lib;crypt32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImportLibrary>$(SolutionDir)lib\x86\CTransportd.lib</ImportLibrary>
     </Link>
     <PostBuildEvent>
-      <Command>if not exist ..\include\CoreTransport\CXReQL mkdir ..\include\CoreTransport\CXReQL
-copy .\CXReQL\*.h ..\include\CoreTransport\CXReQL
+      <Command>if not exist ..\include\CoreTransport\CTransport mkdir ..\include\CoreTransport\CTransport
+copy .\CTransport\*.h ..\include\CoreTransport\CTransport
 copy .\*.h ..\include\CoreTransport
+if not exist ..\include\CoreTransport\protobuf mkdir ..\include\CoreTransport\protobuf
+copy .\protobuf\*.h ..\include\CoreTransport\protobuf
 exit 0</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -172,18 +178,21 @@ exit 0</Command>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>$(VLD_DIR)\include;..\include;..\include\CoreTransport;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_DEBUG;_WIN32;_WINDLL;_CXREQL_BUILD_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_WIN32;_WINDLL;_CTRANSPORT_BUILD_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\lib\x64;$(VLD_DIR)\lib\Win64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>ctSCRAMd.lib;CTransportd.lib;ws2_32.lib;secur32.lib;crypt32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <ImportLibrary>$(SolutionDir)lib\x64\CXReQLd.lib</ImportLibrary>
+      <AdditionalDependencies>ctSCRAMd.lib;ws2_32.lib;secur32.lib;crypt32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImportLibrary>$(SolutionDir)lib\x64\CTransportd.lib</ImportLibrary>
     </Link>
     <PostBuildEvent>
-      <Command>if not exist ..\include\CoreTransport\CXReQL mkdir ..\include\CoreTransport\CXReQL
-copy .\CXReQL\*.h ..\include\CoreTransport\CXReQL
+      <Command>if not exist ..\include\CoreTransport\CTransport mkdir ..\include\CoreTransport\CTransport
+copy .\CTransport\*.h ..\include\CoreTransport\CTransport
 copy .\*.h ..\include\CoreTransport
+if not exist ..\include\CoreTransport\protobuf mkdir ..\include\CoreTransport\protobuf
+copy .\protobuf\*.h ..\include\CoreTransport\protobuf
 exit 0</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -192,23 +201,28 @@ exit 0</Command>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>$(VLD_DIR)\include;..\include;..\include\CoreTransport;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_DEBUG;_WIN32;_WINDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_WIN32;_WINDLL;_CTRANSPORT_BUILD_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\lib\x86;$(VLD_DIR)\lib\Win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>ctSCRAMd.lib;ctReQLd.lib;ws2_32.lib;secur32.lib;crypt32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <ImportLibrary>$(SolutionDir)lib\x86\CXReQLd.lib</ImportLibrary>
+      <AdditionalLibraryDirectories>C:\Development\git\mbedtls32\visualc\VS2010\Debug;..\lib\x86;$(VLD_DIR)\lib\Win32;%(AdditionalLibraryDirectories)C:\Development\git\mbedtls32\visualc\VS2010\Debug;</AdditionalLibraryDirectories>
+      <AdditionalDependencies>mbedtls.lib;ctSCRAMd.lib;ws2_32.lib;secur32.lib;crypt32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImportLibrary>$(SolutionDir)lib\x86\CTransportd.lib</ImportLibrary>
     </Link>
     <PostBuildEvent>
-      <Command>if not exist ..\include\CoreTransport\CXReQL mkdir ..\include\CoreTransport\CXReQL
-copy .\CXReQL\*.h ..\include\CoreTransport\CXReQL
+      <Command>if not exist ..\include\CoreTransport\CTransport mkdir ..\include\CoreTransport\CTransport
+copy .\CTransport\*.h ..\include\CoreTransport\CTransport
 copy .\*.h ..\include\CoreTransport
+if not exist ..\include\CoreTransport\protobuf mkdir ..\include\CoreTransport\protobuf
+copy .\protobuf\*.h ..\include\CoreTransport\protobuf
 exit 0</Command>
     </PostBuildEvent>
     <Lib>
-      <AdditionalLibraryDirectories>..\lib\x86;$(VLD_DIR)\lib\Win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>CTransportd.lib;</AdditionalDependencies>
+      <AdditionalDependencies>mbedtls.lib</AdditionalDependencies>
+    </Lib>
+    <Lib>
+      <AdditionalLibraryDirectories>C:\Development\git\mbedtls32\visualc\VS2010\Debug;C:\Program Files (x86)\Visual Leak Detector\lib\Win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug (Static)|x64'">
@@ -216,23 +230,26 @@ exit 0</Command>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>$(VLD_DIR)\include;..\include;..\include\CoreTransport;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_DEBUG;_WIN32;_WINDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_WIN32;_WINDLL;_CTRANSPORT_BUILD_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\lib\x86;$(VLD_DIR)\lib\Win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>ctSCRAMd.lib;ctReQLd.lib;ws2_32.lib;secur32.lib;crypt32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <ImportLibrary>$(SolutionDir)lib\x86\CXReQLd.lib</ImportLibrary>
+      <AdditionalLibraryDirectories>C:\Development\git\mbedtls32\visualc\VS2010\x64\Debug;...\lib\x64;$(VLD_DIR)\lib\Win64;..\lib\x64;%(AdditionalLibraryDirectories)C:\Development\git\mbedtls32\visualc\VS2010\Debug;</AdditionalLibraryDirectories>
+      <AdditionalDependencies>mbedtls.lib;ctSCRAMd.lib;ws2_32.lib;secur32.lib;crypt32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImportLibrary>$(SolutionDir)lib\x64\CTransportd.lib</ImportLibrary>
     </Link>
     <PostBuildEvent>
-      <Command>if not exist ..\include\CoreTransport\CXReQL mkdir ..\include\CoreTransport\CXReQL
-copy .\CXReQL\*.h ..\include\CoreTransport\CXReQL
+      <Command>if not exist ..\include\CoreTransport\CTransport mkdir ..\include\CoreTransport\CTransport
+copy .\CTransport\*.h ..\include\CoreTransport\CTransport
 copy .\*.h ..\include\CoreTransport
+if not exist ..\include\CoreTransport\protobuf mkdir ..\include\CoreTransport\protobuf
+copy .\protobuf\*.h ..\include\CoreTransport\protobuf
 exit 0</Command>
     </PostBuildEvent>
     <Lib>
-      <AdditionalLibraryDirectories>..\lib\x64;$(VLD_DIR)\lib\Win64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>CTransportd.lib;</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Development\git\mbedtls32\visualc\VS2010\x64\Debug;C:\Program Files (x86)\Visual Leak Detector\lib\Win64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>mbedtls.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -242,20 +259,23 @@ exit 0</Command>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <AdditionalIncludeDirectories>..\include;..\include\CoreTransport;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_WIN32;_WINDLL;_CXREQL_BUILD_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WIN32;_WINDLL;_CTRANSPORT_BUILD_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <ImportLibrary>$(SolutionDir)lib\x86\CTransport.lib</ImportLibrary>
       <AdditionalLibraryDirectories>..\lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>ctSCRAM.lib;CTransport.lib;ws2_32.lib;secur32.lib;crypt32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <ImportLibrary>$(SolutionDir)lib\x86\CXReQL.lib</ImportLibrary>
+      <AdditionalDependencies>ctSCRAM.lib;ws2_32.lib;secur32.lib;crypt32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>if not exist ..\include\CoreTransport\CXReQL mkdir ..\include\CoreTransport\CXReQL
-copy .\CXReQL\*.h ..\include\CoreTransport\CXReQL
+      <Command>if not exist ..\include\CoreTransport\CTransport mkdir ..\include\CoreTransport\CTransport
+copy .\CTransport\*.h ..\include\CoreTransport\CTransport
 copy .\*.h ..\include\CoreTransport
+if not exist ..\include\CoreTransport\protobuf mkdir ..\include\CoreTransport\protobuf
+copy .\protobuf\*.h ..\include\CoreTransport\protobuf
 exit 0</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -266,20 +286,23 @@ exit 0</Command>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <AdditionalIncludeDirectories>..\include;..\include\CoreTransport;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_WIN32;_WINDLL;_CXREQL_BUILD_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WIN32;_WINDLL;_CTRANSPORT_BUILD_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <ImportLibrary>$(SolutionDir)lib\x64\CTransport.lib</ImportLibrary>
       <AdditionalLibraryDirectories>..\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>ctSCRAM.lib;CTransport.lib;ws2_32.lib;secur32.lib;crypt32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <ImportLibrary>$(SolutionDir)lib\x64\CXReQL.lib</ImportLibrary>
+      <AdditionalDependencies>ctSCRAM.lib;ws2_32.lib;secur32.lib;crypt32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>if not exist ..\include\CoreTransport\CXReQL mkdir ..\include\CoreTransport\CXReQL
-copy .\CXReQL\*.h ..\include\CoreTransport\CXReQL
+      <Command>if not exist ..\include\CoreTransport\CTransport mkdir ..\include\CoreTransport\CTransport
+copy .\CTransport\*.h ..\include\CoreTransport\CTransport
 copy .\*.h ..\include\CoreTransport
+if not exist ..\include\CoreTransport\protobuf mkdir ..\include\CoreTransport\protobuf
+copy .\protobuf\*.h ..\include\CoreTransport\protobuf
 exit 0</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -290,24 +313,30 @@ exit 0</Command>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <AdditionalIncludeDirectories>..\include;..\include\CoreTransport;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_WIN32;_WINDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WIN32;_WINDLL;_CTRANSPORT_BUILD_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>..\lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>ctSCRAM.lib;ctReQL.lib;ws2_32.lib;secur32.lib;crypt32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <ImportLibrary>$(SolutionDir)lib\x86\CXReQL.lib</ImportLibrary>
+      <ImportLibrary>$(SolutionDir)lib\x86\CTransport.lib</ImportLibrary>
+      <AdditionalLibraryDirectories>C:\Development\git\mbedtls32\visualc\VS2010\Release;..\lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>mbedtls.lib;ctSCRAM.lib;ws2_32.lib;secur32.lib;crypt32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>if not exist ..\include\CoreTransport\CXReQL mkdir ..\include\CoreTransport\CXReQL
-copy .\CXReQL\*.h ..\include\CoreTransport\CXReQL
+      <Command>if not exist ..\include\CoreTransport\CTransport mkdir ..\include\CoreTransport\CTransport
+copy .\CTransport\*.h ..\include\CoreTransport\CTransport
 copy .\*.h ..\include\CoreTransport
+if not exist ..\include\CoreTransport\protobuf mkdir ..\include\CoreTransport\protobuf
+copy .\protobuf\*.h ..\include\CoreTransport\protobuf
 exit 0</Command>
     </PostBuildEvent>
     <Lib>
-      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>mbedtls.lib</AdditionalDependencies>
+    </Lib>
+    <Lib>
+      <AdditionalLibraryDirectories>C:\Development\git\mbedtls32\visualc\VS2010\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release (Static)|x64'">
@@ -317,43 +346,46 @@ exit 0</Command>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <AdditionalIncludeDirectories>..\include;..\include\CoreTransport;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_WIN32;_WINDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WIN32;_WINDLL;_CTRANSPORT_BUILD_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>..\lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>ctSCRAM.lib;ctReQL.lib;ws2_32.lib;secur32.lib;crypt32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <ImportLibrary>$(SolutionDir)lib\x86\CXReQL.lib</ImportLibrary>
+      <ImportLibrary>$(SolutionDir)lib\x64\CTransport.lib</ImportLibrary>
+      <AdditionalLibraryDirectories>C:\Development\git\mbedtls32\visualc\VS2010\x64\Release;C:\Development\git\mbedtls32\visualc\VS2010\Release;..\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>mbedtls.lib;ctSCRAM.lib;ws2_32.lib;secur32.lib;crypt32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>if not exist ..\include\CoreTransport\CXReQL mkdir ..\include\CoreTransport\CXReQL
-copy .\CXReQL\*.h ..\include\CoreTransport\CXReQL
+      <Command>if not exist ..\include\CoreTransport\CTransport mkdir ..\include\CoreTransport\CTransport
+copy .\CTransport\*.h ..\include\CoreTransport\CTransport
 copy .\*.h ..\include\CoreTransport
+if not exist ..\include\CoreTransport\protobuf mkdir ..\include\CoreTransport\protobuf
+copy .\protobuf\*.h ..\include\CoreTransport\protobuf
 exit 0</Command>
     </PostBuildEvent>
     <Lib>
-      <AdditionalLibraryDirectories>..\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>CTransport.lib;</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Development\git\mbedtls32\visualc\VS2010\x64\Release;C:\Program Files (x86)\Visual Leak Detector\lib\Win64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>mbedtls.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="CXReQL\CXReQLInterface.cpp" />
-    <ClCompile Include="CXReQL\CXReQLConnection.cpp" />
-    <ClCompile Include="CXReQL\CXReQLCursor.cpp" />
-    <ClCompile Include="CXReQL\CXReQLQuery.cpp" />
-    <ClCompile Include="CXReQL\CXReQLService.cpp" />
-    <ClCompile Include="CXReQL\CXReQLSession.cpp" />
+    <ClCompile Include="CTransport\CTransportAPI.c" />
+    <ClCompile Include="CTransport\CTReQL.c" />
+    <ClCompile Include="CTransport\CTSocket.c" />
+    <ClCompile Include="CTransport\CTSSL.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CXReQL.h" />
-    <ClInclude Include="CXReQL\CXReQLInterface.h" />
-    <ClInclude Include="CXReQL\CXReQLConnection.h" />
-    <ClInclude Include="CXReQL\CXReQLCursor.h" />
-    <ClInclude Include="CXReQL\CXReQLQuery.h" />
-    <ClInclude Include="CXReQL\CXReQLService.h" />
-    <ClInclude Include="CXReQL\CXReQLSession.h" />
+    <ClInclude Include="CTransport.h" />
+    <ClInclude Include="CTransport\CTConnection.h" />
+    <ClInclude Include="CTransport\CTCoroutine.h" />
+    <ClInclude Include="CTransport\CTError.h" />
+    <ClInclude Include="CTransport\CTransportAPI.h" />
+    <ClInclude Include="CTransport\CTReQL.h" />
+    <ClInclude Include="CTransport\CTSocket.h" />
+    <ClInclude Include="CTransport\CTSSL.h" />
+    <ClInclude Include="CTransport\CTSSLKey.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

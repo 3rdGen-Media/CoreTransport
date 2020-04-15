@@ -2,7 +2,7 @@
 #ifndef CXREQL_QUERY_H
 #define CX_REQL_QUERY_H
 
-#include <CoreTransport/ctReQL.h>
+//#include <CoreTransport/CTSockets.h>
 #include "CXReQLCursor.h"
 #include "CXReQLConnection.h"
 
@@ -84,8 +84,8 @@ namespace CoreTransport
 		CXReQLQuery& table(const char * name);
 
 		//Send Query Methods
-		ReqlDriverError CXReQLQuery::CXReQLSendWithQueue(ReqlConnection* conn, void * msg, unsigned long * msgLength);
-		uint64_t CXReQLRunQueryWithTokenOnQueue(ReqlConnection * conn, uint64_t queryToken);//, void * options)//, ReqlQueryClosure callback)
+		ReqlDriverError CXReQLQuery::CXReQLSendWithQueue(CTConnection* conn, void * msg, unsigned long * msgLength);
+		uint64_t CXReQLRunQueryWithTokenOnQueue(CTConnection * conn, uint64_t queryToken);//, void * options)//, ReqlQueryClosure callback)
 		
 		
 		template<typename CXReQLQueryClosure>

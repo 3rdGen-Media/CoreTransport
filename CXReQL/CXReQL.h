@@ -77,7 +77,7 @@
 
 //#define Reql_printf(f_, ...) printf((f_), __VA_ARGS__)
 
-#include <CoreTransport/ctReQL.h>
+#include <CoreTransport/CTransport.h>
 #include "CXReQL/CXReQLService.h"
 #include "CXReQL/CXReQLConnection.h"
 #include "CXReQL/CXReQLQuery.h"

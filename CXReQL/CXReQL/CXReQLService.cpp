@@ -1,5 +1,4 @@
 #include "../CXReQL.h"
-
 using namespace CoreTransport;
 
 CXReQLService::CXReQLService(ReqlService *service)

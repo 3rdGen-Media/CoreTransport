@@ -42,7 +42,7 @@ namespace CoreTransport
 		CXReQLSession(CXReQLSession const&);              // Don't Implement
 		void operator=(CXReQLSession const&);			  // Don't implement
 
-		//static int _CXReQLSessionConnectionCallback(ReqlError* err, ReqlConnection * conn);
+		//static int _CXReQLSessionConnectionCallback(ReqlError* err, CTConnection * conn);
 
 		// C++ 11
 		// =======
