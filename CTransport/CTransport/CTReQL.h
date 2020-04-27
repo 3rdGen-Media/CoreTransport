@@ -198,7 +198,7 @@ typedef CTConnection ReqlConnection;
 
 //#ifdef _WIN32
 //#ifdef CTOverlappedRequest
-typedef CTOverlappedRequest ReqlOverlappedQuery;
+typedef CTOverlappedResponse ReqlOverlappedQuery;
 typedef CTOverlappedResponse ReqlOverlappedResponse;
 //#endif
 //#endif

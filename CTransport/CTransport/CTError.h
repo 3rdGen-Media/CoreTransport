@@ -21,6 +21,15 @@ typedef unsigned __int64 uint64_t;
 #endif
 
 
+#ifdef CTRANSPORT_USE_MBED_TLS	//MBED_TLS API
+//mbded tls
+#include "mbedtls/net.h"
+#include "mbedtls/ssl.h"
+#include "mbedtls/entropy.h"
+#include "mbedtls/ctr_drbg.h"
+#include "mbedtls/debug.h"
+#endif
+
 //#pragma mark -- ReqlError Enums
 
 typedef enum CTErrorClass
@@ -43,6 +52,18 @@ typedef enum CTErrorClass
 
 typedef enum CTClientError
 {
+#ifdef CTRANSPORT_USE_MBED_TLS
+	CTSocketWantRead				= MBEDTLS_ERR_SSL_WANT_READ,
+	CTSocketWantWrite				= MBEDTLS_ERR_SSL_WANT_WRITE,
+#endif
+
+#if defined(_WIN32)
+	CTSocketWouldBlock				= WSAEWOULDBLOCK,
+	CTSocketDisconnect				= WSAEDISCON,
+#else
+	CTSocketWouldBlock				= EWOULDBLOCK,
+	CTSocketDisconnet				= EDISCON,
+#endif
 	CTSocketIOPending				 = WSA_IO_PENDING,	 //ReqlAsyncSend is sending in an async state
     CTRunLoopError					 = -130,
     CTSysCallError					 = -120,
@@ -61,7 +82,14 @@ typedef enum CTClientError
     CTAuthError					   	 = 10,  //Standard ReqlDriverError:ReqlAuthError
 }CTClientError;
 
+typedef enum CTFileError
+{
 
+	CTFileMapViewError		= -30,
+	CTFileMapError			= -20,
+	CTFileOpenError			= -10,
+	CTFileSuccess			= 0
+}CTFileError;
 
 #pragma mark -- CTError Struct
 

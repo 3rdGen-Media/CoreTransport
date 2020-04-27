@@ -26,7 +26,9 @@ CTSocket CTSocketCreate(void)
     // Standard unix socket definitions
     CTSocket socketfd;
 	struct linger lin;
-
+	int iResult;
+	u_long nonblockingMode = 0;
+	struct timeval timeout = {0,0};      
 #ifdef _WIN32
 	socketfd = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
 #elif defined(__APPLE__)
@@ -49,7 +51,22 @@ CTSocket CTSocketCreate(void)
         printf("setsockopt(socketfd, SOL_SOCKET, SO_LINGER,...) failed with error:  %d\n", errno);
         //return CTSocketError;
     }
- 
+
+
+   // timeout.tv_sec = 0;
+   // timeout.tv_usec = 0;
+	/*
+    if (setsockopt (socketfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
+        printf("setsockopt(socketfd, SOL_SOCKET, SO_RCVTIMEO,...) failed with error:  %d\n", errno);
+
+    if (setsockopt (socketfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
+        printf("setsockopt(socketfd, SOL_SOCKET, SO_SNDTIMEO,...) failed with error:  %d\n", errno);
+	*/
+	/*
+	 iResult = ioctlsocket(socketfd, FIONBIO, &nonblockingMode );
+	if (iResult != NO_ERROR)
+		printf("ioctlsocket failed with error: %ld\n", iResult);
+  */
 #ifndef _WIN32
     // Set socket to close on exec
     if( (fcntl(socketfd, F_SETFD, FD_CLOEXEC)) < 0 )

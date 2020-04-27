@@ -29,13 +29,18 @@ static void Reql_printf(char *format, ...)
 	OutputDebugStringA(REQL_PRINT_BUFFER);
 #endif
 */
+	
 	int nBuf;
 	va_list args;
 	va_start(args, format);
+	
+	vprintf(format, args);
 	//TCHAR szBuffer[512]; // get rid of this hard-coded buffer
-	nBuf = _vsnprintf(REQL_PRINT_BUFFER, 4095, format, args);
-	OutputDebugStringA(REQL_PRINT_BUFFER);
+	//nBuf = _vsnprintf(REQL_PRINT_BUFFER, 4095, format, args);
+	//OutputDebugStringA(REQL_PRINT_BUFFER);
 	va_end(args);
+	
+
 }
 
 
@@ -1196,7 +1201,7 @@ void CTSSLContextDestroy(CTSSLContextRef sslContextRef)
 	mbedtls_ssl_free(&(sslContextRef->ctx));
 	mbedtls_ssl_config_free(&(sslContextRef->conf));
 #elif defined(_WIN32)		//DESTROY SCHANNEL CONTEXT
-			PSecurityFunctionTable pSSPI = NULL;
+	//PSecurityFunctionTable pSSPI = NULL;
 	//g_pSSPI->FreeContextBuffer(OutBuffers[0].pvBuffer);
  
 	 //sslContextRef->hCtxt = 0;
@@ -1391,7 +1396,7 @@ int mbedWriteToSocket(void *ctx, const unsigned char *buf, size_t len) {
 
 	int ret = -1;// MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
 	//int fd = *((int*)ctx);
-	int fd = ((mbedtls_net_context *)ctx)->fd;
+	int fd = (CTSocket)ctx;//((mbedtls_net_context *)ctx)->fd;
 
 
 	assert(fd >= 0);
@@ -1399,7 +1404,7 @@ int mbedWriteToSocket(void *ctx, const unsigned char *buf, size_t len) {
 	if (fd < 0)
 		return(MBEDTLS_ERR_NET_INVALID_CONTEXT);
 
-	ret = (int)send(fd, buf, len,0);
+	ret = (int)send(fd, (char*)buf, len,0);
 
 	if (ret < 0)
 	{
@@ -1431,33 +1436,71 @@ int mbedWriteToSocket(void *ctx, const unsigned char *buf, size_t len) {
 /**
  * Receive callback for mbed TLS
  */
-static int mbedReadFromSocket(void *ctx, const unsigned char *data, size_t len)
+static int mbedReadFromSocket(void *ctx, unsigned char *buf, size_t len)
 {
 	size_t status = -1;
 	//int sockfd = *((int*)ctx);
 	size_t bytesRequested = len;
-	int sockfd = ((mbedtls_net_context *)ctx)->fd;
+	//unsigned long numBytesAvailable = 0;
+	
+
+//#ifdef _WIN32
+//	DWORD numBytesRecv = len;
+//	DWORD flags = 0;
+//	WSABUF wsaBuf = {len, (CHAR*)buf};
+//#endif
+	
+	int sockfd = (CTSocket)ctx;//((mbedtls_net_context *)ctx)->fd;
+
+	printf("**** mbedReadFromSocket::bytesRequested = %d\n", (int)bytesRequested);
 
 	assert(sockfd >= 0);
 	if (sockfd < 0)
 		return(MBEDTLS_ERR_NET_INVALID_CONTEXT);
 
-	status = (int)recv(sockfd, data, bytesRequested, 0 );
+/*
+#ifdef _WIN32	
+	status = WSARecv(sockfd, (LPWSABUF)&wsaBuf, 1, &numBytesRecv, &flags, NULL, NULL);
+	//WSA_IO_PENDING
+	if( status == SOCKET_ERROR )
+	{
+		if( WSAGetLastError() != WSA_IO_PENDING )
+		{
+			printf( "****mbedReadFromSocket::WSARecv failed with error %d \n",  WSAGetLastError() );	
+		} 
+		
+		//forward the winsock system error to the client
+		return (CTClientError)WSAGetLastError();
+	}
 
+	if( status == 0 )
+	{
+		printf("**** mbedReadFromSocket::WSARecv return numBytesRecv = %d\n", (int)numBytesRecv);
+		return numBytesRecv;
+	}
+#else
+*/
+	status = (int)recv(sockfd, (char*)buf, bytesRequested, 0 );
+//#endif
+
+	/*
 	if (status > 0)
 	{
 		//*dataLength = status;
-		if (bytesRequested > status)
-			return MBEDTLS_ERR_SSL_WANT_READ;// WSAEWOULDBLOCK; //errSSLWouldBlock
+		//if (bytesRequested > status)
+		//	return MBEDTLS_ERR_SSL_WANT_READ;// WSAEWOULDBLOCK; //errSSLWouldBlock
 		//else
 		//	return noErr;
 	}
-	else if (0 == status) {
+	else */if (0 == status) {
 		//*dataLength = 0;
+				printf("**** mbedReadFromSocket::Status = 0 (%d)\n", WSAGetLastError());
+
 		return WSAEDISCON;// errSSLClosedGraceful;
 	}
-	else// if (status < 0)
+	else if (status  == SOCKET_ERROR)
 	{
+		printf("**** mbedReadFromSocket::Error %d reading data from server\n", WSAGetLastError());
 		if (WSAGetLastError() == WSAEWOULDBLOCK)
 			return MBEDTLS_ERR_SSL_WANT_READ;
 
@@ -1475,7 +1518,8 @@ static int mbedReadFromSocket(void *ctx, const unsigned char *data, size_t len)
 		return(MBEDTLS_ERR_NET_RECV_FAILED);
 	}
 
-	return status;
+	printf("**** mbedReadFromSocket::return numBytesRecv = %d\n", (int)status);
+	return (int)status;
 }
 
 /*
@@ -1614,7 +1658,7 @@ CTSSLStatus CTSSLDecryptMessage(CTSSLContextRef sslContextRef, void*msg, unsigne
 	SecBufferDesc      Message;			// unsigned long BufferType;  // Type of the buffer (below)
 	SecBuffer          *pDataBuffer, *pExtraBuffer;
 	PBYTE              buff;
-
+	DWORD cbIoBuffer;
 	/*
 	PSecurityFunctionTable pSSPI = NULL;
 	// Retrieve a data pointer for the current thread's security function table
@@ -1634,6 +1678,7 @@ CTSSLStatus CTSSLDecryptMessage(CTSSLContextRef sslContextRef, void*msg, unsigne
 	Buffers[2].BufferType = SECBUFFER_EMPTY; // Initial Type of the buffer 3
 	Buffers[3].BufferType = SECBUFFER_EMPTY; // Initial Type of the buffer 4
 
+
 	Message.ulVersion = SECBUFFER_VERSION;    // Version number
 	Message.cBuffers = 4;                                    // Number of buffers - must contain four SecBuffer structures.
 	Message.pBuffers = Buffers;                        // Pointer to array of buffers
@@ -1644,17 +1689,6 @@ CTSSLStatus CTSSLDecryptMessage(CTSSLContextRef sslContextRef, void*msg, unsigne
 	//if( scRet == SEC_I_CONTEXT_EXPIRED ) return scRet;//break; // Server signalled end of session
 	//if( scRet == SEC_E_INCOMPLETE_MESSAGE - Input buffer has partial encrypted record, read more
 
-		//TO DO:  eliminate this branch
-		//these are cases we don't consider decryption errors
-	if (scRet != SEC_E_OK &&
-		scRet != SEC_I_RENEGOTIATE &&
-		scRet != SEC_I_CONTEXT_EXPIRED)
-	{
-		printf("**** DecryptMessage ");
-		DisplaySECError((DWORD)scRet);
-		return scRet;
-	}
-
 	// Locate data and (optional) extra buffers.
 	pDataBuffer = NULL;
 	pExtraBuffer = NULL;
@@ -1663,6 +1697,27 @@ CTSSLStatus CTSSLDecryptMessage(CTSSLContextRef sslContextRef, void*msg, unsigne
 		if (pDataBuffer == NULL && Buffers[i].BufferType == SECBUFFER_DATA) pDataBuffer = &Buffers[i];
 		if (pExtraBuffer == NULL && Buffers[i].BufferType == SECBUFFER_EXTRA) pExtraBuffer = &Buffers[i];
 	}
+
+		//TO DO:  eliminate this branch
+		//these are cases we don't consider decryption errors
+	if (scRet != SEC_E_OK &&
+		scRet != SEC_I_RENEGOTIATE &&
+		scRet != SEC_I_CONTEXT_EXPIRED)
+		//&& scRet != SEC_E_INCOMPLETE_MESSAGE)
+	{
+		//if( scRet == SEC_E_INCOMPLETE_MESSAGE)
+		//{
+			assert(!pDataBuffer);
+			assert(!pExtraBuffer);
+			//*msgLength = pExtraBuffer->cbBuffer;
+			*msgLength = 0;
+		//}
+		printf("**** DecryptMessage ");
+		DisplaySECError((DWORD)scRet);
+		return scRet;
+	}
+
+	
 
 	// Display the decrypted data.
 	if (pDataBuffer)
@@ -1683,30 +1738,125 @@ CTSSLStatus CTSSLDecryptMessage(CTSSLContextRef sslContextRef, void*msg, unsigne
 	// Move any "extra" data to the input buffer.
 	if (pExtraBuffer)
 	{
-		printf("\nReqlSSLDecryptMessage::Handling Extra Buffer Data!!!\n");
-		//Question:  Where does the pbBuffer memory live?  In the sslContext?
-		//			 And, secondly, why does copying it back to the front of the msg buffer work?
-		//MoveMemory((char*)msg+*msgLength, pExtraBuffer->pvBuffer, pExtraBuffer->cbBuffer);
-		//cbIoBuffer = pExtraBuffer->cbBuffer; // printf("cbIoBuffer= %d  \n", cbIoBuffer);
-		scRet = CTSSLDecryptMessage(sslContextRef, pExtraBuffer->pvBuffer, &(pExtraBuffer->cbBuffer));
+		printf("\nReqlSSLDecryptMessage::Handling Extra Buffer Data (%d bytes)!!!\n", pExtraBuffer->cbBuffer);
+		MoveMemory((char*)msg, pExtraBuffer->pvBuffer, pExtraBuffer->cbBuffer);
+		cbIoBuffer = pExtraBuffer->cbBuffer; // printf("cbIoBuffer= %d  \n", cbIoBuffer);
+		scRet = CTSSLDecryptMessage(sslContextRef, msg, &(cbIoBuffer));
+
+			if (scRet != SEC_E_OK &&
+		scRet != SEC_I_RENEGOTIATE &&
+		scRet != SEC_I_CONTEXT_EXPIRED
+		&& scRet != SEC_E_INCOMPLETE_MESSAGE)
+		{
+			//if( scRet == SEC_E_INCOMPLETE_MESSAGE)
+			//	*msgLength = pExtraBuffer->cbBuffer;
+			
+			printf("**** DecryptMessage 2");
+			DisplaySECError((DWORD)scRet);
+			return scRet;
+		}
 
 		//In order to avoid copying the message buffer for subsequent SCHANNEL decryption passes,
 		//We are going add whitespace based on the connection's message protocol
 
-		memset( (char*)msg + sslContextRef->Sizes.cbHeader + *msgLength, ' ', sslContextRef->Sizes.cbHeader + sslContextRef->Sizes.cbTrailer - 1);
-		memcpy( (char*)msg + sslContextRef->Sizes.cbHeader + *msgLength + sslContextRef->Sizes.cbHeader + sslContextRef->Sizes.cbTrailer - 1, "\n", 1);
+		//memset( (char*)msg + sslContextRef->Sizes.cbHeader + *msgLength, ' ', sslContextRef->Sizes.cbHeader + sslContextRef->Sizes.cbTrailer - 1);
+		//memcpy( (char*)msg + sslContextRef->Sizes.cbHeader + *msgLength + sslContextRef->Sizes.cbHeader + sslContextRef->Sizes.cbTrailer - 1, "\n", 1);
 
 		//memcpy( (char*)msg + sslContextRef->Sizes.cbHeader + *msgLength - 2, "Padding: ", sizeof("Padding: "));
 		//memset( (char*)msg + sslContextRef->Sizes.cbHeader + *msgLength, 'X', sslContextRef->Sizes.cbHeader + sslContextRef->Sizes.cbTrailer - sizeof("\r\n\r\n"));
 		//memcpy( (char*)msg + sslContextRef->Sizes.cbHeader + *msgLength + sslContextRef->Sizes.cbHeader + sslContextRef->Sizes.cbTrailer - sizeof("\r\n\r\n"), "\r\n\r\n", sizeof("\r\n\r\n"));
 
-		*msgLength += sslContextRef->Sizes.cbTrailer + sslContextRef->Sizes.cbHeader + pExtraBuffer->cbBuffer;;
+		*msgLength += sslContextRef->Sizes.cbTrailer + sslContextRef->Sizes.cbHeader + cbIoBuffer;
 		return scRet;
 	}
+	/*
+	else if ( scRet == SEC_E_INCOMPLETE_MESSAGE )
+	{
+
+	}
+	*/
 	//else
 	//  cbIoBuffer = 0;
-	return CTSSLSuccess;
+	//return CTSSLSuccess;
 
+	return scRet;
+}
+
+CTSSLStatus CTSSLDecryptMessage2(CTSSLContextRef sslContextRef, void*msg, unsigned long *msgLength, char **extraBuffer, unsigned long * extraBytes)
+{
+	int i;
+	unsigned long length;
+	CTSSLStatus scRet;				// unsigned long cbBuffer;    // Size of the buffer, in bytes
+	SecBuffer          *pDataBuffer, *pExtraBuffer;
+	PBYTE              buff;
+	DWORD cbIoBuffer;
+
+	unsigned long hasData, hasExtra;
+	
+	SecBuffer          Buffers[4] = {{*msgLength, SECBUFFER_DATA, msg},0,0,0};		// void    SEC_FAR * pvBuffer;   // Pointer to the buffer
+	SecBufferDesc      Message = {SECBUFFER_VERSION, 4, Buffers};
+
+	// Decrypt the received data.
+	//Buffers[0].pvBuffer = msg;
+	//Buffers[0].cbBuffer = *msgLength;
+	//Buffers[0].BufferType = SECBUFFER_DATA;  // Initial Type of the buffer 1
+	//Buffers[1].BufferType = SECBUFFER_EMPTY; // Initial Type of the buffer 2
+	//Buffers[2].BufferType = SECBUFFER_EMPTY; // Initial Type of the buffer 3
+	//Buffers[3].BufferType = SECBUFFER_EMPTY; // Initial Type of the buffer 4
+	//Message.ulVersion = SECBUFFER_VERSION;    // Version number
+	//Message.cBuffers = 4;                                    // Number of buffers - must contain four SecBuffer structures.
+	//Message.pBuffers = Buffers;                        // Pointer to array of buffers
+	
+	//*extraBytes = 0;
+	//*extraBuffer = NULL;
+	//*msgLength = 0;
+	
+	scRet = DecryptMessage(&(sslContextRef->hCtxt), &Message, 0, NULL);
+
+#ifdef _DEBUGS
+	if (scRet != SEC_E_OK && scRet != SEC_I_RENEGOTIATE && scRet != SEC_I_CONTEXT_EXPIRED)
+	{
+		printf("**** DecryptMessage ");
+		DisplaySECError((DWORD)scRet);
+		//return scRet;
+	}
+#endif
+	/*
+	pDataBuffer = NULL;
+	pExtraBuffer = NULL;
+	for (i = 1; i < 4; i++)
+	{
+		if (pDataBuffer == NULL && Buffers[i].BufferType == SECBUFFER_DATA) pDataBuffer = &Buffers[i];
+		if (pExtraBuffer == NULL && Buffers[i].BufferType == SECBUFFER_EXTRA) pExtraBuffer = &Buffers[i];
+	}
+	
+	
+	*msgLength = 0;
+	*extraBuffer = NULL;
+	if( scRet  == SEC_E_OK || scRet == SEC_E_INCOMPLETE_MESSAGE )
+	{
+
+		if(pDataBuffer )
+		{
+			*msgLength = pDataBuffer->cbBuffer;
+		}
+
+
+		if( pExtraBuffer )
+		{
+			*extraBuffer = (char*)pExtraBuffer->pvBuffer;
+			*extraBytes = pExtraBuffer->cbBuffer;
+		}
+	}
+	*/
+	
+	hasData = (Buffers[1].BufferType == SECBUFFER_DATA); 
+	hasExtra = (Buffers[3].BufferType == SECBUFFER_EXTRA);
+
+	*msgLength =  hasData * Buffers[1].cbBuffer;// : 0;//length;
+	*extraBuffer = (char*)(hasExtra * (uintptr_t)Buffers[3].pvBuffer);// : NULL;//(char*)pExtraBuffer->pvBuffer;
+	*extraBytes = (scRet!=SEC_E_OK) * (*extraBytes) + hasExtra * Buffers[3].cbBuffer;//pExtraBuffer->cbBuffer;
+	
 	return scRet;
 }
 
@@ -1929,9 +2079,11 @@ CTSSLContextRef CTSSLContextCreate(CTSocket *socketfd, CTSecCertificateRef * cer
 		return NULL;
 	}
 
+	//mbedtls_ssl_conf_authmode(&(sslContextRef->conf), MBEDTLS_SSL_VERIFY_NONE);
 	//  OPTIONAL is not optimal for security,
 	//but makes interop easier in this simplified example
-	mbedtls_ssl_conf_authmode(&(sslContextRef->conf), MBEDTLS_SSL_VERIFY_REQUIRED);
+	//mbedtls_net_set_nonblock((mbedtls_net_context*)socketfd);
+	mbedtls_ssl_conf_authmode(&(sslContextRef->conf), MBEDTLS_SSL_VERIFY_NONE);
 	mbedtls_ssl_conf_ca_chain(&(sslContextRef->conf), *certRef, NULL);
 	mbedtls_ssl_conf_rng(&(sslContextRef->conf), mbedtls_ctr_drbg_random, &(sslContextRef->ctr_drbg));
 	mbedtls_ssl_conf_dbg(&(sslContextRef->conf), ReqlMBEDTLSDebug, stdout);
@@ -1954,7 +2106,7 @@ CTSSLContextRef CTSSLContextCreate(CTSocket *socketfd, CTSecCertificateRef * cer
 	}
 
 	//setup the sslread and sslwrite callbacks
-	mbedtls_ssl_set_bio(&(sslContextRef->ctx), (mbedtls_net_context*)socketfd, mbedWriteToSocket, mbedReadFromSocket, NULL);
+	mbedtls_ssl_set_bio(&(sslContextRef->ctx), (void*)*socketfd, mbedWriteToSocket, mbedReadFromSocket, NULL);
 
 	/*
 	while ((ret = mbedtls_ssl_handshake(&(sslContextRef->ctx))) != 0)
@@ -2539,7 +2691,7 @@ printf("\n");
 /***
  *	CTSSLRead
  ***/
-size_t CTSSLRead( CTSocket socketfd, CTSSLContextRef sslContextRef, void * msg, unsigned long * msgLength )
+CTSSLStatus CTSSLRead( CTSocket socketfd, CTSSLContextRef sslContextRef, void * msg, unsigned long * msgLength )
 
 // calls recv() - blocking socket read
 // http://msdn.microsoft.com/en-us/library/ms740121(VS.85).aspx
@@ -2549,23 +2701,89 @@ size_t CTSSLRead( CTSocket socketfd, CTSSLContextRef sslContextRef, void * msg, 
 
 {
 #ifdef CTRANSPORT_USE_MBED_TLS 
-	size_t scRet = 0;
-	/* Read data out of the socket */
-	scRet = mbedtls_ssl_read(&(sslContextRef->ctx), (unsigned char *)msg, (size_t)*msgLength);
-	if (scRet < 0) 
+	struct timeval m_timeInterval;
+	FD_SET ReadSet;
+	CTSSLStatus scRet = 0;
+	//NOTE:  CTransport uses blocking sockets but asynchronous operation
+	//This is not a problem when using IOCP on WIN32, because IOCP + WSARecv takes care of reading from the socket before notifying us that data is available to do encryption...
+	//However, because MBEDTLS only provides decryption through a routine that also reads from the socket, we must prevent IOCP from reading from the socket and just have it notify us when data is available
+	//But then, we still have the issue of not knowing when we have finished reading a full message from the socket without blocking calls, so in that case, when a msgLenght of zero is input to this function
+	//We use to determine whether there is data available for reading or none at all
+	
+	
+	
+	if( *msgLength == 0 )
 	{
-		if (scRet != MBEDTLS_ERR_SSL_WANT_READ && scRet != MBEDTLS_ERR_SSL_WANT_WRITE) {
-			Reql_printf("ReqlSSLRead::mbedtls_ssl_read failed (%d)", scRet);
-		}
-		else
-			Reql_printf("%s", "ReqlSSLRead::mbedtls_ssl_read MBED_ERR_TLS_WANT_READ\n");
+		FD_ZERO(&ReadSet);
+		FD_SET(socketfd, &ReadSet);
 
-		return scRet;
+		m_timeInterval.tv_sec = 0;
+		m_timeInterval.tv_usec = 30; //30 Microseconds for Polling
+
+		scRet = select((int)socketfd + 1, &ReadSet, NULL, NULL, &m_timeInterval);
+
+		if (scRet == SOCKET_ERROR)
+		{
+			//std::cout << "ERROR" << std::endl;
+			//break;
+			return scRet;
+		}
+
+		if (scRet == 0)
+		{
+			return 0;
+			//std::cout << "No Data to Receive" << std::endl;
+			//return CTSocketWouldBlock;
+		}
+
+		//DWORD numBytesAvailable
+		scRet = ioctlsocket(socketfd, FIONREAD, msgLength);
+	
+		printf("**** mbedReadFromSocket::ictlsocket status = %d\n", (int)scRet);
+		printf("**** mbedReadFromSocket::numBytesAvailable = %d\n", (int)*msgLength);
+
+		//select said there was data but ioctlsocket says there is no data
+		if( *msgLength == 0)
+			return 0;
+
 	}
+
+	scRet = mbedtls_ssl_read(&(sslContextRef->ctx), (unsigned char *)msg, (size_t)*msgLength);
+	
+	//message length output is zero unless mbedtls_ssl_read succeeded 
+	*msgLength = 0;
+
+
+	if( scRet == 0 )
+	{
+		//if mbedtls_ssl_read returned 0 then the socket disconnected
+#ifdef _DEBUG
+		Reql_printf("%s", "ReqlSSLRead::mbedtls_ssl_read disconnect!\n");
+#endif
+		return CTSocketDisconnect;
+	}
+	else if (scRet == MBEDTLS_ERR_SSL_WANT_READ) 
+	{
+#ifdef _DEBUG
+		Reql_printf("%s", "ReqlSSLRead::mbedtls_ssl_read MBED_ERR_TLS_WANT_READ\n");
+#endif
+		//MBEDTLS_ERR_SSL_WANT_READ/WRITE is the same ass WOULDBLOCK? confirm
+		return CTSocketWouldBlock;
+	}
+#ifdef _DEBUG
+	else if( scRet < 0 )
+	{
+		Reql_printf("%s", "ReqlSSLRead::mbedtls_ssl_read error (%d)\n", scRet);
+	}
+#endif
 	else
 	{
+		//on success mbedtls_ssl_read return provides the number of bytes
+		//but we want to return success and put 
 		Reql_printf("ReqlSSLRead::mbedtls_ssl_read %d bytes\n", scRet);
-		Reql_printf("\n%s\n", (char*)msg);
+		*msgLength = scRet;
+		scRet = CTSuccess;
+		//Reql_printf("\n%s\n", (char*)msg);
 	}
 	return scRet;
 #elif defined(_WIN32)
@@ -2634,7 +2852,8 @@ size_t CTSSLRead( CTSocket socketfd, CTSSLContextRef sslContextRef, void * msg, 
         }
     } // Loop till CRLF is found at the end of the data
 
-    return (size_t)cbIoBuffer;
+	*msgLength = (size_t)cbIoBuffer;
+    return scRet;//(size_t)cbIoBuffer;
 
 #endif
 }

@@ -81,9 +81,15 @@ extern "C" {
 
 //#define Reql_printf(f_, ...) printf((f_), __VA_ARGS__)
 
+//shared outgoing request and incoming response header buffer size
+#define CT_REQUEST_BUFFER_SIZE 65536L
+
+//switch to use native encryption vs mbedtls static lib
 //#define CTRANSPORT_USE_MBED_TLS
 
 //Core Headers/"Classes" Needed To Create a Secure Socket Connection
+#include "CTransport/CTSystem.h"
+#include "CTransport/CTFile.h"
 #include "CTransport/CTCoroutine.h"
 #include "CTransport/CTError.h"
 #include "CTransport/CTSocket.h"
@@ -91,6 +97,7 @@ extern "C" {
 #include "CTransport/CTConnection.h"
 
 //Exposed API and Protocols extensions
+#include "CTransport/CTURL.h"
 #include "CTransport/CTReQL.h"
 #include "CTransport/CTransportAPI.h"
 

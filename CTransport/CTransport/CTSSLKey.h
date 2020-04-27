@@ -3,7 +3,8 @@
 #define CTSSLKEY_H
 
 #ifdef _WIN32
-#include <windows.h>
+#include "CTSystem.h"
+//#include <windows.h>
 #include <stdio.h>
 #include <Wincrypt.h>
 

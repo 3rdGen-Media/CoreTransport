@@ -23,6 +23,9 @@
     <ClCompile Include="CTransport\CTSSL.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="CTransport\CTFile.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CTransport\CTConnection.h">
@@ -50,6 +53,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CTransport.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CTransport\CTURL.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CTransport\CTSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CTransport\CTFile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

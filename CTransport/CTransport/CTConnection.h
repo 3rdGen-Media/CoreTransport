@@ -2,8 +2,10 @@
 #define CTCONNECTION_H
 
 #include "CTError.h"
+#include "CTFile.h"
 #include "CTSocket.h"
 #include "CTSSL.h"
+
 
 #if defined(__cplusplus) //|| defined(__OBJC__)
 extern "C" {
@@ -130,11 +132,11 @@ typedef struct CTConnection
 		volatile uint64_t requestCount;
 	};
 
-	union{
-		char * query_buffers;
-		char * request_buffers;
-	};
-	char * response_buffers;
+	//union{
+	//	char * query_buffers;
+	//	char * request_buffers;
+	//};
+	//char * response_buffers;
 
 	//a user defined context object
 	//void * ctx;
@@ -143,6 +145,7 @@ typedef struct CTConnection
 		CTTarget * service;
 	};
 	
+	CTFile * response_files;
 	//BSD Socket Event Queue
 	int event_queue;
 	char padding[4];
@@ -153,14 +156,17 @@ typedef struct CTConnection
 typedef struct CTOverlappedResponse
 {
 	WSAOVERLAPPED		Overlapped;
-	CTConnection *	conn;
+	CTConnection *		conn;
 	char *				buf;
 	DWORD				Flags;
 	unsigned long		len;
 	uint64_t			queryToken;
 	WSABUF				wsaBuf;
+	void *				cursor;
+	//struct CTOverlappedResponse *overlappedResponse;	//ptr to the next overlapped
 }CTOverlappedResponse;
 
+/*
 typedef struct CTOverlappedRequest
 {
 	WSAOVERLAPPED		Overlapped;	
@@ -170,8 +176,38 @@ typedef struct CTOverlappedRequest
 	unsigned long		len;
 	uint64_t			queryToken;
 }CTOverlappedRequest;
-
+*/
 #endif
+
+typedef struct CTCursor;
+
+//client must provide a callback to return pointer to end of callback when requested
+//this also notifies the client when the cursor has been read, before the end of the message has been read
+typedef char* (*CTCursorHeaderLengthFunc)(struct CTCursor * cursor, char * buffer, unsigned long bufferLength);
+typedef char* (*CTCursorCompletionFunc)(CTError * err, struct CTCursor* cursor);
+
+typedef struct CTCursor
+{
+    union { //8 bytes + sizeof(CTFile)
+		//overlap the header for various defined protocols
+        //ReqlQueryMessageHeader * header;
+		struct{
+	        void * buffer;
+			size_t size;
+		};
+		CTFile file;
+    };
+	unsigned long				headerLength;
+	unsigned long				contentLength;
+    CTConnection*				conn;
+	CTOverlappedResponse		overlappedResponse;
+	char						requestBuffer[65536L];
+	uint64_t					queryToken;
+	CTCursorHeaderLengthFunc	headerLengthCallback;
+	CTCursorCompletionFunc		responseCallback;
+	//Reql
+}CTCursor;
+typedef int CTStatus;
 
 #pragma mark -- CTConnection API Callback Typedefs
 /* * *

@@ -3,6 +3,7 @@
 #ifndef CTSSL_H
 #define CTSSL_H
 
+#include "CTSystem.h"
 #include "CTSocket.h"
 #include "CTError.h"
 #include "CTSSLKey.h"  //native cryptographic functions needed to associate key with ssl certificate
@@ -38,7 +39,7 @@ typedef CTSSLContext * CTSSLContextRef;
 #import <Security/SecureTransport.h>
 typedef SecCertificateRef ReqlSecCertificateRef;
 #elif defined(_WIN32)	  //Win32 SCHANNEL API
-#include <windows.h>	  //Must include windows.h before sspi.h
+//#include <windows.h>	  //Must include windows.h before sspi.h
 #define SECURITY_WIN32
 #define IO_BUFFER_SIZE  0x10000
 #include <stdio.h>
@@ -147,12 +148,14 @@ CTRANSPORT_API CTRANSPORT_INLINE  int CTVerifyServerCertificate(CTSSLContextRef 
  *	ReqlSSLDecrypt
  ***/
 CTRANSPORT_API CTRANSPORT_INLINE CTSSLStatus CTSSLDecryptMessage(CTSSLContextRef sslContextRef, void*msg, unsigned long *msgLength);
+CTRANSPORT_API CTRANSPORT_INLINE CTSSLStatus CTSSLDecryptMessage2(CTSSLContextRef sslContextRef, void*msg, unsigned long *msgLength, char**extraBuffer, unsigned long * bytesRemaining);
+
 CTRANSPORT_API CTRANSPORT_INLINE CTSSLStatus CTSSLDecryptMessageInSitu(CTSSLContextRef sslContextRef, void**msg, unsigned long *msgLength);
 
 /***
  *	ReqlSSLRead
 /*****************************************************************************/
-CTRANSPORT_API CTRANSPORT_INLINE size_t CTSSLRead( CTSocket socketfd, CTSSLContextRef sslContextRef, void * msg, unsigned long * msgLength );
+CTRANSPORT_API CTRANSPORT_INLINE CTSSLStatus CTSSLRead( CTSocket socketfd, CTSSLContextRef sslContextRef, void * msg, unsigned long * msgLength );
 
 /***
  *	ReqlSSLEncryptMessage

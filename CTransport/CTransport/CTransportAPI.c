@@ -3,14 +3,145 @@
 
 #include <assert.h>
 
-
-
 #ifndef EVFILT_READ
 #define EVFILT_READ		(-1)
 #define EVFILT_WRITE	(-2)
 #define EVFILT_TIMER	(-7)
 #define EV_EOF			0x8000
 #endif
+
+CTRANSPORT_API void CTCursorCloseFile(CTCursor *cursor)
+{
+	ct_file_unmap(cursor->file.fd, cursor->file.buffer);
+	ct_file_close(cursor->file.fd);
+}
+
+CTRANSPORT_API void CTCursorCloseFileMap(CTCursor *cursor)
+{
+	ct_file_unmap(cursor->file.fd, cursor->file.buffer);
+}
+
+
+void CTCursorCloseMappingWithSize(CTCursor* cursor, unsigned long fileSize)
+{
+	DWORD dwCurrentFilePosition;
+	DWORD dwMaximumSizeHigh = (unsigned long long)fileSize >> 32;
+	DWORD dwMaximumSizeLow = fileSize & 0xffffffffu;
+	LONG offsetHigh = (LONG)dwMaximumSizeHigh;
+	LONG offsetLow = (LONG)dwMaximumSizeLow;
+
+	FlushViewOfFile(cursor->file.buffer , fileSize);
+	UnmapViewOfFile(cursor->file.buffer );
+	CloseHandle(cursor->file.mFile );
+	cursor->file.size = fileSize;
+
+	printf("CTCursorCloseMappingWithSize::Closing file with size = %d bytes\n", fileSize);
+	dwCurrentFilePosition = SetFilePointer(cursor->file.hFile, offsetLow, &offsetHigh, FILE_BEGIN); // provides offset from current position
+	SetEndOfFile(cursor->file.hFile);
+}
+
+CTFileError CTCursorMapFileW(CTCursor * cursor, unsigned long fileSize)
+{
+	CTFileError err = CTFileSuccess;
+#ifdef _WIN32
+	DWORD dwErr;
+	
+	//open file descriptor/buffer
+	DWORD dwMaximumSizeHigh, dwMaximumSizeLow;
+	LPVOID mapAddress = NULL;
+	char handleStr[sizeof(HANDLE)+1] = "\0";
+
+	//set the desired file size on the cursor
+	cursor->file.size= fileSize;
+ 
+	//get a win32 file handle from the file descriptor
+	cursor->file.hFile = (HANDLE)_get_osfhandle( cursor->file.fd  );
+
+	memcpy(handleStr, &(cursor->file.hFile), sizeof(HANDLE));
+	handleStr[sizeof(HANDLE)] = '\0';
+	dwMaximumSizeHigh = (unsigned long long)cursor->file.size  >> 32;
+	dwMaximumSizeLow = cursor->file.size & 0xffffffffu;
+
+	// try to allocate and map our space (get a win32 mapped file handle)
+	if ( !(cursor->file.mFile = CreateFileMappingA(cursor->file.hFile, NULL, PAGE_READWRITE, dwMaximumSizeHigh, dwMaximumSizeLow, handleStr))  )//||
+		//!MapViewOfFileEx(buffer->mapping, FILE_MAP_ALL_ACCESS, 0, 0, ring_size, (char *)desired_addr + ring_size))
+	{
+		// something went wrong - clean up
+		printf("cr_file_map_to_buffer failed:  OS Virtual Mapping failed");
+		err = CTFileMapError;
+	}
+		
+	// Offsets must be a multiple of the system's allocation granularity.  We
+	// guarantee this by making our view size equal to the allocation granularity.
+	if( !(cursor->file.buffer = (char *)MapViewOfFileEx(cursor->file.mFile, FILE_MAP_ALL_ACCESS, 0, 0, cursor->file.size , NULL)) )
+	{
+		printf("cr_file_map_to_buffer failed:  OS Virtual Mapping failed2 ");
+		err = CTFileMapViewError;
+	}
+	//filebuffer = (char*)ct_file_map_to_buffer(&(filebuffer), fileSize, PROT_READWRITE, MAP_SHARED | MAP_NORESERVE, fileDescriptor, 0);
+#endif
+
+	return err;
+}
+
+
+CTFileError CTCursorMapFileR(CTCursor * cursor)
+{
+	CTFileError err = CTFileSuccess;
+#ifdef _WIN32
+	DWORD dwErr;
+	
+	//open file descriptor/buffer
+	DWORD dwMaximumSizeHigh, dwMaximumSizeLow;
+	LPVOID mapAddress = NULL;
+	char handleStr[sizeof(HANDLE)+1] = "\0";
+
+	//assume cursor already has file size on the cursor set
+	//and that the file is already open
+	//cursor->file.size= fileSize;
+ 
+	//get a win32 file handle from the file descriptor
+	cursor->file.hFile = (HANDLE)_get_osfhandle( cursor->file.fd  );
+
+	memcpy(handleStr, &(cursor->file.hFile), sizeof(HANDLE));
+	handleStr[sizeof(HANDLE)] = '\0';
+	dwMaximumSizeHigh = (unsigned long long)cursor->file.size  >> 32;
+	dwMaximumSizeLow = cursor->file.size & 0xffffffffu;
+
+	// try to allocate and map our space (get a win32 mapped file handle)
+	if ( !(cursor->file.mFile = CreateFileMappingA(cursor->file.hFile, NULL, PAGE_READONLY, dwMaximumSizeHigh, dwMaximumSizeLow, handleStr))  )//||
+		//!MapViewOfFileEx(buffer->mapping, FILE_MAP_ALL_ACCESS, 0, 0, ring_size, (char *)desired_addr + ring_size))
+	{
+		// something went wrong - clean up
+		printf("CTCursorMapFileR::CreateFileMappingA failed:  OS Virtual Mapping failed");
+		err = CTFileMapError;
+	}
+		
+	// Offsets must be a multiple of the system's allocation granularity.  We
+	// guarantee this by making our view size equal to the allocation granularity.
+	if( !(cursor->file.buffer = (char *)MapViewOfFileEx(cursor->file.mFile, FILE_MAP_READ, 0, 0, cursor->file.size , NULL)) )
+	{
+		printf("CTCursorMapFileR::MapViewOfFileEx failed:  OS Virtual Mapping failed 2");
+		err = CTFileMapViewError;
+	}
+#endif
+	return err;
+}
+
+
+CTFileError CTCursorCreateMapFileW(CTCursor * cursor, char* filepath, unsigned long fileSize)
+{
+	CTFileError err;
+
+	//1 create file to populate the cursors file descriptor property
+	cursor->file.fd = ct_file_create_w(filepath);
+	//cursor->file.size= fileSize;
+	//printf("\nFile Size =  %llu bytes\n", fileSize);
+
+	//2 MAP THE CURSOR'S FILE TO BUFFER FOR Writing
+	err = CTCursorMapFileW(cursor, fileSize);
+	return err;
+}
 
 
 /***
@@ -44,12 +175,12 @@ void* CTRecv(CTConnection* conn, void * msg, unsigned long * msgLength)
     }
 #ifdef _WIN32
 	ret = CTSSLRead(conn->socket, conn->sslContext, msg, &remainingBufferSize);
-	if( ret <= 0 )
+	if( ret != 0 )
 		ret = 0;
 	else
 	{
 #ifdef CTRANSPORT_USE_MBED_TLS
-		decryptedMessagePtr = msg;
+		decryptedMessagePtr = (char*)msg;
 #elif defined(_WIN32)
 		decryptedMessagePtr = (char*)msg + conn->sslContext->Sizes.cbHeader;
 #else
@@ -74,7 +205,7 @@ void* CTRecv(CTConnection* conn, void * msg, unsigned long * msgLength)
     printf("ReqlRecv::%d bytes of handshake data received\n\n%.*s\n\n", ret, ret, (char*)msg);
 	*/
 
-	*msgLength = (size_t)ret;
+	*msgLength = remainingBufferSize;//(size_t)ret;
 	totalMsgLength += *msgLength;
 	remainingBufferSize -= *msgLength;
 #elif defined(__APPLE__)
@@ -177,9 +308,9 @@ CTClientError CTSendWithQueue(CTConnection* conn, void * msg, unsigned long * ms
 	//Send Query Asynchronously with Windows IOCP
 	//Create an overlapped connetion object to pass what we need to the iocp callback
 	//Instead of allocating memory we will assume the send buffer is large enough and tack it on the end
-	CTOverlappedRequest * overlappedQuery = (CTOverlappedRequest*) ( (char*)msg + *msgLength + 1 ); //+1 for null terminator needed for encryption
+	CTOverlappedResponse * overlappedQuery = (CTOverlappedResponse*) ( (char*)msg + *msgLength + 1 ); //+1 for null terminator needed for encryption
 	//overlappedQuery = (ReqlOverlappedQuery *)malloc( sizeof(ReqlOverlappedQuery) );
-	ZeroMemory(overlappedQuery, sizeof(CTOverlappedRequest)); //this is critical for proper overlapped/iocp operation!
+	ZeroMemory(overlappedQuery, sizeof(CTOverlappedResponse)); //this is critical for proper overlapped/iocp operation!
 	overlappedQuery->Overlapped.hEvent = CreateEvent(NULL, 0, 0, NULL); //Manual vs Automatic Reset Events Affect GetQueued... Operation!!!
 	overlappedQuery->buf = (char*)msg;
 	overlappedQuery->len = *msgLength;
@@ -315,14 +446,68 @@ uint64_t CTSendOnQueue(CTConnection * conn, char ** queryBufPtr, unsigned long q
 	//CTOverlappedRequest * overlappedQuery;// = (ReqlOverlappedQuery*) ( (char*)*queryBufPtr + queryStrLength + 1 ); //+1 for null terminator needed for encryption
 	//printf("overlapped->queryBuffer = %s\n", (char*)*queryBufPtr);
 
-	CTOverlappedRequest * overlappedQuery = (CTOverlappedRequest*) ( (char*)*queryBufPtr + queryStrLength + 1 ); //+1 for null terminator needed for encryption
+	CTOverlappedResponse * overlappedQuery = (CTOverlappedResponse*) ( (char*)*queryBufPtr + queryStrLength + 1 ); //+1 for null terminator needed for encryption
 	//overlappedQuery = (ReqlOverlappedQuery *)malloc( sizeof(ReqlOverlappedQuery) );
-	ZeroMemory(overlappedQuery, sizeof(CTOverlappedRequest)); //this is critical for proper overlapped/iocp operation!
+	ZeroMemory(overlappedQuery, sizeof(CTOverlappedResponse)); //this is critical for proper overlapped/iocp operation!
 	overlappedQuery->Overlapped.hEvent = CreateEvent(NULL, 0, 0, NULL); //Manual vs Automatic Reset Events Affect GetQueued... Operation!!!
 	overlappedQuery->buf = (char*)*queryBufPtr;
 	overlappedQuery->len = queryStrLength;
 	overlappedQuery->conn = conn;
 	overlappedQuery->queryToken = queryToken;//*(uint64_t*)msg;
+	//overlappedQuery->overlappedResponse = overlappedResponse;
+
+	//printf("overlapped->queryBuffer = %s\n", (char*)*queryBufPtr);
+	//Post the overlapped object message asynchronously to the socket transmit thread queue using Win32 Overlapped IO and IOCP
+	if( !PostQueuedCompletionStatus(conn->socketContext.txQueue, queryStrLength, dwCompletionKey, &(overlappedQuery->Overlapped) ) )
+	{
+		printf("\nCTSendOnQueue::PostQueuedCompletionStatus failed with error:  %d\n", GetLastError());
+		return (CTClientError)GetLastError();
+	}
+
+	/*
+	//Issue the async send
+	//If WSARecv returns 0, the overlapped operation completed immediately and msgLength has been updated
+	if( WSASend(conn->socket, &(overlappedConn->wsaBuf), 1, msgLength, overlappedConn->Flags, &(overlappedConn->Overlapped), NULL) == SOCKET_ERROR )
+	{
+		//WSA_IO_PENDING
+		if( WSAGetLastError() != WSA_IO_PENDING )
+		{
+			printf( "****ReqlAsyncSend::WSASend failed with error %d \n",  WSAGetLastError() );	
+		}
+		
+		//forward the winsock system error to the client
+		return (ReqlDriverError)WSAGetLastError();
+	}
+	*/
+
+#elif defined(__APPLE__)
+	//TO DO?
+#endif
+
+	//ReqlSuccess will indicate the async operation finished immediately
+	return queryToken;
+}
+
+uint64_t CTSendOnQueue2(CTConnection * conn, char ** queryBufPtr, unsigned long queryStrLength, uint64_t queryToken, CTOverlappedResponse* overlappedResponse)//, void * options)//, ReqlQueryClosure callback)
+{
+#ifdef _WIN32
+
+	ULONG_PTR dwCompletionKey = (ULONG_PTR)NULL;
+	//Send Query Asynchronously with Windows IOCP
+	//Create an overlapped connetion object to pass what we need to the iocp callback
+	//Instead of allocating memory we will assume the send buffer is large enough and tack it on the end
+	//CTOverlappedRequest * overlappedQuery;// = (ReqlOverlappedQuery*) ( (char*)*queryBufPtr + queryStrLength + 1 ); //+1 for null terminator needed for encryption
+	//printf("overlapped->queryBuffer = %s\n", (char*)*queryBufPtr);
+
+	CTOverlappedResponse * overlappedQuery = (CTOverlappedResponse*) ( (char*)*queryBufPtr + queryStrLength + 1 ); //+1 for null terminator needed for encryption
+	//overlappedQuery = (ReqlOverlappedQuery *)malloc( sizeof(ReqlOverlappedQuery) );
+	ZeroMemory(overlappedQuery, sizeof(CTOverlappedResponse)); //this is critical for proper overlapped/iocp operation!
+	overlappedQuery->Overlapped.hEvent = CreateEvent(NULL, 0, 0, NULL); //Manual vs Automatic Reset Events Affect GetQueued... Operation!!!
+	overlappedQuery->buf = (char*)*queryBufPtr;
+	overlappedQuery->len = queryStrLength;
+	overlappedQuery->conn = conn;
+	overlappedQuery->queryToken = queryToken;//*(uint64_t*)msg;
+	//overlappedQuery->overlappedResponse = overlappedResponse;
 
 	//printf("overlapped->queryBuffer = %s\n", (char*)*queryBufPtr);
 	//Post the overlapped object message asynchronously to the socket transmit thread queue using Win32 Overlapped IO and IOCP
@@ -357,6 +542,60 @@ uint64_t CTSendOnQueue(CTConnection * conn, char ** queryBufPtr, unsigned long q
 }
 
 
+uint64_t CTCursorSendOnQueue(CTCursor * cursor, char ** queryBufPtr, unsigned long queryStrLength)
+{
+#ifdef _WIN32
+
+	ULONG_PTR dwCompletionKey = (ULONG_PTR)NULL;
+	//Send Query Asynchronously with Windows IOCP
+	//Create an overlapped connetion object to pass what we need to the iocp callback
+	//Instead of allocating memory we will assume the send buffer is large enough and tack it on the end
+	//CTOverlappedRequest * overlappedQuery;// = (ReqlOverlappedQuery*) ( (char*)*queryBufPtr + queryStrLength + 1 ); //+1 for null terminator needed for encryption
+	//printf("overlapped->queryBuffer = %s\n", (char*)*queryBufPtr);
+
+	CTOverlappedResponse * overlappedQuery = (CTOverlappedResponse*) ( (char*)*queryBufPtr + queryStrLength + 1 ); //+1 for null terminator needed for encryption
+	//overlappedQuery = (ReqlOverlappedQuery *)malloc( sizeof(ReqlOverlappedQuery) );
+	ZeroMemory(overlappedQuery, sizeof(CTOverlappedResponse)); //this is critical for proper overlapped/iocp operation!
+	overlappedQuery->Overlapped.hEvent = CreateEvent(NULL, 0, 0, NULL); //Manual vs Automatic Reset Events Affect GetQueued... Operation!!!
+	overlappedQuery->buf = (char*)*queryBufPtr;
+	overlappedQuery->len = queryStrLength;
+	//overlappedQuery->conn = conn;
+	//overlappedQuery->queryToken = queryToken;//*(uint64_t*)msg;
+	overlappedQuery->cursor = (void*)cursor;
+	//overlappedQuery->overlappedResponse = overlappedResponse;
+
+	//printf("overlapped->queryBuffer = %s\n", (char*)*queryBufPtr);
+	//Post the overlapped object message asynchronously to the socket transmit thread queue using Win32 Overlapped IO and IOCP
+	if( !PostQueuedCompletionStatus(cursor->conn->socketContext.txQueue, queryStrLength, dwCompletionKey, &(overlappedQuery->Overlapped) ) )
+	{
+		printf("\nCTSendOnQueue::PostQueuedCompletionStatus failed with error:  %d\n", GetLastError());
+		return (CTClientError)GetLastError();
+	}
+
+	/*
+	//Issue the async send
+	//If WSARecv returns 0, the overlapped operation completed immediately and msgLength has been updated
+	if( WSASend(conn->socket, &(overlappedConn->wsaBuf), 1, msgLength, overlappedConn->Flags, &(overlappedConn->Overlapped), NULL) == SOCKET_ERROR )
+	{
+		//WSA_IO_PENDING
+		if( WSAGetLastError() != WSA_IO_PENDING )
+		{
+			printf( "****ReqlAsyncSend::WSASend failed with error %d \n",  WSAGetLastError() );	
+		}
+		
+		//forward the winsock system error to the client
+		return (ReqlDriverError)WSAGetLastError();
+	}
+	*/
+
+#elif defined(__APPLE__)
+	//TO DO?
+#endif
+
+	//ReqlSuccess will indicate the async operation finished immediately
+	return cursor->queryToken;
+}
+
 /***
  *	CTReqlRunQueryOnQueue
  *
@@ -365,45 +604,23 @@ uint64_t CTSendOnQueue(CTConnection * conn, char ** queryBufPtr, unsigned long q
  ***/
 uint64_t CTReQLRunQueryOnQueue(CTConnection * conn, const char ** queryBufPtr, unsigned long queryStrLength, uint64_t queryToken)//, void * options)//, ReqlQueryClosure callback)
 {
-    //ReqlError * errPtr = NULL;
-    //ReqlError err = {ReqlDriverErrorClass, ReqlSuccess, NULL};
-    
-    //assert(!_writing && !_reading);
-	unsigned long queryHeaderLength, /*queryStrLength,*/ queryMessageLength;
+    unsigned long queryHeaderLength, queryMessageLength;
     ReqlQueryMessageHeader * queryHeader = (ReqlQueryMessageHeader*)*queryBufPtr;
-    //printf("sizeof(ReQLHeader) == %lu\n", sizeof(ReqlQueryMessageHeader));
-	const char* queryBuf = *queryBufPtr + sizeof(ReqlQueryMessageHeader);
-	//printf("queryBuf = \n\n%s\n\n", queryBuf);
-    
-    //printf("ReqlRunQueryWithToken\n\n");
-    //assert(*queryBuf && strlen(queryBuf) > sizeof(ReqlQueryMessageHeader));
-    
+    const char* queryBuf = *queryBufPtr + sizeof(ReqlQueryMessageHeader);
+	
     //Populate the network message buffer with a header and the serialized query JSON string
     queryHeader->token = queryToken;//(conn->queryCount)++;//conn->token;
     queryHeaderLength = sizeof(ReqlQueryMessageHeader);
     //queryStrLength = (int32_t)strlen(queryBuf);    
     queryHeader->length = queryStrLength;// + queryHeaderLength;
 
-	//memcpy(queryBuf, &queryHeader, sizeof(ReqlQueryMessageHeader)); //copy query header
-    //queryBuf[queryStrLength + queryHeaderLength] = '\0';  //cap with null char
-    
-	//copy the header to the buffer
-    //memcpy(conn->query_buf[queryToken%2], &queryHeader, queryHeaderLength); //copy query header
-    //memcpy((char*)(conn->query_buf[queryToken%2]) + queryHeaderLength, queryBuf, queryStrLength); //copy query header
-    //sendBuffer[queryStrLength + queryHeaderLength] = '\0';  //cap with null char
-    
-	printf("ReqlRunQueryWithTokenOnQueue::queryBufPtr (%d) = %.*s", (int)queryStrLength, (int)queryStrLength, *queryBufPtr + sizeof(ReqlQueryMessageHeader));
-    //_writing = 1;    
+	printf("CTReQLRunQueryOnQueue::queryBufPtr (%d) = %.*s", (int)queryStrLength, (int)queryStrLength, *queryBufPtr + sizeof(ReqlQueryMessageHeader));
     queryMessageLength = queryHeaderLength + queryStrLength;
+	
 	//ReqlSend(conn, (void*)&queryHeader, queryHeaderLength);
 	CTSendOnQueue(conn, (char**)(queryBufPtr), queryMessageLength, queryToken);
-    //free( sendBuffer);
-    //printf("ReqlRunQueryCtx End\n\n");
-    
-    //_writing = 0;
     
     return queryHeader->token;
-
 }
 
 
@@ -411,30 +628,30 @@ uint64_t CTReQLRunQueryOnQueue(CTConnection * conn, const char ** queryBufPtr, u
 
 //this is a client call so it should return ReqlDriverError 
 //msgLength must be unsigned long to match DWORD type on WIN32
-CTClientError CTAsyncRecv(CTConnection* conn, void * msg, unsigned long * msgLength)
+CTClientError CTAsyncRecv(CTConnection* conn, void * msg, unsigned long offset, unsigned long * msgLength)
 {
 	//uint64_t queryToken = *(uint64_t*)msg;
 #ifdef _WIN32
 
-	//WSAOVERLAPPED wOverlapped;
-	//OVERLAPPED ol;
-
-	//DWORD lpNumberOfBytesRecvd = *msgLength;
-	//DWORD flags = 0;
-	//DWORD numBuffers = 1;
-	//Recv Query Asynchronously with Windows IOCP
+	
+	//We used to tuck the IOCP Overlapped struct directly in the request buffer,
+	//This works for responses that can be placed in a single buffer
+	//But WSARecv needs page aligned or system allocation granularity aligned memory or it will fail
 	CTOverlappedResponse * overlappedResponse;
-	unsigned long overlappedOffset = 0;// *msgLength - sizeof(ReqlOverlappedResponse);
+	//unsigned long overlappedOffset = 0;// *msgLength - sizeof(ReqlOverlappedResponse);
 	if (*msgLength > 0)
-		overlappedOffset = *msgLength - sizeof(CTOverlappedResponse);;
-
+	{
+		//overlappedOffset = *msgLength - sizeof(CTOverlappedResponse);;
+		//*msgLength -= sizeof(CTOverlappedResponse);
+		*msgLength -= offset;
+	}
 	//Create an overlapped connetion object to pass what we need to the iocp callback
 	//Instead of allocating memory we will assume the recv buffer is large enough and tack it on the end
-	overlappedResponse = (CTOverlappedResponse*) ( (char*)msg + overlappedOffset ); //+1 for null terminator needed for encryption
-	//overlappedResponse = (ReqlOverlappedResponse *)malloc( sizeof(ReqlOverlappedResponse) );
+	//overlappedResponse = (CTOverlappedResponse*) ( (char*)msg + overlappedOffset ); //+1 for null terminator needed for encryption
+	overlappedResponse = (ReqlOverlappedResponse *)malloc( sizeof(ReqlOverlappedResponse) );
 	ZeroMemory(overlappedResponse, sizeof(CTOverlappedResponse)); //this is critical!
-	overlappedResponse->Overlapped.hEvent = NULL;// WSACreateEvent();//CreateEvent(NULL, 0, 0, NULL); //Manual vs Automatic Reset Events Affect GetQueued... Operation!!!
-	overlappedResponse->wsaBuf.buf = (char*)msg;//(char*)(conn->response_buf[queryToken%2]);
+	overlappedResponse->Overlapped.hEvent = CreateEvent(NULL, 0, 0, NULL); //Manual vs Automatic Reset Events Affect GetQueued... Operation!!!
+	overlappedResponse->wsaBuf.buf = (char*)msg + offset;//(char*)(conn->response_buf[queryToken%2]);
 	overlappedResponse->wsaBuf.len = *msgLength;
 	overlappedResponse->buf = (char*)msg;
 	overlappedResponse->len = *msgLength;
@@ -450,6 +667,8 @@ CTClientError CTAsyncRecv(CTConnection* conn, void * msg, unsigned long * msgLen
 
 	//Issue the async receive
 	//If WSARecv returns 0, the overlapped operation completed immediately and msgLength has been updated
+	printf("CTAsyncRecv::Requesting %lu Bytes\n", *msgLength);
+		printf("CTAsyncRecv::conn->socket = %d\n", conn->socket);
 	if( WSARecv(conn->socket, &(overlappedResponse->wsaBuf), 1, msgLength, &(overlappedResponse->Flags), &(overlappedResponse->Overlapped), NULL) == SOCKET_ERROR )
 	{
 		//WSA_IO_PENDING
@@ -472,6 +691,114 @@ CTClientError CTAsyncRecv(CTConnection* conn, void * msg, unsigned long * msgLen
 
 }
 
+CTClientError CTAsyncRecv2(CTConnection* conn, void * msg, unsigned long offset, unsigned long * msgLength, uint64_t queryToken, CTOverlappedResponse** overlappedResponsePtr)
+{
+	//uint64_t queryToken = *(uint64_t*)msg;
+#ifdef _WIN32
+
+	CTOverlappedResponse * overlappedResponse = *overlappedResponsePtr;
+	DWORD recvLength = *msgLength;
+	
+	//if message length is greater than 0, subtract offset
+	*msgLength -= (*msgLength > 0) * offset; 
+	//if message length was zero then so its recvLength, use the overlappedResponse->len property to get the recv length
+	recvLength = *msgLength + (*msgLength == 0 ) * overlappedResponse->len; 
+
+	//Can we avoid zeroing this memory every time?
+	ZeroMemory(overlappedResponse, sizeof(CTOverlappedResponse)); //this is critical!
+	overlappedResponse->Overlapped.hEvent = CreateEvent(NULL, 0, 0, NULL); //Manual vs Automatic Reset Events Affect GetQueued... Operation!!!
+	overlappedResponse->wsaBuf.buf = (char*)msg + offset;//(char*)(conn->response_buf[queryToken%2]);
+	overlappedResponse->wsaBuf.len = *msgLength;
+	overlappedResponse->buf = (char*)msg;
+	overlappedResponse->len = recvLength;//*msgLength;
+	overlappedResponse->conn = conn;
+	overlappedResponse->queryToken = queryToken;
+	overlappedResponse->Flags = 0;
+
+
+	//Issue the async receive
+	//If WSARecv returns 0, the overlapped operation completed immediately and msgLength has been updated
+	printf("CTAsyncRecv::Requesting %lu Bytes\n", *msgLength);
+	//	printf("CTAsyncRecv::conn->socket = %d\n", conn->socket);
+	if( WSARecv(conn->socket, &(overlappedResponse->wsaBuf), 1, msgLength, &(overlappedResponse->Flags), &(overlappedResponse->Overlapped), NULL) == SOCKET_ERROR )
+	{
+		//WSA_IO_PENDING
+		if( WSAGetLastError() != WSA_IO_PENDING )
+		{
+			printf( "****ReqlAsyncRecv::WSARecv failed with error %d \n",  WSAGetLastError() );	
+		} 
+		
+		//forward the winsock system error to the client
+		return (CTClientError)WSAGetLastError();
+	}
+
+
+#elif defined(__APPLE__)
+	//TO DO?
+#endif
+
+	//ReqlSuccess will indicate the async operation finished immediately
+	return CTSuccess;
+
+}
+
+
+CTClientError CTCursorAsyncRecv(CTOverlappedResponse** overlappedResponsePtr, void * msg, unsigned long offset, unsigned long * msgLength)
+{
+#ifdef _WIN32
+	CTOverlappedResponse * overlappedResponse = *overlappedResponsePtr;
+	DWORD recvLength = *msgLength;
+	
+	//if message length is greater than 0, subtract offset
+	*msgLength -= (*msgLength > 0) * offset; 
+	//if message length was zero then so its recvLength, use the overlappedResponse->len property as input to get the recv length
+	recvLength = *msgLength + (*msgLength == 0 ) * overlappedResponse->len; 
+
+	//Our CoreTransport housekeeping properties (cursor, cursor->conn, and queryToken) have already been set on the Overlapped struct as part of CTCursor initialization
+	//Now populate the overlapped struct's WSABUF needed for IOCP to read socket buffer into (as well as our references to buf/len pointing to the start of the buffer to help as we decrypt [in place])
+	//Question:  Can we avoid zeroing this memory every time?
+	//Anser:	 Yes -- sort of -- we only need to zero the overlapped portion (whether we are reusing the OVERLAPPED struct or not...and we are) 
+	ZeroMemory(overlappedResponse, sizeof(WSAOVERLAPPED)); //this is critical!
+	overlappedResponse->Overlapped.hEvent = CreateEvent(NULL, 0, 0, NULL); //Manual vs Automatic Reset Events Affect GetQueued... Operation!!!
+	overlappedResponse->wsaBuf.buf = (char*)msg + offset;//(char*)(conn->response_buf[queryToken%2]);
+	overlappedResponse->wsaBuf.len = *msgLength;
+	overlappedResponse->buf = (char*)msg;
+	overlappedResponse->len = recvLength;//*msgLength;
+	//overlappedResponse->conn = ((CTCursor*)overlappedResponse->cursor)->conn;
+	//overlappedResponse->queryToken = queryToken;
+	//overlappedResponse->cursor = (void*)cursor;
+	overlappedResponse->Flags = 0;
+
+
+	//Issue the async receive
+	//If WSARecv returns 0, the overlapped operation completed immediately and msgLength has been updated
+#ifdef _DEBUG
+	printf("CTAsyncRecv::Requesting %lu Bytes\n", *msgLength);
+	//	printf("CTAsyncRecv::conn->socket = %d\n", conn->socket);
+#endif
+
+	if( WSARecv(((CTCursor*)overlappedResponse->cursor)->conn->socket, &(overlappedResponse->wsaBuf), 1, msgLength, &(overlappedResponse->Flags), &(overlappedResponse->Overlapped), NULL) == SOCKET_ERROR )
+	{
+		//WSA_IO_PENDING
+		if( WSAGetLastError() != WSA_IO_PENDING )
+		{
+			//TO DO: move to an error log
+			printf( "****ReqlAsyncRecv::WSARecv failed with error %d \n",  WSAGetLastError() );	
+		} 
+		
+		//forward the winsock system error to the client
+		return (CTClientError)WSAGetLastError();
+	}
+
+
+#elif defined(__APPLE__)
+	//TO DO?
+#endif
+
+	//ReqlSuccess will indicate the async operation finished immediately
+	return CTSuccess;
+
+}
 
 //A helper function to perform a socket connection to a given service
 //Will either return an kqueue fd associated with the input (blocking or non-blocking) socket
@@ -518,7 +845,7 @@ coroutine int CTSocketConnect(CTSocket socketfd, CTTarget * service)
 #endif
     {
         //errno EINPROGRESS is expected for non blocking sockets
-        if( errno != EINPROGRESS )
+        if( errno != WSAEINPROGRESS )
         {
             printf("socket failed to connect to %s with error: %d\n", service->host, errno);
             CTSocketClose(socketfd);
@@ -961,7 +1288,7 @@ coroutine int CTSSLRoutine(CTConnection *conn, char * hostname, char * caPath)
 	//if( (status = ReqlSSLHandshake(conn, rootCert)) != noErr )
     {
 		//ReqlSSLCertificateDestroy(&rootCertRef);
-        printf("ReqlSLLHandshakeFailed with status:  %d\n", ret);
+        printf("ReqlSSLHandshakeFailed with status:  %d\n", ret);
         CTCloseSSLSocket(conn->sslContext, conn->socket);
         return CTSSLHandshakeError;
     }
@@ -1293,8 +1620,6 @@ coroutine int CTTargetResolveHost(CTTarget * target, CTConnectionClosure callbac
 		for(ptr=result; ptr != NULL ;ptr=ptr->ai_next) 
 		{
 
-
-
 			printf("getaddrinfo response %d\n", i++);
 			printf("\tFlags: 0x%x\n", ptr->ai_flags);
 			printf("\tFamily: ");
@@ -1379,17 +1704,16 @@ int CTConnect(CTTarget * target, CTConnectionClosure callback)
 //A helpef function to close an SSL Context and a socket in one shot
 int CTCloseSSLSocket(CTSSLContextRef sslContextRef, CTSocket socketfd)
 {
-	//CTSSLContextDestroy(sslContextRef);
+	CTSSLContextDestroy(sslContextRef);
     return CTSocketClose(socketfd);
 }
 
 
 int CTCloseConnection( CTConnection * conn )
 {
-	
 	//if( conn->query_buffers )
 	//	free(conn->query_buffers);
-	/*	
+	/*
 	if (conn->query_buffers)
 	{
 		VirtualFree(conn->query_buffers, 0, MEM_RELEASE);
@@ -1403,16 +1727,6 @@ int CTCloseConnection( CTConnection * conn )
 		//free( conn->response_buffers );
 	}
 	conn->response_buffers = NULL;
-	*/
-	/*
-	if( conn->query_buf[0] )
-		free(conn->query_buf[0]);
-	if( conn->query_buf[1] )
-		free(conn->query_buf[1]);
-	if( conn->response_buf[0] )
-		free(conn->response_buf[0]);
-	if( conn->response_buf[1] )
-		free(conn->response_buf[1]);
 	*/
 	
     return CTCloseSSLSocket(conn->sslContext, conn->socket);

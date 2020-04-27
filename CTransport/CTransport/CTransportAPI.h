@@ -78,6 +78,26 @@ typedef unsigned __int64 uint64_t;
 extern "C" {
 #endif
 
+#pragma mark -- CTCursor API methods
+
+//Close cursor response file buffer mapping
+CTRANSPORT_API void		   CTCursorCloseFileMap(CTCursor *cursor);
+
+//Close cursor response file buffer mapping AND resize the file in one shot
+CTRANSPORT_API void		   CTCursorCloseMappingWithSize(CTCursor* cursor, unsigned long fileSize);
+
+//Close cursor response file AND close file buffer mapping [if one exists] in oneshot
+CTRANSPORT_API void		   CTCursorCloseFile(CTCursor *cursor);
+
+//Map cursor response file buffer for reading
+CTRANSPORT_API CTFileError CTCursorMapFileR(CTCursor * cursor);
+
+//Map cursor response file buffer for writing
+CTRANSPORT_API CTFileError CTCursorMapFileW(CTCursor * cursor, unsigned long fileSize);
+
+//Create cursor response file AND map response file buffer for writing in oneshot
+CTRANSPORT_API CTFileError CTCursorCreateMapFileW(CTCursor * cursor, char* filepath, unsigned long fileSize);
+
 
 #pragma mark -- CTConnect API Methods
 //Connect to a RethinkDB Service + Init/Alloc ReØMQL [ReqlConnection] object
@@ -95,7 +115,16 @@ CTRANSPORT_API CTRANSPORT_INLINE void* CTRecv(     CTConnection * conn, void * m
 //Async Send/Receive network buffer over CTConnection dedicated platform TCP socket (and tag with a queryToken)
 //CTRANSPORT_API CTRANSPORT_INLINE CTClientError CTSendWithQueue(CTConnection* conn, void * msg, unsigned long * msgLength);
 CTRANSPORT_API CTRANSPORT_INLINE uint64_t CTSendOnQueue(CTConnection * conn, char ** queryBufPtr, unsigned long queryStrLength, uint64_t queryToken);
-CTRANSPORT_API CTRANSPORT_INLINE CTClientError CTAsyncRecv(CTConnection* conn, void * msg, unsigned long * msgLength);
+CTRANSPORT_API CTRANSPORT_INLINE uint64_t CTSendOnQueue2(CTConnection * conn, char ** queryBufPtr, unsigned long queryStrLength, uint64_t queryToken, CTOverlappedResponse* overlappedResponse);
+
+//Queue a cursor's request buffer to asynchronously send it's contents on the cursor's connection 
+CTRANSPORT_API CTRANSPORT_INLINE uint64_t CTCursorSendOnQueue(CTCursor*, char ** queryBufPtr, unsigned long queryStrLength);
+
+CTRANSPORT_API CTRANSPORT_INLINE CTClientError CTAsyncRecv(CTConnection* conn, void * msg, unsigned long offset, unsigned long * msgLength);
+CTRANSPORT_API CTRANSPORT_INLINE CTClientError CTAsyncRecv2(CTConnection* conn, void * msg, unsigned long offset, unsigned long * msgLength, uint64_t queryToken, CTOverlappedResponse** overlappedResponsePtr);
+
+//Request [more] data  
+CTRANSPORT_API CTRANSPORT_INLINE CTClientError CTCursorAsyncRecv(CTOverlappedResponse** overlappedResponsePtr, void * msg, unsigned long offset, unsigned long * msgLength);
 
 //Reql Send/Receive wrappers
 CTRANSPORT_API CTRANSPORT_INLINE uint64_t CTReQLRunQueryOnQueue(CTConnection * conn, const char ** queryBufPtr, unsigned long queryStrLength, uint64_t queryToken);

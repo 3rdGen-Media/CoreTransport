@@ -1,0 +1,93 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="CXTransport">
+      <UniqueIdentifier>{a9c5d3bc-a250-4b5c-b4ea-b0bd3d82740c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="CXURL">
+      <UniqueIdentifier>{1c5f1257-7107-4020-bbbc-e2a1303962c8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="CXReQL">
+      <UniqueIdentifier>{3c03b865-c5ef-4cc8-9bbd-7948742c43fb}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="CXTransport.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CXTransport\CXConnection.h">
+      <Filter>CXTransport</Filter>
+    </ClInclude>
+    <ClInclude Include="CXURL.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CXURL\CXURLInterface.h">
+      <Filter>CXURL</Filter>
+    </ClInclude>
+    <ClInclude Include="CXURL\CXURLSession.h">
+      <Filter>CXURL</Filter>
+    </ClInclude>
+    <ClInclude Include="CXURL\CXURLRequest.h">
+      <Filter>CXURL</Filter>
+    </ClInclude>
+    <ClInclude Include="CXTransport\CXCursor.h">
+      <Filter>CXTransport</Filter>
+    </ClInclude>
+    <ClInclude Include="CXReQL.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CXReQL\CXReQLInterface.h">
+      <Filter>CXReQL</Filter>
+    </ClInclude>
+    <ClInclude Include="CXReQL\CXReQLSession.h">
+      <Filter>CXReQL</Filter>
+    </ClInclude>
+    <ClInclude Include="CXReQL\CXReQLQuery.h">
+      <Filter>CXReQL</Filter>
+    </ClInclude>
+    <ClInclude Include="CXURL\CXURLCursor.h">
+      <Filter>CXURL</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="CXTransport\CXConnection.cpp">
+      <Filter>CXTransport</Filter>
+    </ClCompile>
+    <ClCompile Include="CXURL\CXURLInterface.cpp">
+      <Filter>CXURL</Filter>
+    </ClCompile>
+    <ClCompile Include="CXURL\CXURLSession.cpp">
+      <Filter>CXURL</Filter>
+    </ClCompile>
+    <ClCompile Include="CXURL\CXURLRequest.cpp">
+      <Filter>CXURL</Filter>
+    </ClCompile>
+    <ClCompile Include="CXTransport\CXCursor.cpp">
+      <Filter>CXTransport</Filter>
+    </ClCompile>
+    <ClCompile Include="CXReQL\CXReQLInterface.cpp">
+      <Filter>CXReQL</Filter>
+    </ClCompile>
+    <ClCompile Include="CXReQL\CXReQLSession.cpp">
+      <Filter>CXReQL</Filter>
+    </ClCompile>
+    <ClCompile Include="CXReQL\CXReQLQuery.cpp">
+      <Filter>CXReQL</Filter>
+    </ClCompile>
+    <ClCompile Include="CXURL\CXURLCursor.cpp">
+      <Filter>CXURL</Filter>
+    </ClCompile>
+    <ClCompile Include="CXReQL\CXReQLCursor.cpp">
+      <Filter>CXReQL</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="CXReQL\CXReQLCursor.h">
+      <Filter>CXReQL</Filter>
+    </None>
+  </ItemGroup>
+</Project>
