@@ -13,7 +13,7 @@ CoreTransport is a no-compromise cross-platform pure C library (with wrapper API
 
 ## Usage
 
-The general for establishing and consuming connections CTransport and its wrapper interface libraries is the same:
+The general process for establishing and consuming connections CTransport and its wrapper interface libraries is the same:
 
 1.  Define your target (CTTarget)
 2.  Create a socket connection + perform SSL Handshake (CTConnection)
