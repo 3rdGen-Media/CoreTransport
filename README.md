@@ -92,7 +92,7 @@ The general for establishing and consuming connections CTransport and its wrappe
    queryStrLength = strlen(GET_REQUEST);
    queryBuffer = cursor->requestBuffer;//cursor->file.buffer;
    memcpy(queryBuffer, GET_REQUEST, queryStrLength);
-  queryBuffer[queryStrLength] = '\0';  //It is critical for SSL encryption that the emessage be capped with null terminator
+   queryBuffer[queryStrLength] = '\0';  //It is critical for SSL encryption that the emessage be capped with null terminator
 
    //send the cursor's request buffer using CTransport API
    CTCursorSendRequestOnQueue( cursor, _httpConn.queryCount++);	
@@ -123,8 +123,8 @@ The general for establishing and consuming connections CTransport and its wrappe
 	return err->id;
    }
 
-  //Use CXTransport CXURL C++ API to connect to our HTTPS target server
-  CXURL.connect(&httpTarget, _cxURLConnectionClosure);
+   //Use CXTransport CXURL C++ API to connect to our HTTPS target server
+   CXURL.connect(&httpTarget, _cxURLConnectionClosure);
 ```
 
 ####  Make a network Request using a Cursor (CXCursor)
@@ -147,6 +147,6 @@ The general for establishing and consuming connections CTransport and its wrappe
 
 ####  Clean up the connection
 ```
-    delete _httpConnection;
+   delete _httpConnection;
 ```
 
