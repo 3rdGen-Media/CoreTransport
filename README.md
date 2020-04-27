@@ -65,10 +65,10 @@ The general for establishing and consuming connections CTransport and its wrappe
 	//The cursor headerLength is calculated as follows after this function returns
 	//cursor->headerLength = endOfHeader - buffer;
 	return endOfHeader;
-	}
+   }
 
-	void httpResponseCallback(CTError * err, CTCursor *cursor)
-	{
+   void httpResponseCallback(CTError * err, CTCursor *cursor)
+   {
 	CTCursorMapFileR(cursor);
 	printf("httpResponseCallback header:  \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
 	//printf("httpResponseCallback body:    \n\n%.*s\n\n", cursor->file.size, cursor->file.buffer);
@@ -135,8 +135,9 @@ The general for establishing and consuming connections CTransport and its wrappe
    getRequest->setValueForHTTPHeaderField("Accept:", "*/*");
 	
    //Define the response callback to return response buffers using CXTransport CXCursor object returned via a Lambda Closure
-   auto requestCallback = [&] (CTError * error, std::shared_ptr<CXCursor> &cxCursor) { 
-	printf("Lambda callback response:  %.*s\n", cxCursor->_cursor.headerLength, cxCursor->_cursor.requestBuffer);//%.*s\n", cursor->_cursor.length - sizeof(ReqlQueryMessageHeader), (char*)(cursor->_cursor.header) + sizeof(ReqlQueryMessageHeader)); return;  
+   auto requestCallback = [&] (CTError * error, std::shared_ptr<CXCursor> &cxCursor)
+   { 
+	printf("Lambda callback response header:  %.*s\n", cxCursor->_cursor.headerLength, cxCursor->_cursor.requestBuffer);  
    };
 
    //Pass the CXConnection and the lambda to populate the request buffer and asynchronously send it on the CXConnection
