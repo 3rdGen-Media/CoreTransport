@@ -39,8 +39,8 @@ The general process for establishing and consuming connections CTransport and it
    	//Parse error status
     	assert(err->id == CTSuccess);
 
-	    //Copy CTConnection object memory from coroutine stack to application memory 
-    	//(or the connection ptr will go out of scope when this function exits)
+	//Copy CTConnection object memory from coroutine stack to application memory 
+    	//(because the connection ptr will go out of scope when this function exits)
     	_httpConn = *conn;
 
 	return err->id;
