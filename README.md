@@ -2,7 +2,7 @@
 
 CoreTransport is a no-compromise cross-platform pure C library (with wrapper APIs in various languages) for establishing and consuming from persistent TCP client connections secured with SSL/TLS.  CoreTransport aims to espouse the following non-standardized principles:
 
-* Structured concurrency to allow for concurrent asynchronous blocking/non-blocking socket connections from a single thread
+* Structured concurrency to promote concurrent asynchronous non-blocking socket connections from a single thread
 * Dedicated Tx/Rx thread queues for each socket connection implemented as closest-to-kernel option for maximum concurrent     requests/responses.
 * Memory management that supports in-place processing and response caching where applicable
 * Use closures to delegate response buffers back to the caller when possible
