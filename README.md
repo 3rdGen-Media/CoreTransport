@@ -97,6 +97,56 @@ The general for establishing and consuming connections CTransport and its wrappe
    //send the cursor's request buffer using CTransport API
    CTCursorSendRequestOnQueue( cursor, _httpConn.queryCount++);	
 ```
+####  Clean up the connection
+```
+   CTCloseConnection(&_httpConn);
+```
 
-  
+##  CXTransport
+
+####  Define your target (same as CTransport)
+```
+   CTTarget httpTarget = {0};
+   httpTarget.host =     "learnopengl.com";
+   httpTarget.port =     443;
+   httpTarget.ssl.ca =   NULL;  //CTransport will look for the certificate in the platform CA trust store
+```
+
+####  Connect with Closure
+```
+   CXConnection * _httpCXConn;
+   //CXTransport implements closures as C++ Lambdas
+   int _cxURLConnectionClosure(CTError *err, CXConnection * conn)
+   {
+	if( err->id == CTSuccess && conn ){ _httpCXConn = conn; }
+	else {} //process errors
+	return err->id;
+   }
+
+  //Use CXTransport CXURL C++ API to connect to our HTTPS target server
+  CXURL.connect(&httpTarget, _cxURLConnectionClosure);
+```
+
+####  Make a network Request using a Cursor (CXCursor)
+```
+   //Create a CXTransport API C++ CXURLRequest
+   std::shared_ptr<CXURLRequest> getRequest = CXURL.GET("/Assets/Elbaite_74.mp4");
+	
+   //Add some HTTP headers to the CXURLRequest
+   getRequest->setValueForHTTPHeaderField("Accept:", "*/*");
+	
+   //Define the response callback to return response buffers using CXTransport CXCursor object returned via a Lambda Closure
+   auto requestCallback = [&] (CTError * error, std::shared_ptr<CXCursor> &cxCursor) { 
+	printf("Lambda callback response:  %.*s\n", cxCursor->_cursor.headerLength, cxCursor->_cursor.requestBuffer);//%.*s\n", cursor->_cursor.length - sizeof(ReqlQueryMessageHeader), (char*)(cursor->_cursor.header) + sizeof(ReqlQueryMessageHeader)); return;  
+   };
+
+   //Pass the CXConnection and the lambda to populate the request buffer and asynchronously send it on the CXConnection
+   //The lambda will be executed so the code calling the request can interact with the asynchronous response buffers
+   getRequest->send(_httpCXConn, requestCallback);
+```
+
+####  Clean up the connection
+```
+    delete _httpConnection;
+```
 
