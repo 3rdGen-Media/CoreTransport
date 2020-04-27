@@ -25,10 +25,10 @@ The general for establishing and consuming connections CTransport and its wrappe
 
 ####  Define your target
 ```
-	CTTarget httpTarget = {0};
-	httpTarget.host =     "learnopengl.com";
-	httpTarget.port =     443;
-	httpTarget.ssl.ca =   NULL;  //CTransport will look for the certificate in the platform CA trust store
+   CTTarget httpTarget = {0};
+   httpTarget.host =     "learnopengl.com";
+   httpTarget.port =     443;
+   httpTarget.ssl.ca =   NULL;  //CTransport will look for the certificate in the platform CA trust store
 ```
 
 ####  Connect with Closure/Callback
@@ -52,50 +52,50 @@ The general for establishing and consuming connections CTransport and its wrappe
 
 ####  Make a network Request using a Cursor (CTCursor)
 ```
-	//the purpose of this callback is to return the end of the header to CTransport so it can continue processing
-	char * httpHeaderLengthCallback(struct CTCursor * cursor, char * buffer, unsigned long length )
-	{
-		char * endOfHeader = strstr(buffer, "\r\n\r\n");
-		//set ptr to end of http header
-		endOfHeader += sizeof("\r\n\r\n") - 1;
+   //the purpose of this callback is to return the end of the header to CTransport so it can continue processing
+   char * httpHeaderLengthCallback(struct CTCursor * cursor, char * buffer, unsigned long length )
+   {
+   	char * endOfHeader = strstr(buffer, "\r\n\r\n");
+	//set ptr to end of http header
+	endOfHeader += sizeof("\r\n\r\n") - 1;
 
-		//The client can optionally set the cursor's contentLength property
-		//to aid CoreTransport in knowing when to stop reading from the socket
-		//cursor->contentLength = ...
+	//The client can optionally set the cursor's contentLength property
+	//to aid CoreTransport in knowing when to stop reading from the socket
+	//cursor->contentLength = ...
 
-		//The cursor headerLength is calculated as follows after this function returns
-		//cursor->headerLength = endOfHeader - buffer;
-		return endOfHeader;
-		}
-
-		void httpResponseCallback(CTError * err, CTCursor *cursor)
-		{
-		CTCursorMapFileR(cursor);
-		printf("httpResponseCallback header:  \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
-		//printf("httpResponseCallback body:    \n\n%.*s\n\n", cursor->file.size, cursor->file.buffer);
-		CTCursorCloseFile(cursor);
+	//The cursor headerLength is calculated as follows after this function returns
+	//cursor->headerLength = endOfHeader - buffer;
+	return endOfHeader;
 	}
 
-  	//Define a cursor which handles the buffers for sending a request and receiving an associated response
-  	//Each cursor request gets sent with a unique query token id
-  	CTCursor _httpCursor;
- 	CTCursorCreateResponseBuffers(&_httpCursor, filepath);
-  
-  	//define callbacks for client to process header and receive response
-	_httpCursor.headerLengthCallback = httpHeaderLengthCallback;
-	_httpCursor.responseCallback = httpResponseCallback;
+	void httpResponseCallback(CTError * err, CTCursor *cursor)
+	{
+	CTCursorMapFileR(cursor);
+	printf("httpResponseCallback header:  \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
+	//printf("httpResponseCallback body:    \n\n%.*s\n\n", cursor->file.size, cursor->file.buffer);
+	CTCursorCloseFile(cursor);
+   }
 
-	//define an HTTP GET request
-	char * queryBuffer;
-	unsigned long queryStrLength;
-	char GET_REQUEST[1024] = "GET /img/textures/wood.png HTTP/1.1\r\nHost: learnopengl.com\r\nUser-Agent: CoreTransport\r\nAccept: 	*/*\r\n\r\n\0";
-	queryStrLength = strlen(GET_REQUEST);
-	queryBuffer = cursor->requestBuffer;//cursor->file.buffer;
-	memcpy(queryBuffer, GET_REQUEST, queryStrLength);
-	queryBuffer[queryStrLength] = '\0';  //It is critical for SSL encryption that the emessage be capped with null terminator
+   //Define a cursor which handles the buffers for sending a request and receiving an associated response
+   //Each cursor request gets sent with a unique query token id
+   CTCursor _httpCursor;
+   CTCursorCreateResponseBuffers(&_httpCursor, filepath);
 
-	//send the cursor's request buffer using CTransport API
-	CTCursorSendRequestOnQueue( cursor, _httpConn.queryCount++);	
+   //define callbacks for client to process header and receive response
+   _httpCursor.headerLengthCallback = httpHeaderLengthCallback;
+   _httpCursor.responseCallback = httpResponseCallback;
+
+   //define an HTTP GET request
+   char * queryBuffer;
+   unsigned long queryStrLength;
+   char GET_REQUEST[1024] = "GET /img/textures/wood.png HTTP/1.1\r\nHost: learnopengl.com\r\nUser-Agent: CoreTransport\r\nAccept: 	*/*\r\n\r\n\0";
+   queryStrLength = strlen(GET_REQUEST);
+   queryBuffer = cursor->requestBuffer;//cursor->file.buffer;
+   memcpy(queryBuffer, GET_REQUEST, queryStrLength);
+  queryBuffer[queryStrLength] = '\0';  //It is critical for SSL encryption that the emessage be capped with null terminator
+
+   //send the cursor's request buffer using CTransport API
+   CTCursorSendRequestOnQueue( cursor, _httpConn.queryCount++);	
 ```
 
   
