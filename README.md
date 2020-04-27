@@ -129,7 +129,7 @@ The general process for establishing and consuming connections CTransport and it
 ####  Make a network Request using a Cursor (CXCursor)
 ```
    //Create a CXTransport API C++ CXURLRequest
-   std::shared_ptr<CXURLRequest> getRequest = CXURL.GET("/Assets/Elbaite_74.mp4");
+   std::shared_ptr<CXURLRequest> getRequest = CXURL.GET("/img/textures/wood.png");
 	
    //Add some HTTP headers to the CXURLRequest
    getRequest->setValueForHTTPHeaderField("Accept:", "*/*");
