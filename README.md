@@ -92,6 +92,9 @@ The general process for establishing and consuming connections using CTransport 
    queryBuffer = cursor->requestBuffer;//cursor->file.buffer;
    memcpy(queryBuffer, GET_REQUEST, queryStrLength);
    queryBuffer[queryStrLength] = '\0';  //It is critical for SSL encryption that the emessage be capped with null terminator
+   
+   //put the connection on the cursor before sending it off to CT land
+   _httpCursor.conn = &_httpConn; 
 
    //send the cursor's request buffer using CTransport API
    CTCursorSendRequestOnQueue( &_httpCursor, _httpConn.queryCount++);	
@@ -147,6 +150,6 @@ The general process for establishing and consuming connections using CTransport 
 
 ####  Clean up the connection
 ```
-   delete _httpConnection;
+   delete _httpCXConn;
 ```
 
