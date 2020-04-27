@@ -33,21 +33,21 @@ The general for establishing and consuming connections CTransport and its wrappe
 
 ####  Connect with Closure/Callback
 ```
-  CTConnection _httpConnection;
-  //This is not a closure -- just a pure c callback for when we don't support for closures
-  int _httpConnectionClosure(CTError *err, CTConnection * conn)
-  {
-    //Parse error status
-    assert(err->id == CTSuccess);
+   CTConnection _httpConnection;
+   //This is not a closure -- just a pure c callback for when we don't support for closures
+   int _httpConnectionClosure(CTError *err, CTConnection * conn)
+   {
+   	//Parse error status
+    	assert(err->id == CTSuccess);
 
-    //Copy CTConnection object memory from coroutine stack to application memory 
-    //(or the connection ptr will go out of scope when this function exits)
-    _httpConn = *conn;
+	    //Copy CTConnection object memory from coroutine stack to application memory 
+    	//(or the connection ptr will go out of scope when this function exits)
+    	_httpConn = *conn;
 
-    return err->id;
-  }	
+	return err->id;
+   }	
   
-  CTransport.connect(&httpTarget, _httpConnectionClosure);
+   CTransport.connect(&httpTarget, _httpConnectionClosure);
 ```
 
 ####  Make a network Request using a Cursor (CTCursor)
