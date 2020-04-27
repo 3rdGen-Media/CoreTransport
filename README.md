@@ -1,2 +1,102 @@
 # CoreTransport
-One Framework To Network Them All
+
+CoreTransport is a no-compromise cross-platform pure C library for establishing and consuming from TCP client connections secured with SSL/TLS.  CoreTransport aims to espouse the following non-standardized principles:
+
+1.  Structured concurrency to allow for multiple concurrent asynchronous blocking/non-blocking socket connections from a single thread
+    a.  Async DNS Resolution
+2.  Dedicated Tx/Rx thread queues for each socket connection implemented as closest-to-kernel option for maximum concurrent     requests/responses.
+3.  Memory management
+      a.  Supports response caching
+      b.  Suitable 
+4.  Implement closures where possible to delegate response buffers back to the caller
+5.  Streaming downloads for consumption by an accelerated graphics pipeline
+
+*CoreTransport is the modular network counterpart to the CoreRender framework.  Together, CoreTransport and CoreRender's modular C libraries embody the foundational layer of 3rdGen's proprietary render engine and cross-platform application framework, CobaltRhenium. 
+
+## Usage
+
+The general for establishing and consuming connections CTransport and its wrapper interface libraries is the same:
+
+0.  Define your target (CTTarget)
+1.  Create a socket connection (CTConnection) + perform SSL Handshake
+2.  
+
+## CTransport
+
+###  Define your target
+```
+  CTTarget httpTarget = {0};
+	httpTarget.host =     "learnopengl.com";
+	httpTarget.port =     443;
+	httpTarget.ssl.ca =   NULL;  //CTransport will look for the certificate in the platform CA trust store
+```
+
+###  Connect with Closure/Callback
+```
+  CTConnection _httpConnection;
+  //This is not a closure -- just a pure c callback for when we don't support for closures
+  int _httpConnectionClosure(CTError *err, CTConnection * conn)
+  {
+    //Parse error status
+    assert(err->id == CTSuccess);
+
+    //Copy CTConnection object memory from coroutine stack to application memory 
+    //(or the connection ptr will go out of scope when this function exits)
+    _httpConn = *conn;
+
+    return err->id;
+  }	
+  
+  CTransport.connect(&httpTarget, _httpConnectionClosure);
+```
+
+###  Make a network Request using a Cursor (CTCursor)
+```
+  char * httpHeaderLengthCallback(struct CTCursor * cursor, char * buffer, unsigned long length )
+  {
+    //the purpose of this function is to return the end of the header to CTransport so it can continue processing
+    char * endOfHeader = strstr(buffer, "\r\n\r\n");
+    //set ptr to end of http header
+    endOfHeader += sizeof("\r\n\r\n") - 1;
+
+    //The client can optionally set the cursor's contentLength property
+    //to aid CoreTransport in knowing when to stop reading from the socket
+    //cursor->contentLength = ...
+
+    //The cursor headerLength is calculated as follows after this function returns
+    //cursor->headerLength = endOfHeader - buffer;
+    return endOfHeader;
+  }
+  
+  void httpResponseCallback(CTError * err, CTCursor *cursor)
+  {
+    CTCursorMapFileR(cursor);
+    printf("httpResponseCallback header:  \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
+    //printf("httpResponseCallback body:    \n\n%.*s\n\n", cursor->file.size, cursor->file.buffer);
+    CTCursorCloseFile(cursor);
+  }
+
+  //Define a cursor which handles the buffers for sending a request and receiving an associated response
+  //Each cursor request gets sent with a unique query token id
+  CTCursor _httpCursor;
+  CTCursorCreateResponseBuffers(&_httpCursor, filepath);
+  
+  //define callbacks for client to process header and receive response
+	_httpCursor.headerLengthCallback = httpHeaderLengthCallback;
+	_httpCursor.responseCallback = httpResponseCallback;
+
+	//define an HTTP GET request
+  char * queryBuffer;
+	unsigned long queryStrLength;
+	char GET_REQUEST[1024] = "GET /img/textures/wood.png HTTP/1.1\r\nHost: learnopengl.com\r\nUser-Agent: CoreTransport\r\nAccept: */*\r\n\r\n\0";
+  queryStrLength = strlen(GET_REQUEST);
+  queryBuffer = cursor->requestBuffer;//cursor->file.buffer;
+  memcpy(queryBuffer, GET_REQUEST, queryStrLength);
+  queryBuffer[queryStrLength] = '\0';  //It is critical for SSL encryption that the emessage be capped with null terminator
+
+  //send the cursor's request buffer using CTransport API
+  CTCursorSendRequestOnQueue( cursor, _httpConn.queryCount++);	
+```
+
+  
+
