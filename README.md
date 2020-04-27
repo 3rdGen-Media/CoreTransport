@@ -21,7 +21,9 @@ The general process for establishing and consuming from connections using CTrans
 4.  Clean up the connection
 
 ## CTransport API
-
+```
+#include <CoreTransport/CTransport.h>
+```
 ####  Define your target
 ```
    CTTarget httpTarget = {0};
@@ -106,6 +108,7 @@ The general process for establishing and consuming from connections using CTrans
 
 ##  CXTransport API
 ```
+   #include <CoreTransport/CXURL.h>
    using namespace CoreTransport;
 ```
 ####  Define your target (same as CTransport)
