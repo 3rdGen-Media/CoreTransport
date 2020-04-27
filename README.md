@@ -33,7 +33,7 @@ The general process for establishing and consuming connections CTransport and it
 ####  Connect with Closure/Callback
 ```
    CTConnection _httpConnection;
-   //This is not a closure -- just a pure c callback for when we don't support for closures
+   //This is not a closure -- just a pure c callback for when we don't have support for closures
    int _httpConnectionClosure(CTError *err, CTConnection * conn)
    {
    	//Parse error status
@@ -94,7 +94,7 @@ The general process for establishing and consuming connections CTransport and it
    queryBuffer[queryStrLength] = '\0';  //It is critical for SSL encryption that the emessage be capped with null terminator
 
    //send the cursor's request buffer using CTransport API
-   CTCursorSendRequestOnQueue( cursor, _httpConn.queryCount++);	
+   CTCursorSendRequestOnQueue( &_httpCursor, _httpConn.queryCount++);	
 ```
 ####  Clean up the connection
 ```
