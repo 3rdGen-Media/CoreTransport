@@ -5,8 +5,9 @@ CoreTransport is a no-compromise cross-platform pure C library for establishing 
 * Structured concurrency to allow for multiple concurrent asynchronous blocking/non-blocking socket connections from a single thread
 * Dedicated Tx/Rx thread queues for each socket connection implemented as closest-to-kernel option for maximum concurrent     requests/responses.
 * Memory management that supports in-place processing and response caching where possible
-* Implement closures where possible to delegate response buffers back to the caller
-* Streaming downloads for consumption by an accelerated graphics pipeline
+* Use closures to delegate response buffers back to the caller when possible
+* Support conditional chaining of requests/queries from the same and other connections
+* Support streaming downloads for consumption by an accelerated graphics pipeline
 
 *CoreTransport is the modular network counterpart to the CoreRender framework.  Together, CoreTransport and CoreRender's modular C libraries embody the foundational layer of 3rdGen's proprietary render engine and cross-platform application framework, Cobalt Rhenium.* 
 
