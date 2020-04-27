@@ -105,7 +105,7 @@ The general process for establishing and consuming connections using CTransport 
 ```
 
 ##  CXTransport API
-```Using namespace CoreTransport;```
+```   using namespace CoreTransport;```
 ####  Define your target (same as CTransport)
 ```
    CTTarget httpTarget = {0};
