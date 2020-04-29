@@ -18,7 +18,7 @@ The general process for establishing and consuming from connections using CTrans
 
 1.  Define your target (CTTarget)
 2.  Create a socket connection + perform SSL Handshake (CTConnection)
-3.  Make a network request and asynchrously receive the response (CTCursor)
+3.  Make a network request and asynchronously receive the response (CTCursor)
 4.  Clean up the connection
 
 ## CTransport API
