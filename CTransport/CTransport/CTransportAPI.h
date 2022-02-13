@@ -119,6 +119,7 @@ CTRANSPORT_API CTRANSPORT_INLINE uint64_t CTSendOnQueue2(CTConnection * conn, ch
 
 //Queue a cursor's request buffer to asynchronously send it's contents on the cursor's connection 
 CTRANSPORT_API CTRANSPORT_INLINE uint64_t CTCursorSendOnQueue(CTCursor*, char ** queryBufPtr, unsigned long queryStrLength);
+CTRANSPORT_API CTRANSPORT_INLINE CTClientError CTCursorRecvOnQueue(CTOverlappedResponse** overlappedResponsePtr, void* msg, unsigned long offset, unsigned long* msgLength);
 
 CTRANSPORT_API CTRANSPORT_INLINE CTClientError CTAsyncRecv(CTConnection* conn, void * msg, unsigned long offset, unsigned long * msgLength);
 CTRANSPORT_API CTRANSPORT_INLINE CTClientError CTAsyncRecv2(CTConnection* conn, void * msg, unsigned long offset, unsigned long * msgLength, uint64_t queryToken, CTOverlappedResponse** overlappedResponsePtr);

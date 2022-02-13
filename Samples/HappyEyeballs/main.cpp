@@ -17,7 +17,7 @@
 
 #include "stdio.h"
 #include "stdlib.h"
-#include <process.h>            // threading routines for the CRT
+#include <process.h>            //threading routines for the CRT
 
 //Core Transport ReQL C API
 //#include <CoreTransport/CTransport.h>
@@ -52,7 +52,7 @@
  ***/
 
 //Define a CTransport API CTTarget C style struct to initiate an HTTPS connection with a CTransport API CTConnection
-static const char *				http_server = "learnopengl.com";
+static const char* http_server = "learnopengl.com";
 static const unsigned short		http_port = 443;
 
 //Define a CTransport API ReqlService (ie CTTarget) C style struct to initiate a RethinkDB TLS connection with a CTransport API CTConnection
@@ -92,78 +92,6 @@ int _cxReQLConnectionClosure(ReqlError *err, CXConnection * conn)
 	return err->id;
 }
 
-/***
- *	Platform Event (Run) Loop
- ***/
-unsigned int __stdcall win32MainEventLoop()
-{
-	//char indexStr[256];
-	BOOL bRet = true;
-	MSG msg;
-	memset(&msg, 0, sizeof(MSG));
-
-	//start the hwnd message loop, which is event driven based on platform messages regarding interaction for input and the active window
-	//while (bRet)
-	//{
-		//pass NULL to GetMessage listen to both thread messages and window messages associated with this thread
-		//if the msg is WM_QUIT, the return value of GetMessage will be zero
-	while (1)//(bRet = GetMessage(&msg, NULL, 0, 0)))
-	{
-		bRet = GetMessage(&msg, NULL, 0, 0);
-		//if (bRet == -1)
-		//{
-			// handle the error and possibly exit
-		//}
-
-		//if a PostQuitMessage is posted from our wndProc callback,
-		//we will handle it here and break out of the view event loop and not forward bakc to the wndproc callback
-		if (bRet == 0 || msg.message == WM_QUIT)
-		{
-			
-		}
-		//else if( msg.message == WM_ENTERSIZEMOVE || msg.message == WM_EXITSIZEMOVE)
-		//	break;
-		//else if( msg.message == WM_SIZE || msg.message == WM_SIZING)
-		//	break;
-		//else if( msg.message == WM_NCCALCSIZE )
-		//	break;
-		//else if( msg.message == WM_NCPAINT )
-		//	break;
-
-		//pass on the messages to the __main_event_queue for processing
-		//TranslateMessage(&msg);
-		DispatchMessage(&msg);
-		memset(&msg, 0, sizeof(MSG));
-	}
-
-	
-	fprintf(stdout, "\nEnd win32MainEventLoop\n");
-	//if we have allocated the view ourselves we can expect the graphics context and platform window have been deallocated
-	//and we can destroy the memory associatedk with the view structure
-	//TO DO:  clean up view struct memory
-	//ReleaseDC(glWindow.hwnd, view->hdc);	//release the device context backing the hwnd platform window
-	
-	//when drawing we must explitly release the DC handle
-	//fyi, hwnd and hdc were assigned to the glWindowContext in CreateWnd
-	//ReleaseDC(glWindow.hwnd, glWindow.hdc);
-
-
-	//Since our glWindow and gpgpuWindow windows are managed by separate
-	//instances of WndProc callback on separate threads,
-	//but they are both closed at the same time
-	//there is a race condition between when the windows get destroyed
-	//and thus break out of their above GetMessage pump loops
-
-	//we will let the gpgpuWindow control thread set the _gpgpuIdleEvent
-	//to always be signaled when it is finished closing its thread
-	//and have this glWindow control thread wait until that event is signaled
-	//as open to ensure both get closed before the application closes
-	//WaitForSingleObject(_gpgpuIdleEvent, INFINITE);
-
-	// let's play nice and return any message sent by windows
-    return (int)msg.wParam;
-}
-
 void SendReqlQuery()
 {
 	//Send the ReQL Query to find some URLs to download
@@ -178,25 +106,106 @@ void SendReqlQuery()
 	CXReQL.db("MastryDB").table("Paintings").run(_reqlCXConn, NULL, queryCallback);
 }
 
+static int httpsRequestCount = 0;
 void SendHTTPRequest()
 {
+	//file path to open
+	char filepath[1024] = "https\0";
+
+	_itoa(httpsRequestCount, filepath + 5, 10);
+
+	strcat(filepath, ".png");
+	httpsRequestCount++;
 	
 	//Create a CXTransport API C++ CXURLRequest
-	std::shared_ptr<CXURLRequest> getRequest = CXURL.GET("/Assets/Elbaite_74.mp4");
-	
+	//std::shared_ptr<CXURLRequest> getRequest = CXURL.GET("/index.html", filepath);
+	std::shared_ptr<CXURLRequest> getRequest = CXURL.GET("/img/textures/wood.png", filepath);
+
 	//Add some HTTP headers to the CXURLRequest
 	getRequest->setValueForHTTPHeaderField("Accept:", "*/*");
 
 	
 	//Define the response callback to return response buffers using CXTransport CXCursor object returned via a Lambda Closure
-	auto requestCallback = [&] (CTError * error, std::shared_ptr<CXCursor> &cxCursor) { 
+	auto requestCallback = [&] (CTError * error, std::shared_ptr<CXCursor> &cxCursor) {
+
+		CTCursorCloseMappingWithSize(&(cxCursor->_cursor), cxCursor->_cursor.contentLength); //overlappedResponse->buf - cursor->file.buffer);
+		//CTCursorMapFileR(cursor);
 		printf("Lambda callback response:  %.*s\n", cxCursor->_cursor.headerLength, cxCursor->_cursor.requestBuffer);//%.*s\n", cursor->_cursor.length - sizeof(ReqlQueryMessageHeader), (char*)(cursor->_cursor.header) + sizeof(ReqlQueryMessageHeader)); return;  
+		CTCursorCloseFile(&(cxCursor->_cursor));
 	};
 
 	//Pass the CXConnection and the lambda to populate the request buffer and asynchronously send it on the CXConnection
 	//The lambda will be executed so the code calling the request can interact with the asynchronous response buffers
 	getRequest->send(_httpCXConn, requestCallback);
 	
+}
+
+//Define crossplatform keyboard event loop handler
+bool getconchar(KEY_EVENT_RECORD* krec)
+{
+#ifdef _WIN32
+	DWORD cc;
+	INPUT_RECORD irec;
+	KEY_EVENT_RECORD* eventRecPtr;
+
+	HANDLE h = GetStdHandle(STD_INPUT_HANDLE);
+
+	if (h == NULL)
+	{
+		return false; // console not found
+	}
+
+	for (;;)
+	{
+		//On Windows, we read console input and then ask if it's key down
+		ReadConsoleInput(h, &irec, 1, &cc);
+		eventRecPtr = (KEY_EVENT_RECORD*)&(irec.Event);
+		if (irec.EventType == KEY_EVENT && eventRecPtr->bKeyDown)//&& ! ((KEY_EVENT_RECORD&)irec.Event).wRepeatCount )
+		{
+			*krec = *eventRecPtr;
+			return true;
+		}
+	}
+#else
+	//On Linux we detect a keyboard hit using select and then read the console input
+	if (kbhit())
+	{
+		int r;
+		unsigned char c;
+
+		//printf("\nkbhit!\n");
+
+		if ((r = read(0, &c, sizeof(c))) == 1) {
+			krec.uChar.AsciiChar = c;
+			return true;
+		}
+	}
+	//else	
+	//	printf("\n!kbhit\n");
+
+
+#endif
+	return false; //future ????
+}
+
+void SystemKeyboardEventLoop()
+{
+#ifndef _WIN32	
+	//user linux termios to set terminal mode from line read to char read
+	set_conio_terminal_mode();
+#endif
+	printf("\nStarting SystemKeyboardEventLoop...\n");
+
+	KEY_EVENT_RECORD key;
+	for (;;)
+	{
+		memset(&key, 0, sizeof(KEY_EVENT_RECORD));
+		getconchar(&key);
+		if (key.uChar.AsciiChar == 's')
+			SendHTTPRequest();
+		else if (key.uChar.AsciiChar == 'q')
+			break;
+	}
 }
 
 int main(int argc, char **argv) 
@@ -230,21 +239,16 @@ int main(int argc, char **argv)
 	CXURL.connect(&httpTarget, _cxURLConnectionClosure);
 
 	//User CXTransport CXReQL C++ API to connect to our RethinkDB service
-	CXReQL.connect(&reqlService, _cxReQLConnectionClosure);
-
-	SendHTTPRequest();
-	SendReqlQuery();
+	//CXReQL.connect(&reqlService, _cxReQLConnectionClosure);
 
 	//Keep the app running using platform defined run loop
-	win32MainEventLoop();
+	SystemKeyboardEventLoop();
 
-	//Or keep the app running just long enough to perform for testing
-	//Sleep(10000);
-	
 	//Deleting CXConnection object
 	//will shutdown the internal Reql C API socket connection + associated ssl context
 	delete _httpCXConn;
-	delete _reqlCXConn;	
-	
+	//delete _reqlCXConn;	
+	ct_scram_cleanup();
+	CTSSLCleanup();
 	return 0;
 }

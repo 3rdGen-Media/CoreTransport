@@ -6,7 +6,9 @@
 
 #include <stdio.h>
 
-#ifdef CTRANSPORT_USE_MBED_TLS
+#ifdef CTRANSPORT_WOLFSSL
+	static int g_SSLInitialized = 0;
+#elif defined(CTRANSPORT_USE_MBED_TLS)
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -1143,24 +1145,22 @@ void CTSSLCertificateDestroy(CTSecCertificateRef * certRef)
 
 
 /***
- *	ReqlSSLInit
+ *	CTlSSLInit
  *
- *	Load Security and Socket Libraries on WIN32 platforms
+ *	Load Security Libraries for specified SSL Implementation
+ * 
+ *  Note:  This function is actually only used in the case of WolfSSL to call wolfSSL_Init
  ***/
 void CTSSLInit(void)
 {
-	//-------------------------------------------------------------------
-    //  Initialize the socket and the SSP security package.
-	//SOCKET  Socket = INVALID_SOCKET;
-
-    //CredHandle hClientCreds;
-    //CtxtHandle hContext;
-    //BOOL fCredsInitialized   = FALSE;
-    //BOOL fContextInitialized = FALSE;
-
-    //PCCERT_CONTEXT pRemoteCertContext = NULL;
-
-#ifdef CTRANSPORT_USE_MBED_TLS
+#ifdef CTRANSPORT_WOLFSSL
+	 /* Initialize wolfSSL */
+	if (!g_SSLInitialized)
+	{
+		wolfSSL_Init();
+		g_SSLInitialized = 1;
+	}
+#elif defined(CTRANSPORT_USE_MBED_TLS)
 	
 /*
 	mbedtls_entropy_init(&entropy);
@@ -1173,33 +1173,48 @@ void CTSSLInit(void)
 	}
 */
 #elif defined(_WIN32)
-
-    if( !LoadSecurityLibrary() )
-	{ printf("Error initializing the security library\n"); }//goto cleanup; } //
-
-	printf("----- SSPI Initialized\n");
+	//Load
+    //if( !LoadSecurityLibrary() )
+	//{ printf("Error initializing the security library\n"); }//goto cleanup; } //
+	//printf("----- SSPI Initialized\n");
 #endif
 
 }
 
 void CTSSLCleanup(void)
 {
-#ifdef CTRANSPORT_USE_MBED_TLS
+#ifdef CTRANSPORT_WOLFSSL
+	wolfSSL_Cleanup();          //Cleanup the wolfSSL environment
+#elif defined(CTRANSPORT_USE_MBED_TLS)
 #elif defined(_WIN32)
-	UnloadSecurityLibrary();
+	//UnloadSecurityLibrary();
 #endif
 }
 
 
 void CTSSLContextDestroy(CTSSLContextRef sslContextRef)
 {
-#ifdef CTRANSPORT_USE_MBED_TLS	//DESTROY MBEDTLS CONTEXT
+#ifdef CTRANSPORT_WOLFSSL //DESTROY WOLFSSL CONTEXT
+	if (sslContextRef->bio)
+		wolfSSL_BIO_free(sslContextRef->bio);
+	if (sslContextRef->conf)
+		wolfSSL_free(sslContextRef->ctx);  // Free the wolfSSL context object
+	if (sslContextRef->conf)
+		wolfSSL_CTX_free(sslContextRef->conf);  // Free the wolfSSL context object
+
+	sslContextRef->bio = NULL;
+	sslContextRef->ctx = NULL;
+	sslContextRef->conf = NULL;
+	free(sslContextRef);
+
+#elif defined(CTRANSPORT_USE_MBED_TLS)	//DESTROY MBEDTLS CONTEXT
 	//TO DO
 	mbedtls_entropy_free(&(sslContextRef->entropy));
 	mbedtls_ctr_drbg_free(&(sslContextRef->ctr_drbg));
 	//mbedtls_x509_crt_free(&(sslContextRef->cacert));
 	mbedtls_ssl_free(&(sslContextRef->ctx));
 	mbedtls_ssl_config_free(&(sslContextRef->conf));
+	free(sslContextRef);
 #elif defined(_WIN32)		//DESTROY SCHANNEL CONTEXT
 	//PSecurityFunctionTable pSSPI = NULL;
 	//g_pSSPI->FreeContextBuffer(OutBuffers[0].pvBuffer);
@@ -1245,7 +1260,10 @@ void CTSSLContextDestroy(CTSSLContextRef sslContextRef)
 CTSecCertificateRef CTSSLCertificate( const char * caCertPath )
 {
 	CTSecCertificateRef caCert = NULL;
-#ifdef CTRANSPORT_USE_MBED_TLS
+
+#ifdef CTRANSPORT_WOLFSSL
+	assert(1 == 0);
+#elif defined( CTRANSPORT_USE_MBED_TLS )
 	int ret = 1;// , len;
 
 	caCert = (CTSecCertificateRef)malloc(sizeof(CTSecCertificate));
@@ -1645,6 +1663,207 @@ OSStatus writeToSocket(SSLConnectionRef connection, const void *data, size_t *da
 	}
 }
 
+#elif defined(CTRANSPORT_WOLFSSL)
+
+
+//TO DO:  work out alignment and padding of this struct
+typedef struct CTSSLDecryptTransient
+{
+	int			  socketfd;
+	unsigned long bytesToDecrypt;
+	unsigned long totalBytesProcessed;
+	char* buffer;
+}CTSSLDecryptTransient;
+
+typedef struct CTSSLEncryptTransient
+{
+	int			  wolf_socket_fd;
+	CTSocket	  ct_socket_fd;
+}CTSSLEncryptTransient;
+
+static int wolf_handshake_complete = 0;
+//static int prevDecryptSize = 0;
+
+int CTWolfSSLRecv(WOLFSSL* ssl, char* buff, int sz, void* ctx)
+{
+	/* By default, ctx will be a pointer to the file descriptor to read from.
+	 * This can be changed by calling wolfSSL_SetIOReadCtx(). */
+	int sockfd = *(int*)ctx;
+	CTSSLDecryptTransient* transient = (CTSSLDecryptTransient*)ctx;
+	int recvd;
+	unsigned long remainingBytes;
+	unsigned long recvdBytes;
+	printf("CTWolfSSLRecv Callback: attempting to recv %d bytes on socket (%d)...\n", sz, sockfd);
+
+	//Receive a buffer of encrypted bytes from a buffer passed to wolfSSL_read by CoreTransport
+	if (sockfd == 0)
+	{
+		//if WolfSSL is asking for more bytes than CoreTransport has provided...
+		if (sz > transient->bytesToDecrypt)
+		{
+			transient->bytesToDecrypt = sz;
+			return WOLFSSL_CBIO_ERR_WANT_READ;  //will cause wolfSSL_read return with the positive version of this error to CoreTransport
+		}
+		else //copy bytes from CoreTransport to WolfSSL for decryption
+		{
+			printf("CTWolfSSLRecv Callback: received %d bytes from CoreTransport\n", sz);
+			memcpy(buff, transient->buffer + transient->totalBytesProcessed, sz);
+			transient->totalBytesProcessed += sz;
+			transient->bytesToDecrypt -= sz;
+			return sz;
+		}
+	}
+	//Receive a buffer of encrypted bytes by reading directly from the socket
+	else if ((recvd = recv(sockfd, buff, sz, 0)) == -1) {
+
+		//error encountered. Be responsible and report it in wolfSSL terms
+		fprintf(stderr, "IO RECEIVE ERROR: ");
+		switch (errno) {
+#if EAGAIN != EWOULDBLOCK
+		case EAGAIN: /* EAGAIN == EWOULDBLOCK on some systems, but not others */
+#endif
+		case EWOULDBLOCK:
+			if (!wolfSSL_dtls(ssl) || wolfSSL_get_using_nonblock(ssl)) {
+				fprintf(stderr, "would block\n");
+				return WOLFSSL_CBIO_ERR_WANT_READ;
+			}
+			else {
+				fprintf(stderr, "socket timeout\n");
+				return WOLFSSL_CBIO_ERR_TIMEOUT;
+			}
+		case ECONNRESET:
+			fprintf(stderr, "connection reset\n");
+			return WOLFSSL_CBIO_ERR_CONN_RST;
+		case EINTR:
+			fprintf(stderr, "socket interrupted\n");
+			return WOLFSSL_CBIO_ERR_ISR;
+		case ECONNREFUSED:
+			fprintf(stderr, "connection refused\n");
+			return WOLFSSL_CBIO_ERR_WANT_READ;
+		case ECONNABORTED:
+			fprintf(stderr, "connection aborted\n");
+			return WOLFSSL_CBIO_ERR_CONN_CLOSE;
+		default:
+			fprintf(stderr, "general error\n");
+			return WOLFSSL_CBIO_ERR_GENERAL;
+		}
+	}
+	else if (recvd == 0) {
+		printf("Connection closed\n");
+		return WOLFSSL_CBIO_ERR_CONN_CLOSE;
+	}
+
+	// successful receive
+	printf("CTWolfSSLRecv: received %d bytes from %d\n", sz, transient->socketfd);
+	return recvd;
+}
+
+
+int CTWolfSSLSend(WOLFSSL* ssl, char* buff, int sz, void* ctx)
+{
+	/* By default, ctx will be a pointer to the file descriptor to write to.
+	 * This can be changed by calling wolfSSL_SetIOWriteCtx(). */
+	int sockfd = *(int*)ctx;
+	CTSSLEncryptTransient* transient = (CTSSLDecryptTransient*)ctx;
+	int sent;
+
+	printf("CTWolfSSLSend: attempting to send %d bytes...\n", sz);
+
+	//Send a buffer of bytes encrypted by WOLFSSL as a result of CoreTransport calling wolfssl_write
+	if (wolf_handshake_complete)// && sockfd == 0)
+	{
+		printf("CTWolfSSLSend: sent %d encrypted message bytes on CoreTransport provided socket %d\n", sz, sockfd);
+		sent = send(sockfd, buff, sz, 0);
+		assert(sent == sz);
+		return sent;
+	}
+	//Send a buffer of bytes encrypted by WOLFSSL as a result of WolfSSL calling handshake via wolfssl_connect()
+	else if ((sent = send(sockfd, buff, sz, 0)) == -1) {
+		/* error encountered. Be responsible and report it in wolfSSL terms */
+
+		fprintf(stderr, "IO SEND ERROR: ");
+		switch (errno) {
+#if EAGAIN != EWOULDBLOCK
+		case EAGAIN: /* EAGAIN == EWOULDBLOCK on some systems, but not others */
+#endif
+		case EWOULDBLOCK:
+			fprintf(stderr, "would block\n");
+			return WOLFSSL_CBIO_ERR_WANT_WRITE;
+		case ECONNRESET:
+			fprintf(stderr, "connection reset\n");
+			return WOLFSSL_CBIO_ERR_CONN_RST;
+		case EINTR:
+			fprintf(stderr, "socket interrupted\n");
+			return WOLFSSL_CBIO_ERR_ISR;
+		case EPIPE:
+			fprintf(stderr, "socket EPIPE\n");
+			return WOLFSSL_CBIO_ERR_CONN_CLOSE;
+		default:
+			fprintf(stderr, "general error\n");
+			return WOLFSSL_CBIO_ERR_GENERAL;
+		}
+	}
+	else if (sent == 0) {
+		printf("Connection closed\n");
+		return 0;
+	}
+
+	/* successful send */
+	printf("CTWolfSSLSend: sent %d handshake bytes on WolfSSL provided socket %d\n", sz, transient->wolf_socket_fd);
+	return sent;
+}
+
+CTSSLStatus CTSSLDecryptMessage2(CTSSLContextRef sslContextRef, void* msg, unsigned long* msgLength, char** extraBuffer, unsigned long* extraBytes)
+{
+	CTSSLStatus scRet;
+	int err = 0;
+	char buffer[80];
+	//int sockfd = wolfSSL_get_fd(sslContextRef->ctx);
+	
+	//WOLFSSL callbacks must be overridden to allow encrypt or decrypt without writing to/reading from socket, respectively
+	//HOWEVER, we must still support traditional blocking send/recv calls in our callbacks initially to allow
+	//WOLFSSL to handle the the ssl handshake via wolfSSL_connect()
+	// 
+	//so...we will key off the fact that we are passing a socket descriptor equal to 0 in the callback
+	//to determine when to do decryption without allowing wolfssl to read from socket after the handshake has finished
+	CTSSLDecryptTransient transient = { 0, *msgLength, 0, msg};
+
+	printf("CTSSLDecryptMessage2::CoreTransport supplying (%lu) bytes to WolfSSL for decryption...\n", *msgLength);
+	
+	//Let WolfSSL Decrypt as many bytes from our encrypted input buffer ass possible in a single pass to wolfSSL_read
+	wolfSSL_SetIOReadCtx(sslContextRef->ctx, &transient);
+	scRet = wolfSSL_read(sslContextRef->ctx, (char*)msg /* + totalDecryptedBytes*/, *msgLength);//- totalDecryptedBytes);
+	if (scRet <= 0) //WolfSSL returned error
+	{		
+		err = wolfSSL_get_error(sslContextRef->ctx, 0);
+		wolfSSL_ERR_error_string(err, buffer);
+		fprintf(stderr, "CTSSLDecryptMessage2: wolfSSL failed to read (%d): \n\n%s\n\n", wolfSSL_get_error(sslContextRef->ctx, 0), buffer);
+
+		//HANDLE INCOMPLETE MESSAGE: the buffer didn't have as many bytes as WolfSSL needed for decryption
+		if (err == WOLFSSL_ERROR_WANT_READ )
+		{
+			//SCHANNEL IMPLEMENTATION FOR REFERENCE
+			//*msgLength = hasData * Buffers[1].cbBuffer + hasMissing * Buffers[0].cbBuffer;
+			//*extraBuffer = (char*)(hasExtra * (uintptr_t)Buffers[3].pvBuffer);
+			//*extraBytes = (scRet != SEC_E_OK) * (*extraBytes) + hasExtra * Buffers[3].cbBuffer;
+
+			//WOLFSSL ANALOG IMPLEMENTATION
+			*msgLength = *msgLength - transient.totalBytesProcessed;// transient.bytesToDecrypt;// totalDecryptedBytes;
+			*extraBytes = transient.bytesToDecrypt;// transient.bytesToDecrypt;
+			*extraBuffer = (char*)msg + transient.totalBytesProcessed;// : NULL;
+			scRet = SEC_E_INCOMPLETE_MESSAGE;
+		}		
+	}
+	else //WolfSSL returned decrypted bytes
+	{
+		*extraBytes = *msgLength - transient.totalBytesProcessed;
+		*extraBuffer = *extraBytes > 0 ? (char*)msg + transient.totalBytesProcessed : NULL;
+		*msgLength = (unsigned long)scRet;
+		scRet = SEC_E_OK;	//play nice with our existing SCHANNEL API
+	}
+	//wolfSSL_SetIOReadCtx(sslContextRef->ctx, &sockfd);
+	return scRet;
+}
 #elif defined(_WIN32)
 /***
  *	ReqlSSLDecrypt
@@ -1787,14 +2006,14 @@ CTSSLStatus CTSSLDecryptMessage2(CTSSLContextRef sslContextRef, void*msg, unsign
 	int i;
 	unsigned long length;
 	CTSSLStatus scRet;				// unsigned long cbBuffer;    // Size of the buffer, in bytes
-	SecBuffer          *pDataBuffer, *pExtraBuffer;
+	SecBuffer* pDataBuffer, * pExtraBuffer;
 	PBYTE              buff;
 	DWORD cbIoBuffer;
 
-	unsigned long hasData, hasExtra;
-	
-	SecBuffer          Buffers[4] = {{*msgLength, SECBUFFER_DATA, msg},0,0,0};		// void    SEC_FAR * pvBuffer;   // Pointer to the buffer
-	SecBufferDesc      Message = {SECBUFFER_VERSION, 4, Buffers};
+	unsigned long hasData, hasExtra, hasMissing;
+
+	SecBuffer          Buffers[4] = { {*msgLength, SECBUFFER_DATA, msg},0,0,0 };		// void    SEC_FAR * pvBuffer;   // Pointer to the buffer
+	SecBufferDesc      Message = { SECBUFFER_VERSION, 4, Buffers };
 
 	// Decrypt the received data.
 	//Buffers[0].pvBuffer = msg;
@@ -1806,11 +2025,11 @@ CTSSLStatus CTSSLDecryptMessage2(CTSSLContextRef sslContextRef, void*msg, unsign
 	//Message.ulVersion = SECBUFFER_VERSION;    // Version number
 	//Message.cBuffers = 4;                                    // Number of buffers - must contain four SecBuffer structures.
 	//Message.pBuffers = Buffers;                        // Pointer to array of buffers
-	
+
 	//*extraBytes = 0;
 	//*extraBuffer = NULL;
 	//*msgLength = 0;
-	
+
 	scRet = DecryptMessage(&(sslContextRef->hCtxt), &Message, 0, NULL);
 
 #ifdef _DEBUGS
@@ -1829,8 +2048,8 @@ CTSSLStatus CTSSLDecryptMessage2(CTSSLContextRef sslContextRef, void*msg, unsign
 		if (pDataBuffer == NULL && Buffers[i].BufferType == SECBUFFER_DATA) pDataBuffer = &Buffers[i];
 		if (pExtraBuffer == NULL && Buffers[i].BufferType == SECBUFFER_EXTRA) pExtraBuffer = &Buffers[i];
 	}
-	
-	
+
+
 	*msgLength = 0;
 	*extraBuffer = NULL;
 	if( scRet  == SEC_E_OK || scRet == SEC_E_INCOMPLETE_MESSAGE )
@@ -1849,14 +2068,23 @@ CTSSLStatus CTSSLDecryptMessage2(CTSSLContextRef sslContextRef, void*msg, unsign
 		}
 	}
 	*/
-	
-	hasData = (Buffers[1].BufferType == SECBUFFER_DATA); 
+
+	hasMissing = (Buffers[0].BufferType == SECBUFFER_MISSING);
+	hasData = (Buffers[1].BufferType == SECBUFFER_DATA);
 	hasExtra = (Buffers[3].BufferType == SECBUFFER_EXTRA);
 
-	*msgLength =  hasData * Buffers[1].cbBuffer;// : 0;//length;
-	*extraBuffer = (char*)(hasExtra * (uintptr_t)Buffers[3].pvBuffer);// : NULL;//(char*)pExtraBuffer->pvBuffer;
-	*extraBytes = (scRet!=SEC_E_OK) * (*extraBytes) + hasExtra * Buffers[3].cbBuffer;//pExtraBuffer->cbBuffer;
-	
+	if (scRet == SEC_E_INCOMPLETE_MESSAGE && Buffers[0].BufferType == SECBUFFER_MISSING)
+	{
+		//*extraBytes = Buffers[0].cbBuffer;
+		printf("CTSSLDecryptMessage2::SEC_E_INCOMPLETE_MESSAGE remaining bytes need to be read: %lu\n", Buffers[0].cbBuffer);
+	}
+
+	//*extraBytes = (*extraBytes) * !hasMissing + Buffers[0].cbBuffer * hasMissing;
+
+	*msgLength = hasData * Buffers[1].cbBuffer + (scRet != SEC_E_OK) * (*msgLength);// +hasMissing * Buffers[0].cbBuffer;
+	*extraBuffer = (char*)(hasExtra * (uintptr_t)Buffers[3].pvBuffer + !hasExtra * (uintptr_t)msg);
+	*extraBytes = (scRet != SEC_E_OK) * (*extraBytes + hasMissing * Buffers[0].cbBuffer) + hasExtra * Buffers[3].cbBuffer;
+
 	return scRet;
 }
 
@@ -2016,6 +2244,7 @@ CTSSLStatus CTSSLEncryptMessage(CTSSLContextRef sslContextRef, void*msg, unsigne
 
 
 
+
 #endif //_WIN32 SCHANNEL ENCRYPT, DECRYPT
 
 
@@ -2029,7 +2258,52 @@ CTSSLContextRef CTSSLContextCreate(CTSocket *socketfd, CTSecCertificateRef * cer
 {
 	//OSStatus status;
 	CTSSLContextRef sslContextRef = NULL;// = {0};
-#ifdef CTRANSPORT_USE_MBED_TLS
+
+#ifdef CTRANSPORT_WOLFSSL
+
+	sslContextRef = (CTSSLContextRef)malloc(sizeof(CTSSLContext));
+	memset(sslContextRef, 0, sizeof(CTSSLContext));
+
+	wolfSSL_Debugging_ON();
+	/* Create and initialize WOLFSSL_CTX */
+	if ((sslContextRef->conf = wolfSSL_CTX_new(wolfTLSv1_2_client_method())) == NULL) {
+		fprintf(stderr, "ERROR: failed to create WOLFSSL_CTX\n");
+		assert(sslContextRef->conf);
+	}
+
+	//Load client certificates into WOLFSSL_CTX
+	if (certRef && strlen(certRef) > 0 && wolfSSL_CTX_load_verify_locations(sslContextRef->conf, certRef, NULL) != WOLFSSL_SUCCESS)
+	{
+		fprintf(stderr, "ERROR: failed to load %s, please check the file.\n", certRef);
+		assert(1 == 0);
+	}
+
+	//if( certRef == NULL )
+	wolfSSL_CTX_set_verify(sslContextRef->conf, WOLFSSL_VERIFY_NONE, NULL);
+
+	wolfSSL_SetIOSend(sslContextRef->conf, CTWolfSSLSend);
+	wolfSSL_SetIORecv(sslContextRef->conf, CTWolfSSLRecv);
+
+	// Create a WOLFSSL object
+	if ((sslContextRef->ctx = wolfSSL_new(sslContextRef->conf)) == NULL) {
+		fprintf(stderr, "ERROR: failed to create WOLFSSL object\n");
+		assert(sslContextRef->ctx);
+	}
+
+	// Attach wolfSSL to the socket
+	wolfSSL_set_fd(sslContextRef->ctx, *socketfd);
+
+	/*
+	printf("creating new WOLFSSL BIO type to write and read with\n");
+	if( (sslContextRef->bio = wolfSSL_BIO_new(wolfSSL_BIO_f_ssl())) == NULL)
+	{
+		assert(sslContextRef->bio);
+	}
+	assert(sslContextRef->bio);
+
+	wolfSSL_BIO_set_ssl(sslContextRef->bio, sslContextRef->ctx, 0); // with BIO_CLOSE wolfSSL_BIO_free will free ssl
+	*/
+#elif defined(CTRANSPORT_USE_MBED_TLS)
 	int ret;
 	//mbedtls_entropy_context entropy;
 	//mbedtls_ctr_drbg_context ctr_drbg;
@@ -2304,7 +2578,6 @@ CTSSLContextRef CTSSLContextCreate(CTSocket *socketfd, CTSecCertificateRef * cer
 }
 
 
-
 /***
  *  CTSSLHandshake
  *
@@ -2316,14 +2589,22 @@ int CTSSLHandshake(CTSocket socketfd, CTSSLContextRef sslContextRef, CTSecCertif
 {
 	int ret = 0;
 
-#ifdef CTRANSPORT_USE_MBED_TLS
+#ifdef CTRANSPORT_WOLFSSL
+
+	/* Connect to wolfSSL on the server side */
+	if ((ret = wolfSSL_connect(sslContextRef->ctx)) != SSL_SUCCESS) {
+		fprintf(stderr, "ERROR: wolfSSL handshake failed!\n");
+		return ret;
+	}
+	wolf_handshake_complete = 1;
+#elif defined( CTRANSPORT_USE_MBED_TLS )
 	while ((ret = mbedtls_ssl_handshake(&(sslContextRef->ctx))) != 0)
 	{
-		Reql_printf("%s", "ReqlSSLHandshake\n");
+		Reql_printf("%s", "CTSSLHandshake\n");
 
 		if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE)
 		{
-			Reql_printf("ReqlSSLHandshake::mbedtls_ssl_handshake failed and returned %d\n\n", ret);
+			Reql_printf("CTSSLHandshake::mbedtls_ssl_handshake failed and returned %d\n\n", ret);
 			return ret;
 		}
 	}
@@ -2553,7 +2834,17 @@ int CTSSLHandshake(CTSocket socketfd, CTSSLContextRef sslContextRef, CTSecCertif
  ***/
 int CTVerifyServerCertificate(CTSSLContextRef sslContextRef, char * pszServerName)
 {
-#ifdef CTRANSPORT_USE_MBED_TLS
+#ifdef CTRANSPORT_WOLFSSL
+	/*
+	//Load client certificates into WOLFSSL_CTX
+	if (wolfSSL_CTX_load_verify_locations(sslContextRef->conf, certRef, NULL) != WOLFSSL_SUCCESS)
+	{
+		fprintf(stderr, "ERROR: failed to load %s, please check the file.\n", certRef);
+		assert(1 == 0);
+	}
+	*/
+	return CTSuccess;
+#elif defined( CTRANSPORT_USE_MBED_TLS )
 	uint32_t flags;
 	//In real life, we probably want to bail out when ret != 0
 	if ((flags = mbedtls_ssl_get_verify_result(&(sslContextRef->ctx))) != 0)
@@ -2700,7 +2991,10 @@ CTSSLStatus CTSSLRead( CTSocket socketfd, CTSSLContextRef sslContextRef, void * 
 // http://msdn.microsoft.com/en-us/library/aa375211(VS.85).aspx
 
 {
-#ifdef CTRANSPORT_USE_MBED_TLS 
+
+#ifdef CTRANSPORT_WOLFSSL
+	assert(1 == 0);
+#elif defined( CTRANSPORT_USE_MBED_TLS )
 	struct timeval m_timeInterval;
 	FD_SET ReadSet;
 	CTSSLStatus scRet = 0;
@@ -2867,7 +3161,21 @@ int CTSSLWrite( CTSocket socketfd, CTSSLContextRef sslContextRef, void * msg, un
 // The encrypted message is encrypted in place, overwriting the original contents of its buffer.
 {
 	int errOrBytesWritten = 0;
-#ifdef CTRANSPORT_USE_MBED_TLS
+#ifdef CTRANSPORT_WOLFSSL
+
+	//Set transient to inform our custom wolfssl callback not to send in a handshake context
+	//CTSSLEncryptTransient transient = { 0, socketfd };
+	//wolfSSL_SetIOWriteCtx(sslContextRef->ctx, &transient);
+
+	// Send the message to the server
+	//if ( (errOrBytesWritten = wolfSSL_BIO_write(sslContextRef->bio, msg, *msgLength)) != *msgLength)
+	if ((errOrBytesWritten = wolfSSL_write(sslContextRef->ctx, msg, *msgLength)) != *msgLength)
+	{
+		fprintf(stderr, "ERROR: failed to write\n");
+		errOrBytesWritten = -1;
+	}
+	*msgLength = errOrBytesWritten;
+#elif defined( CTRANSPORT_USE_MBED_TLS )
 	assert(&(sslContextRef->ctx) != NULL && sslContextRef->ctx.conf != NULL);
 
 	errOrBytesWritten = mbedtls_ssl_write(&(sslContextRef->ctx), (const unsigned char *)msg, (size_t)*msgLength);

@@ -10,7 +10,34 @@
 
 //#include "dns/dns.h"
 
-#ifdef CTRANSPORT_USE_MBED_TLS	//MBED_TLS API
+#ifdef CTRANSPORT_WOLFSSL
+//WOLF SSL
+#include <wolfssl/options.h>
+#include <wolfssl/ssl.h>
+typedef int CTSSLStatus;
+//typedef char CTSecCertificate;
+typedef char* CTSecCertificateRef;
+typedef struct CTSSLContext
+{
+	WOLFSSL*						ctx;
+	WOLFSSL_CTX*					conf;
+	WOLFSSL_BIO*					bio;
+
+	//This struct allows bookkeeping of ssl encrypt/decrypt context header and trailer buffer sizes
+	//For wolfssl, we just set these to 0 so they can be used interchangeably with calls to SCHANNEL on the decrypt thread(s)
+	struct
+	{
+		unsigned long   cbHeader;
+		unsigned long   cbTrailer;
+	}Sizes;
+
+	//mbedtls_ssl_config 			conf;
+	//mbedtls_entropy_context		entropy;
+	//mbedtls_ctr_drbg_context	ctr_drbg;
+}CTSSLContext;
+typedef CTSSLContext* CTSSLContextRef;
+
+#elif defined(CTRANSPORT_USE_MBED_TLS)	//MBED_TLS API
 //mbded tls
 #include "mbedtls/net.h"
 #include "mbedtls/ssl.h"

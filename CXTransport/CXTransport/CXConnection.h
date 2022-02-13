@@ -14,6 +14,9 @@ namespace CoreTransport
 //#define CX_PAGE_SIZE				4096L //only use this to hard code or test changes in page size
 #define	CX_MAX_INFLIGHT_QUERIES	8L
 
+#define CX_MAX_INFLIGHT_DECRYPT_PACKETS 2L
+#define CX_MAX_INFLIGHT_ENCRYPT_PACKETS 1L
+
 #define CX_QUERY_BUFF_PAGES		8L	//the number of system pages that will be used to calculate the size of a single query buffer
 #define CX_REQUEST_BUFF_PAGE	CX_QUERY_BUFF_PAGES
 #define CX_RESPONSE_BUFF_PAGES		8L	//the number of system pages that will be used to calculate the size of a single response buffer

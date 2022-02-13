@@ -167,6 +167,7 @@ CT_SCRAM_API CT_SCRAM_INLINE char * cr_utf8_to_base64(const void *buffer,size_t 
     
 //Init
 CT_SCRAM_API CT_SCRAM_INLINE void ct_scram_init();
+CT_SCRAM_API CT_SCRAM_INLINE void ct_scram_cleanup();
 
 //Generate UTF-8 Nonce
 CT_SCRAM_API CT_SCRAM_INLINE OSStatus ct_scram_gen_rand_bytes(char * byteBuffer, size_t numBytes);

@@ -12,7 +12,9 @@
 
 CTRANSPORT_API void CTCursorCloseFile(CTCursor *cursor)
 {
+#ifndef WIN32 
 	ct_file_unmap(cursor->file.fd, cursor->file.buffer);
+#endif
 	ct_file_close(cursor->file.fd);
 }
 
@@ -62,13 +64,16 @@ CTFileError CTCursorMapFileW(CTCursor * cursor, unsigned long fileSize)
 	dwMaximumSizeHigh = (unsigned long long)cursor->file.size  >> 32;
 	dwMaximumSizeLow = cursor->file.size & 0xffffffffu;
 
+    //printf("GetLastError (%d)", GetLastError());
+
 	// try to allocate and map our space (get a win32 mapped file handle)
-	if ( !(cursor->file.mFile = CreateFileMappingA(cursor->file.hFile, NULL, PAGE_READWRITE, dwMaximumSizeHigh, dwMaximumSizeLow, handleStr))  )//||
+	if ( !(cursor->file.mFile = CreateFileMappingA(cursor->file.hFile, NULL, PAGE_READWRITE, dwMaximumSizeHigh, dwMaximumSizeLow, NULL))  )//||
 		//!MapViewOfFileEx(buffer->mapping, FILE_MAP_ALL_ACCESS, 0, 0, ring_size, (char *)desired_addr + ring_size))
 	{
 		// something went wrong - clean up
-		printf("cr_file_map_to_buffer failed:  OS Virtual Mapping failed");
+		printf("cr_file_map_to_buffer failed:  OS Virtual Mapping failed with error (%d)", GetLastError());
 		err = CTFileMapError;
+		return err;
 	}
 		
 	// Offsets must be a multiple of the system's allocation granularity.  We
@@ -77,6 +82,7 @@ CTFileError CTCursorMapFileW(CTCursor * cursor, unsigned long fileSize)
 	{
 		printf("cr_file_map_to_buffer failed:  OS Virtual Mapping failed2 ");
 		err = CTFileMapViewError;
+		return err;
 	}
 	//filebuffer = (char*)ct_file_map_to_buffer(&(filebuffer), fileSize, PROT_READWRITE, MAP_SHARED | MAP_NORESERVE, fileDescriptor, 0);
 #endif
@@ -179,7 +185,9 @@ void* CTRecv(CTConnection* conn, void * msg, unsigned long * msgLength)
 		ret = 0;
 	else
 	{
-#ifdef CTRANSPORT_USE_MBED_TLS
+#ifdef CTRANSPORT_WOLFSSL
+		decryptedMessagePtr = (char*)msg;
+#elif defined(CTRANSPORT_USE_MBED_TLS)
 		decryptedMessagePtr = (char*)msg;
 #elif defined(_WIN32)
 		decryptedMessagePtr = (char*)msg + conn->sslContext->Sizes.cbHeader;
@@ -322,7 +330,7 @@ CTClientError CTSendWithQueue(CTConnection* conn, void * msg, unsigned long * ms
 	//Post the overlapped object message asynchronously to the socket transmit thread queue using Win32 Overlapped IO and IOCP
 	if( !PostQueuedCompletionStatus(conn->socketContext.txQueue, *msgLength, dwCompletionKey, &(overlappedQuery->Overlapped) ) )
 	{
-		printf("\nReqlAsyncSend::PostQueuedCompletionStatus failed with error:  %d\n", GetLastError());
+		printf("\nCTSendWithQueue::PostQueuedCompletionStatus failed with error:  %d\n", GetLastError());
 		return (CTClientError)GetLastError();
 	}
 
@@ -461,6 +469,7 @@ uint64_t CTSendOnQueue(CTConnection * conn, char ** queryBufPtr, unsigned long q
 	if( !PostQueuedCompletionStatus(conn->socketContext.txQueue, queryStrLength, dwCompletionKey, &(overlappedQuery->Overlapped) ) )
 	{
 		printf("\nCTSendOnQueue::PostQueuedCompletionStatus failed with error:  %d\n", GetLastError());
+        assert(1 == 0);
 		return (CTClientError)GetLastError();
 	}
 
@@ -568,7 +577,7 @@ uint64_t CTCursorSendOnQueue(CTCursor * cursor, char ** queryBufPtr, unsigned lo
 	//Post the overlapped object message asynchronously to the socket transmit thread queue using Win32 Overlapped IO and IOCP
 	if( !PostQueuedCompletionStatus(cursor->conn->socketContext.txQueue, queryStrLength, dwCompletionKey, &(overlappedQuery->Overlapped) ) )
 	{
-		printf("\nCTSendOnQueue::PostQueuedCompletionStatus failed with error:  %d\n", GetLastError());
+		printf("\nCTCursorSendOnQueue::PostQueuedCompletionStatus failed with error:  %d\n", GetLastError());
 		return (CTClientError)GetLastError();
 	}
 
@@ -691,6 +700,7 @@ CTClientError CTAsyncRecv(CTConnection* conn, void * msg, unsigned long offset, 
 
 }
 
+
 CTClientError CTAsyncRecv2(CTConnection* conn, void * msg, unsigned long offset, unsigned long * msgLength, uint64_t queryToken, CTOverlappedResponse** overlappedResponsePtr)
 {
 	//uint64_t queryToken = *(uint64_t*)msg;
@@ -784,12 +794,82 @@ CTClientError CTCursorAsyncRecv(CTOverlappedResponse** overlappedResponsePtr, vo
 		{
 			//TO DO: move to an error log
 			printf( "****ReqlAsyncRecv::WSARecv failed with error %d \n",  WSAGetLastError() );	
+            assert(1 == 0);
 		} 
 		
 		//forward the winsock system error to the client
 		return (CTClientError)WSAGetLastError();
 	}
 
+
+#elif defined(__APPLE__)
+	//TO DO?
+#endif
+
+	//ReqlSuccess will indicate the async operation finished immediately
+	return CTSuccess;
+
+}
+
+
+CTClientError CTCursorRecvOnQueue(CTOverlappedResponse** overlappedResponsePtr, void* msg, unsigned long offset, unsigned long* msgLength)
+{
+#ifdef _WIN32
+	CTOverlappedResponse* overlappedResponse = *overlappedResponsePtr;
+	DWORD recvLength = *msgLength;
+	ULONG_PTR dwCompletionKey = (ULONG_PTR)NULL;
+
+	//if message length is greater than 0, subtract offset
+	*msgLength -= (*msgLength > 0) * offset;
+	//if message length was zero then so its recvLength, use the overlappedResponse->len property as input to get the recv length
+	recvLength = *msgLength + (*msgLength == 0) * overlappedResponse->len;
+
+	//Our CoreTransport housekeeping properties (cursor, cursor->conn, and queryToken) have already been set on the Overlapped struct as part of CTCursor initialization
+	//Now populate the overlapped struct's WSABUF needed for IOCP to read socket buffer into (as well as our references to buf/len pointing to the start of the buffer to help as we decrypt [in place])
+	//Question:  Can we avoid zeroing this memory every time?
+	//Anser:	 Yes -- sort of -- we only need to zero the overlapped portion (whether we are reusing the OVERLAPPED struct or not...and we are) 
+	ZeroMemory(overlappedResponse, sizeof(WSAOVERLAPPED)); //this is critical!
+	overlappedResponse->Overlapped.hEvent = CreateEvent(NULL, 0, 0, NULL); //Manual vs Automatic Reset Events Affect GetQueued... Operation!!!
+	overlappedResponse->wsaBuf.buf = (char*)msg + offset;//(char*)(conn->response_buf[queryToken%2]);
+	overlappedResponse->wsaBuf.len = *msgLength;
+	overlappedResponse->buf = (char*)msg;
+	overlappedResponse->len = recvLength;//*msgLength;
+	//overlappedResponse->conn = ((CTCursor*)overlappedResponse->cursor)->conn;
+	//overlappedResponse->queryToken = queryToken;
+	//overlappedResponse->cursor = (void*)cursor;
+	overlappedResponse->Flags = 0;
+	overlappedResponse->type = CT_OVERLAPPED_SCHEDULE;
+
+	//Issue the async receive
+	//If WSARecv returns 0, the overlapped operation completed immediately and msgLength has been updated
+#ifdef _DEBUG
+	printf("CTCursorRecvOnQueue::Scheduling %lu Bytes\n", *msgLength);
+	//	printf("CTAsyncRecv::conn->socket = %d\n", conn->socket);
+#endif
+
+	/*
+	if (WSARecv(((CTCursor*)overlappedResponse->cursor)->conn->socket, &(overlappedResponse->wsaBuf), 1, msgLength, &(overlappedResponse->Flags), &(overlappedResponse->Overlapped), NULL) == SOCKET_ERROR)
+	{
+		//WSA_IO_PENDING
+		if (WSAGetLastError() != WSA_IO_PENDING)
+		{
+			//TO DO: move to an error log
+			printf("****ReqlAsyncRecv::WSARecv failed with error %d \n", WSAGetLastError());
+			assert(1 == 0);
+		}
+
+		//forward the winsock system error to the client
+		return (CTClientError)WSAGetLastError();
+	}
+	*/
+
+	//printf("overlapped->queryBuffer = %s\n", (char*)*queryBufPtr);
+	//Post the overlapped object message asynchronously to the socket transmit thread queue using Win32 Overlapped IO and IOCP
+	if (!PostQueuedCompletionStatus(((CTCursor*)overlappedResponse->cursor)->conn->socketContext.rxQueue, *msgLength, dwCompletionKey, &(overlappedResponse->Overlapped)))
+	{
+		printf("\nCTCursorSendOnQueue::PostQueuedCompletionStatus failed with error:  %d\n", GetLastError());
+		return (CTClientError)GetLastError();
+	}
 
 #elif defined(__APPLE__)
 	//TO DO?
@@ -1233,7 +1313,10 @@ coroutine int CTSSLRoutine(CTConnection *conn, char * hostname, char * caPath)
 	//		   DER data may need headers chopped of in some instances.
     //		-- Password protected PEM files must have their private/public key pairs generated using PCK12.  This can be done offline with OpenSSL or in app using Secure Transport
 	//
-#if defined(CTRANSPORT_USE_MBED_TLS) || defined(__APPLE__)
+
+#ifdef CTRANSPORT_WOLFSSL
+	rootCertRef = caPath;
+#elif defined(CTRANSPORT_USE_MBED_TLS) || defined(__APPLE__)
 	if (caPath)
 	{
 		if ((rootCertRef = CTSSLCertificate(caPath)) == NULL)
@@ -1288,7 +1371,7 @@ coroutine int CTSSLRoutine(CTConnection *conn, char * hostname, char * caPath)
 	//if( (status = ReqlSSLHandshake(conn, rootCert)) != noErr )
     {
 		//ReqlSSLCertificateDestroy(&rootCertRef);
-        printf("ReqlSSLHandshakeFailed with status:  %d\n", ret);
+        printf("CTSSLHandshake with status:  %d\n", ret);
         CTCloseSSLSocket(conn->sslContext, conn->socket);
         return CTSSLHandshakeError;
     }
@@ -1296,7 +1379,7 @@ coroutine int CTSSLRoutine(CTConnection *conn, char * hostname, char * caPath)
 	if ( (ret = CTVerifyServerCertificate(conn->sslContext, hostname)) != noErr)
 	{
 		//ReqlSSLCertificateDestroy(&rootCertRef);
-        printf("ReqlVerifyServerCertificate with status:  %d\n", ret);
+        printf("CTVerifyServerCertificate with status:  %d\n", ret);
         CTCloseSSLSocket(conn->sslContext, conn->socket);
         return CTSSLHandshakeError;
 	}
@@ -1649,7 +1732,7 @@ coroutine int CTTargetResolveHost(CTTarget * target, CTConnectionClosure callbac
 	
 #endif    
     //Perform the socket connection
-	printf("ReqlServiceResolveHost host = %s\n", target->host);
+	printf("CTTargetResolveHost host = %s\n", target->host);
     CTConnectRoutine(target, callback);
 
     /*
@@ -1685,8 +1768,8 @@ int CTConnect(CTTarget * target, CTConnectionClosure callback)
 	CTSocketInit();
 
 	//-------------------------------------------------------------------
-    //  Initialize the socket and the SSP security package.
-	//CTSSLInit();
+    //  Initialize and the SSL SSP security package.
+	CTSSLInit();
 
 	//-------------------------------------------------------------------
     //  Initialize the scram SSP security package.
@@ -1701,7 +1784,7 @@ int CTConnect(CTTarget * target, CTConnectionClosure callback)
 }
 
 
-//A helpef function to close an SSL Context and a socket in one shot
+//A helper function to close an SSL Context and a socket in one shot
 int CTCloseSSLSocket(CTSSLContextRef sslContextRef, CTSocket socketfd)
 {
 	CTSSLContextDestroy(sslContextRef);

@@ -103,6 +103,7 @@ typedef CTTarget CTConnectionOptions;
 
 #pragma mark -- HTTPConnection Struct
 
+typedef struct CTCursor;
 
 /* * *
  *  CTConnection [ReqlConnection]
@@ -132,11 +133,10 @@ typedef struct CTConnection
 		volatile uint64_t requestCount;
 	};
 
-	//union{
-	//	char * query_buffers;
-	//	char * request_buffers;
-	//};
-	//char * response_buffers;
+	volatile uint64_t responseCount;
+
+	//char response_overlap_buffer[65536L];
+	size_t response_overlap_buffer_length;
 
 	//a user defined context object
 	//void * ctx;
@@ -153,6 +153,12 @@ typedef struct CTConnection
 
 
 #ifdef _WIN32
+typedef enum CTOverlappedResponseType
+{
+	CT_OVERLAPPED_SCHEDULE,
+	CT_OVERLAPPED_EXECUTE,
+}CTOverlappedResponseType;
+
 typedef struct CTOverlappedResponse
 {
 	WSAOVERLAPPED		Overlapped;
@@ -163,9 +169,10 @@ typedef struct CTOverlappedResponse
 	uint64_t			queryToken;
 	WSABUF				wsaBuf;
 	void *				cursor;
+	CTOverlappedResponseType type;
+
 	//struct CTOverlappedResponse *overlappedResponse;	//ptr to the next overlapped
 }CTOverlappedResponse;
-
 /*
 typedef struct CTOverlappedRequest
 {
@@ -179,7 +186,6 @@ typedef struct CTOverlappedRequest
 */
 #endif
 
-typedef struct CTCursor;
 
 //client must provide a callback to return pointer to end of callback when requested
 //this also notifies the client when the cursor has been read, before the end of the message has been read

@@ -28,7 +28,9 @@ CTSocket CTSocketCreate(void)
 	struct linger lin;
 	int iResult;
 	u_long nonblockingMode = 0;
-	struct timeval timeout = {0,0};      
+	struct timeval timeout = {0,0};
+    BOOL     bOptVal = TRUE;
+    int      bOptLen = sizeof(BOOL);
 #ifdef _WIN32
 	socketfd = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
 #elif defined(__APPLE__)
@@ -47,6 +49,20 @@ CTSocket CTSocketCreate(void)
     lin.l_onoff = 0;
     lin.l_linger = 0;
     if( (setsockopt(socketfd, SOL_SOCKET, SO_LINGER, (const char *)&lin, sizeof(int))) < 0 )
+    {
+        printf("setsockopt(socketfd, SOL_SOCKET, SO_LINGER,...) failed with error:  %d\n", errno);
+        //return CTSocketError;
+    }
+
+    //Disable Nagle
+    if ((setsockopt(socketfd, IPPROTO_TCP, TCP_NODELAY, (const char*)&bOptVal, bOptLen)) < 0)
+    {
+        printf("setsockopt(socketfd, IPPROTO_TCP, TCP_NODELAY,...) failed with error:  %d\n", errno);
+        //return CTSocketError;
+    }
+
+    //Send Keep alive messages automatically
+    if ((setsockopt(socketfd, SOL_SOCKET, SO_KEEPALIVE, (const char*)&bOptVal, bOptLen)) < 0)
     {
         printf("setsockopt(socketfd, SOL_SOCKET, SO_LINGER,...) failed with error:  %d\n", errno);
         //return CTSocketError;
