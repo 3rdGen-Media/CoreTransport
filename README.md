@@ -16,15 +16,40 @@ CoreTransport is a no-compromise cross-platform pure C library (with wrapper API
 
 The general process for establishing and consuming from connections using CTransport and its wrapper interface libraries is the same:
 
-1.  Define your target (CTTarget)
-2.  Create a socket connection + perform SSL Handshake (CTConnection)
-3.  Make a network request and asynchronously receive the response (CTCursor)
-4.  Clean up the connection
+1.  Create a connection + cursor pool to provide to CTransport
+2.  Create queues for async non-blocking socket operations (CTThreadQueue)
+3.  Define your target (CTTarget)
+4.  Create a socket connection + perform SSL Handshake (CTConnection)
+5.  Make a network request and asynchronously receive the response (CTCursor)
+6.  Clean up the connection
 
 ## CTransport API
 ```
    #include <CoreTransport/CTransport.h>
 ```
+
+##  Create Connection + Cursor Pool
+```
+	//Supply a pool of connections and cursors to CTransport to both avoid allocations and allow async connection + handshake to pump 
+	CTCreateConnectionPool(&(HAPPYEYEBALLS_CONNECTION_POOL[0]), HAPPYEYEBALLS_MAX_INFLIGHT_CONNECTIONS);
+	CTCreateCursorPool(&(_httpCursor[0]), CT_MAX_INFLIGHT_CURSORS);
+```
+##  Create Socket Queues
+```	
+	//Thread Pool Initialization
+	cxQueue = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
+	txQueue = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
+	rxQueue = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
+
+	for (i = 0; i < 1; ++i)
+	{
+		
+		cxThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CTDequeue_Connect, cxQueue, 0, NULL);		
+		txThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CTDequeue_Encrypt_Send, txQueue, 0, NULL);
+		rxThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CTDequeue_Recv_Decrypt, rxQueue, 0, NULL);
+	}
+
+
 ####  Define your target
 ```
    CTTarget httpTarget = {0};
