@@ -29,20 +29,20 @@ The general process for establishing and consuming from connections using CTrans
    #include <CoreTransport/CTransport.h>
 ```
 
-##  Create Connection + Cursor Pool
+####  Create Connection + Cursor Pool
 ```
    CTCreateConnectionPool(&(HAPPYEYEBALLS_CONNECTION_POOL[0]), HAPPYEYEBALLS_MAX_INFLIGHT_CONNECTIONS);
    CTCreateCursorPool(&(_httpCursor[0]), CT_MAX_INFLIGHT_CURSORS);
 ```
 
-##  Create Socket Queues
+####  Create Socket Queues
 ```	
    CTThreadQueue cxQueue = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
    CTThreadQueue txQueue = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
    CTThreadQueue rxQueue = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
 ```
 
-##  Create Thread Pool 
+####  Create Thread Pool 
 ```
    CTThread cxThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CT_Dequeue_Connect, cxQueue, 0, NULL);		
    CTThread txThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CT_Dequeue_Encrypt_Send, txQueue, 0, NULL);
@@ -140,20 +140,20 @@ The general process for establishing and consuming from connections using CTrans
    using namespace CoreTransport;
 ```
 
-##  Create Connection + Cursor Pool (same as CTransport)
+####  Create Connection + Cursor Pool (same as CTransport)
 ```
    CTCreateConnectionPool(&(HAPPYEYEBALLS_CONNECTION_POOL[0]), HAPPYEYEBALLS_MAX_INFLIGHT_CONNECTIONS);
    CTCreateCursorPool(&(_httpCursor[0]), CT_MAX_INFLIGHT_CURSORS);
 ```
 
-##  Create Socket Queues (same as CTransport)
+####  Create Socket Queues (same as CTransport)
 ```	
    CTThreadQueue cxQueue = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
    CTThreadQueue txQueue = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
    CTThreadQueue rxQueue = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
 ```
 
-##  Create Thread Pool 
+####  Create Thread Pool 
 ```
    CTThread cxThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CX_Dequeue_Connect, cxQueue, 0, NULL);		
    CTThread txThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CX_Dequeue_Encrypt_Send, txQueue, 0, NULL);
