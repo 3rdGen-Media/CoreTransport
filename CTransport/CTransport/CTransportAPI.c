@@ -149,6 +149,45 @@ CTFileError CTCursorCreateMapFileW(CTCursor * cursor, char* filepath, unsigned l
 	return err;
 }
 
+int CT_MAX_CONNECTIONS = 0;
+int CT_NUM_CONNECTIONS = 0;
+CTConnection *CT_CONNECTION_POOL = NULL;
+
+int CT_NUM_CURSORS = 0;
+int CT_CURSOR_INDEX = 0;
+CTCursor* CT_CURSOR_POOL = NULL;
+
+void CTCreateConnectionPool(CTConnection* connectionPool, int numConnections)
+{
+	CT_CONNECTION_POOL = connectionPool;
+	CT_MAX_CONNECTIONS = numConnections;
+}
+
+CTConnection * CTGetNextPoolConnection()
+{
+	CTConnection * conn = &(CT_CONNECTION_POOL[CT_NUM_CONNECTIONS]);
+	assert(CT_MAX_CONNECTIONS > 0 && conn);
+	CT_NUM_CONNECTIONS++;
+	return conn;
+}
+
+
+
+void CTCreateCursorPool(CTCursor* cursorPool, int numCursors)
+{
+	CT_CURSOR_POOL = cursorPool;
+	CT_NUM_CURSORS = numCursors;
+}
+
+CTCursor* CTGetNextPoolCursor()
+{
+	CTCursor* cursor = &(CT_CURSOR_POOL[CT_CURSOR_INDEX]);
+	assert(CT_NUM_CURSORS > 0 && CT_CURSOR_INDEX < CT_NUM_CURSORS && cursor);
+	CT_CURSOR_INDEX = (CT_CURSOR_INDEX+1)%CT_NUM_CURSORS;
+	return cursor;
+}
+
+
 
 /***
  *  CTRecv
@@ -550,9 +589,46 @@ uint64_t CTSendOnQueue2(CTConnection * conn, char ** queryBufPtr, unsigned long 
 	return queryToken;
 }
 
+//#define CT_MAX_INFLIGHT_CONNECTION_TARGETS 1024
+//CTOverlappedTarget CT_INFLIGHT_CONNECTION_TARGETS[CT_MAX_INFLIGHT_CONNECTION_TARGETS];
+//static int CT_INFLIGHT_CONNECTION_COUNT = 0;
+
+uint64_t CTTargetConnectOnQueue(CTTarget* target, CTConnectionCallback callback)// char** queryBufPtr, unsigned long queryStrLength)
+{
+	ULONG_PTR dwCompletionKey = (ULONG_PTR)NULL;
+	//Send Query Asynchronously with Windows IOCP
+	//Create an overlapped connetion object to pass what we need to the iocp callback
+	//Instead of allocating memory we will assume the send buffer is large enough and tack it on the end
+	//CTOverlappedRequest * overlappedQuery;// = (ReqlOverlappedQuery*) ( (char*)*queryBufPtr + queryStrLength + 1 ); //+1 for null terminator needed for encryption
+	//printf("overlapped->queryBuffer = %s\n", (char*)*queryBufPtr);
+
+	CTOverlappedTarget* overlappedTarget = &(target->overlappedTarget);// &(CT_INFLIGHT_CONNECTION_TARGETS[CT_INFLIGHT_CONNECTION_COUNT]); //(CTOverlappedTarget*)malloc(sizeof(CTOverlappedTarget));
+	//CT_INFLIGHT_CONNECTION_COUNT = ++CT_INFLIGHT_CONNECTION_COUNT % CT_MAX_INFLIGHT_CONNECTION_TARGETS;
+																					
+	ZeroMemory(overlappedTarget, sizeof(CTOverlappedTarget)); //this is critical for proper overlapped/iocp operation!
+	overlappedTarget->Overlapped.hEvent = CreateEvent(NULL, 0, 0, NULL); //Manual vs Automatic Reset Events Affect GetQueued... Operation!!!
+	//overlappedTarget->buf = (char*)*queryBufPtr;
+	//overlappedTarget->len = queryStrLength;
+	target->callback = callback;
+	overlappedTarget->target = target;
+	//overlappedTarget->callback = callback;
+	//overlappedQuery->cursor = (void*)cursor;
+	//overlappedQuery->overlappedResponse = overlappedResponse;
+
+	//printf("overlapped->queryBuffer = %s\n", (char*)*queryBufPtr);
+	//Post the overlapped object message asynchronously to the socket transmit thread queue using Win32 Overlapped IO and IOCP
+	if (!PostQueuedCompletionStatus(target->cxQueue, sizeof(CTOverlappedTarget), dwCompletionKey, &(overlappedTarget->Overlapped)))
+	{
+		printf("\nCTCursorConnectOnQueue::PostQueuedCompletionStatus failed with error:  %d\n", GetLastError());
+		return (CTClientError)GetLastError();
+	}
+
+	return CTSuccess;
+}
 
 uint64_t CTCursorSendOnQueue(CTCursor * cursor, char ** queryBufPtr, unsigned long queryStrLength)
 {
+
 #ifdef _WIN32
 
 	ULONG_PTR dwCompletionKey = (ULONG_PTR)NULL;
@@ -561,16 +637,35 @@ uint64_t CTCursorSendOnQueue(CTCursor * cursor, char ** queryBufPtr, unsigned lo
 	//Instead of allocating memory we will assume the send buffer is large enough and tack it on the end
 	//CTOverlappedRequest * overlappedQuery;// = (ReqlOverlappedQuery*) ( (char*)*queryBufPtr + queryStrLength + 1 ); //+1 for null terminator needed for encryption
 	//printf("overlapped->queryBuffer = %s\n", (char*)*queryBufPtr);
+	
+	//store stage input, store buffer ptr, etc before zeroing overlapped (or just consider only zeroing the overlapped portion)
+	CTOverlappedStage stage = cursor->overlappedResponse.stage;
+	char* queryBuf = *queryBufPtr;// cursor->overlappedResponse.stage;
 
-	CTOverlappedResponse * overlappedQuery = (CTOverlappedResponse*) ( (char*)*queryBufPtr + queryStrLength + 1 ); //+1 for null terminator needed for encryption
+#ifdef CTRANSPORT_WOLFSSL
+
+	//CTCursor* handshakeCursor = CTGetNextPoolCursor();
+	//memset(handshakeCursor, 0, sizeof(CTCursor));
+
+	//WolfSSL Callbacks will need a connection object to place on CTCursor's for send/recv
+	CTSSLEncryptTransient* transient = (CTSSLEncryptTransient*)&(cursor->requestBuffer[65535 - sizeof(CTSSLEncryptTransient)]);// { 0, 0, NULL };
+	transient->wolf_socket_fd = 0;
+	transient->messageLen = cursor->overlappedResponse.len;
+	transient->messageBuffer = cursor->overlappedResponse.buf;
+	wolfSSL_SetIOWriteCtx(cursor->conn->sslContext->ctx, transient); 
+#endif
+
+	//if( cursor->overlappedResponse.buf)
+	CTOverlappedResponse* overlappedQuery = &(cursor->overlappedResponse);// (CTOverlappedResponse*)((char*)*queryBufPtr + queryStrLength + 1); //+1 for null terminator needed for encryption
 	//overlappedQuery = (ReqlOverlappedQuery *)malloc( sizeof(ReqlOverlappedQuery) );
 	ZeroMemory(overlappedQuery, sizeof(CTOverlappedResponse)); //this is critical for proper overlapped/iocp operation!
 	overlappedQuery->Overlapped.hEvent = CreateEvent(NULL, 0, 0, NULL); //Manual vs Automatic Reset Events Affect GetQueued... Operation!!!
-	overlappedQuery->buf = (char*)*queryBufPtr;
+	overlappedQuery->buf = queryBuf;// (char*)*queryBufPtr;
 	overlappedQuery->len = queryStrLength;
 	//overlappedQuery->conn = conn;
 	//overlappedQuery->queryToken = queryToken;//*(uint64_t*)msg;
 	overlappedQuery->cursor = (void*)cursor;
+	overlappedQuery->stage = stage;
 	//overlappedQuery->overlappedResponse = overlappedResponse;
 
 	//printf("overlapped->queryBuffer = %s\n", (char*)*queryBufPtr);
@@ -753,6 +848,69 @@ CTClientError CTAsyncRecv2(CTConnection* conn, void * msg, unsigned long offset,
 }
 
 
+CTClientError CTTargetAsyncRecvFrom(CTOverlappedTarget** overlappedTargetPtr, void* msg, unsigned long offset, unsigned long* msgLength)
+{
+#ifdef _WIN32
+	CTOverlappedTarget* overlappedTarget = *overlappedTargetPtr;
+	DWORD recvLength = *msgLength;
+
+	//if message length is greater than 0, subtract offset
+	*msgLength -= (*msgLength > 0) * offset;
+	//if message length was zero then so its recvLength, use the overlappedResponse->len property as input to get the recv length
+	recvLength = *msgLength + (*msgLength == 0);// *overlappedTarget->cursor->len;
+
+	//CTOverlappedTarget* overlappedTarget = (CTOverlappedTarget*)service->ctx;
+	//overlappedTarget = (CTOverlappedTarget*)malloc(sizeof(CTOverlappedTarget));
+	ZeroMemory(overlappedTarget, sizeof(WSAOVERLAPPED)); //this is critical for proper overlapped/iocp operation!
+	overlappedTarget->Overlapped.hEvent = CreateEvent(NULL, 0, 0, NULL); //Manual vs Automatic Reset Events Affect GetQueued... Operation!!!
+	//overlappedTarget->buf = (char*)*queryBufPtr;
+	//overlappedTarget->len = queryStrLength;
+	//overlappedTarget->target = service;
+	//overlappedTarget->callback = callback;
+	//overlappedTarget->target->callback = callback;
+	overlappedTarget->stage = CT_OVERLAPPED_RECV_FROM;
+	overlappedTarget->Flags = 0;
+
+	CTCursor* cursor = overlappedTarget->cursor;
+
+	overlappedTarget->cursor->overlappedResponse.wsaBuf.buf = (char*)msg + offset;//(char*)(conn->response_buf[queryToken%2]);
+	overlappedTarget->cursor->overlappedResponse.wsaBuf.len = *msgLength;
+
+
+	//Issue the async receive
+	//If WSARecv returns 0, the overlapped operation completed immediately and msgLength has been updated
+#ifdef _DEBUG
+	printf("CTAsyncRecvFrom::Requesting %lu Bytes\n", *msgLength);
+	//	printf("CTAsyncRecv::conn->socket = %d\n", conn->socket);
+#endif
+	assert(overlappedTarget->target);
+
+	int fromlen = sizeof(overlappedTarget->target->host_addr);
+	if (WSARecvFrom(overlappedTarget->target->socket, &(overlappedTarget->cursor->overlappedResponse.wsaBuf), 1, msgLength, &(overlappedTarget->Flags), (struct sockaddr*)&(overlappedTarget->target->host_addr), &fromlen, &(overlappedTarget->Overlapped), NULL) == SOCKET_ERROR)
+	{
+		//WSA_IO_PENDING
+		if (WSAGetLastError() != WSA_IO_PENDING)
+		{
+			//TO DO: move to an error log
+			printf("****CTAsyncRecvFrom::WSARecvFrom failed with error %d \n", WSAGetLastError());
+			assert(1 == 0);
+		}
+
+		//forward the winsock system error to the client
+		return (CTClientError)WSAGetLastError();
+	}
+
+
+#elif defined(__APPLE__)
+	//TO DO?
+#endif
+
+	//ReqlSuccess will indicate the async operation finished immediately
+	return CTSuccess;
+
+}
+
+
 CTClientError CTCursorAsyncRecv(CTOverlappedResponse** overlappedResponsePtr, void * msg, unsigned long offset, unsigned long * msgLength)
 {
 #ifdef _WIN32
@@ -783,17 +941,18 @@ CTClientError CTCursorAsyncRecv(CTOverlappedResponse** overlappedResponsePtr, vo
 	//Issue the async receive
 	//If WSARecv returns 0, the overlapped operation completed immediately and msgLength has been updated
 #ifdef _DEBUG
-	printf("CTAsyncRecv::Requesting %lu Bytes\n", *msgLength);
+	//printf("CTAsyncRecv::Requesting %lu Bytes\n", *msgLength);
 	//	printf("CTAsyncRecv::conn->socket = %d\n", conn->socket);
 #endif
 
 	if( WSARecv(((CTCursor*)overlappedResponse->cursor)->conn->socket, &(overlappedResponse->wsaBuf), 1, msgLength, &(overlappedResponse->Flags), &(overlappedResponse->Overlapped), NULL) == SOCKET_ERROR )
 	{
 		//WSA_IO_PENDING
-		if( WSAGetLastError() != WSA_IO_PENDING )
+		int err = WSAGetLastError();
+		if( err != WSA_IO_PENDING )
 		{
 			//TO DO: move to an error log
-			printf( "****ReqlAsyncRecv::WSARecv failed with error %d \n",  WSAGetLastError() );	
+			printf( "****CTAsyncRecv::WSARecv failed with error %d \n",  WSAGetLastError() );	
             assert(1 == 0);
 		} 
 		
@@ -812,7 +971,7 @@ CTClientError CTCursorAsyncRecv(CTOverlappedResponse** overlappedResponsePtr, vo
 }
 
 
-CTClientError CTCursorRecvOnQueue(CTOverlappedResponse** overlappedResponsePtr, void* msg, unsigned long offset, unsigned long* msgLength)
+CTClientError CTCursorRecvFromOnQueue(CTOverlappedResponse** overlappedResponsePtr, void* msg, unsigned long offset, unsigned long* msgLength)
 {
 #ifdef _WIN32
 	CTOverlappedResponse* overlappedResponse = *overlappedResponsePtr;
@@ -838,7 +997,7 @@ CTClientError CTCursorRecvOnQueue(CTOverlappedResponse** overlappedResponsePtr, 
 	//overlappedResponse->queryToken = queryToken;
 	//overlappedResponse->cursor = (void*)cursor;
 	overlappedResponse->Flags = 0;
-	overlappedResponse->type = CT_OVERLAPPED_SCHEDULE;
+	//overlappedResponse->stage = CT_OVERLAPPED_SCHEDULE;
 
 	//Issue the async receive
 	//If WSARecv returns 0, the overlapped operation completed immediately and msgLength has been updated
@@ -880,15 +1039,197 @@ CTClientError CTCursorRecvOnQueue(CTOverlappedResponse** overlappedResponsePtr, 
 
 }
 
+CTClientError CTCursorRecvOnQueue(CTOverlappedResponse** overlappedResponsePtr, void* msg, unsigned long offset, unsigned long* msgLength)
+{
+#ifdef _WIN32
+	CTOverlappedResponse* overlappedResponse = *overlappedResponsePtr;
+	DWORD recvLength = *msgLength;
+	ULONG_PTR dwCompletionKey = (ULONG_PTR)NULL;
+
+	//if message length is greater than 0, subtract offset
+	*msgLength -= (*msgLength > 0) * offset;
+	//if message length was zero then so its recvLength, use the overlappedResponse->len property as input to get the recv length
+	recvLength = *msgLength + (*msgLength == 0) * overlappedResponse->len;
+
+	//Our CoreTransport housekeeping properties (cursor, cursor->conn, and queryToken) have already been set on the Overlapped struct as part of CTCursor initialization
+	//Now populate the overlapped struct's WSABUF needed for IOCP to read socket buffer into (as well as our references to buf/len pointing to the start of the buffer to help as we decrypt [in place])
+	//Question:  Can we avoid zeroing this memory every time?
+	//Anser:	 Yes -- sort of -- we only need to zero the overlapped portion (whether we are reusing the OVERLAPPED struct or not...and we are) 
+	ZeroMemory(overlappedResponse, sizeof(WSAOVERLAPPED)); //this is critical!
+	overlappedResponse->Overlapped.hEvent = CreateEvent(NULL, 0, 0, NULL); //Manual vs Automatic Reset Events Affect GetQueued... Operation!!!
+	overlappedResponse->wsaBuf.buf = (char*)msg + offset;//(char*)(conn->response_buf[queryToken%2]);
+	overlappedResponse->wsaBuf.len = *msgLength;
+	overlappedResponse->buf = (char*)msg;
+	overlappedResponse->len = recvLength;//*msgLength;
+	//overlappedResponse->conn = ((CTCursor*)overlappedResponse->cursor)->conn;
+	//overlappedResponse->queryToken = queryToken;
+	//overlappedResponse->cursor = (void*)cursor;
+	overlappedResponse->Flags = 0;
+	//overlappedResponse->stage = CT_OVERLAPPED_SCHEDULE;
+
+	//Issue the async receive
+	//If WSARecv returns 0, the overlapped operation completed immediately and msgLength has been updated
+#ifdef _DEBUG
+	printf("CTCursorRecvOnQueue::Scheduling %lu Bytes\n", *msgLength);
+	//	printf("CTAsyncRecv::conn->socket = %d\n", conn->socket);
+#endif
+
+	/*
+	if (WSARecv(((CTCursor*)overlappedResponse->cursor)->conn->socket, &(overlappedResponse->wsaBuf), 1, msgLength, &(overlappedResponse->Flags), &(overlappedResponse->Overlapped), NULL) == SOCKET_ERROR)
+	{
+		//WSA_IO_PENDING
+		if (WSAGetLastError() != WSA_IO_PENDING)
+		{
+			//TO DO: move to an error log
+			printf("****ReqlAsyncRecv::WSARecv failed with error %d \n", WSAGetLastError());
+			assert(1 == 0);
+		}
+
+		//forward the winsock system error to the client
+		return (CTClientError)WSAGetLastError();
+	}
+	*/
+
+	//printf("overlapped->queryBuffer = %s\n", (char*)*queryBufPtr);
+	//Post the overlapped object message asynchronously to the socket transmit thread queue using Win32 Overlapped IO and IOCP
+	if (!PostQueuedCompletionStatus(((CTCursor*)overlappedResponse->cursor)->conn->socketContext.rxQueue, *msgLength, dwCompletionKey, &(overlappedResponse->Overlapped)))
+	{
+		printf("\nCTCursorSendOnQueue::PostQueuedCompletionStatus failed with error:  %d\n", GetLastError());
+		return (CTClientError)GetLastError();
+	}
+
+#elif defined(__APPLE__)
+	//TO DO?
+#endif
+
+	//ReqlSuccess will indicate the async operation finished immediately
+	return CTSuccess;
+
+}
+
+//#pragma comment(lib, "ws2_32.lib")
+
+int CTSocketConnectOnQueue(CTSocket socketfd, CTTarget* service, CTConnectionCallback callback)
+{
+
+
+	OSStatus status;
+	DWORD dwNumBytes = 0;
+	GUID guid = WSAID_CONNECTEX;
+	LPFN_CONNECTEX ConnectEx = NULL;
+	ULONG_PTR dwCompletionKey = (ULONG_PTR)NULL;
+
+	struct CTConnection conn = { 0 };
+	struct CTError error = { (CTErrorClass)0,0,0 };    //Reql API client functions will generally return ints as errors
+
+	struct sockaddr_in addr;
+
+
+	//Resolve hostname asynchronously   
+	/*
+	// Resolve hostname synchronously
+	 struct hostent *host = NULL;
+	 if ( (host = gethostbyname(service->host)) == NULL )
+	{
+		printf("gethostbyname failed with err:  %d\n", errno);
+		perror(service->host);
+		return ReqlDomainError;
+	}
+	printf("ReqlSocketConnect 3\n");
+	*/
+
+	
+
+	if (WSAIoctl(socketfd, SIO_GET_EXTENSION_FUNCTION_POINTER, &guid, sizeof(guid), &ConnectEx, sizeof(ConnectEx), &dwNumBytes, NULL, NULL) != 0)
+	{
+		assert(1 == 0);
+	}
+
+	// Fill a sockaddr_in socket host address and port (why do we copy the already resolved target addr to this local var?)
+	//bzero(&addr, sizeof(addr));
+	memset(&addr, 0, sizeof(addr));
+	addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr = service->host_addr.sin_addr.s_addr;//*(in_addr_t*)(service->host_addr.sa_data);//*(in_addr_t*)(host->h_addr);  //set host ip addr
+	addr.sin_port = htons(service->port);
+	
+	service->socket = socketfd;
+	
+	//assert(service->ctx);
+	CTOverlappedTarget* overlappedTarget = (CTOverlappedTarget*)&(service->overlappedTarget);// service->ctx;
+	//overlappedTarget = (CTOverlappedTarget*)malloc(sizeof(CTOverlappedTarget));
+	ZeroMemory(overlappedTarget, sizeof(WSAOVERLAPPED)); //this is critical for proper overlapped/iocp operation!
+	overlappedTarget->Overlapped.hEvent = CreateEvent(NULL, 0, 0, NULL); //Manual vs Automatic Reset Events Affect GetQueued... Operation!!!
+	//overlappedTarget->buf = (char*)*queryBufPtr;
+	//overlappedTarget->len = queryStrLength;
+	overlappedTarget->target = service;
+	//overlappedTarget->callback = callback;
+	overlappedTarget->target->callback = callback;
+	overlappedTarget->stage = CT_OVERLAPPED_EXECUTE;
+	
+	/* ConnectEx requires the socket to be initially bound. */
+	{
+		struct sockaddr_in baddr;
+		ZeroMemory(&baddr, sizeof(baddr));
+		baddr.sin_family = AF_INET;
+		baddr.sin_addr.s_addr = INADDR_ANY;
+		baddr.sin_port = 0;
+		int rc = bind(socketfd, (SOCKADDR*)&baddr, sizeof(baddr));
+		if (rc != 0) {
+			printf("bind failed: %d\n", WSAGetLastError());
+			CTSocketClose(socketfd);
+			perror(service->host);
+			return CTSocketBindError;
+		}
+	}
+
+	//OVERLAPPED ol;
+	//ZeroMemory(&ol, sizeof(ol));
+
+	if (ConnectEx(socketfd, (struct sockaddr*)&addr, sizeof(addr), NULL, 0, NULL, &(overlappedTarget->Overlapped)) == FALSE)
+	{
+
+		if (WSAGetLastError() == ERROR_IO_PENDING)
+		{
+			printf("ConnectEx pending\n");
+
+			
+			
+			
+		}
+		else
+		{
+			printf("ConnectEx failed: %d\n", WSAGetLastError());
+			CTSocketClose(socketfd);
+			perror(service->host);
+			return CTSocketConnectError;
+		}
+	}
+	else
+	{
+		printf("ConnectEx succeeded immediately\n");
+	}
+
+	//The connection completed successfully, allocate memory to return to the client
+	//error.id = CTSuccess;
+
+//CONN_CALLBACK:
+	//printf("before callback!\n");
+	//conn.target = overlappedTarget->target;
+	//overlappedTarget->callback(&error, &conn);
+	//printf("After callback!\n");
+
+	return CTSuccess;
+}
+
 //A helper function to perform a socket connection to a given service
 //Will either return an kqueue fd associated with the input (blocking or non-blocking) socket
 //or an error code
 coroutine int CTSocketConnect(CTSocket socketfd, CTTarget * service)
 {
-    //printf("ReqlSocketConnect\n");
+    //printf("CTSocketConnect\n");
     //yield();
     struct sockaddr_in addr;
- 
+
     //Resolve hostname asynchronously   
     /*
     // Resolve hostname synchronously
@@ -902,7 +1243,7 @@ coroutine int CTSocketConnect(CTSocket socketfd, CTTarget * service)
     printf("ReqlSocketConnect 3\n");
     */
     
-    // Fill a sockaddr_in socket host address and port
+    // Fill a sockaddr_in socket host address and port (why do we copy the already resolved target addr to this local var?)
     //bzero(&addr, sizeof(addr));
 	memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
@@ -924,10 +1265,11 @@ coroutine int CTSocketConnect(CTSocket socketfd, CTTarget * service)
     if ( connect(socketfd, (struct sockaddr*)&addr, sizeof(addr)) != 0 ) //== SOCKET_ERROR
 #endif
     {
+		int error = WSAGetLastError();
         //errno EINPROGRESS is expected for non blocking sockets
-        if( errno != WSAEINPROGRESS )
+        if( error != WSAEINPROGRESS )
         {
-            printf("socket failed to connect to %s with error: %d\n", service->host, errno);
+            printf("socket failed to connect to %s with error: %d\n", service->host, WSAGetLastError());
             CTSocketClose(socketfd);
             perror(service->host);
             return CTSocketConnectError;
@@ -936,7 +1278,9 @@ coroutine int CTSocketConnect(CTSocket socketfd, CTTarget * service)
         {
 			printf("\nReqlSocketConnect EINPROGRESS\n");
         }
+
     }
+
     //printf("ReqlSocketConnect End\n");
     return CTSuccess;
 }
@@ -1287,6 +1631,196 @@ int CTReQLSASLHandshake(CTConnection * r, CTTarget* service)
     return CTSuccess;
 }
 
+coroutine int CTSSLRoutineSendFirstMessage(CTConnection* conn, char* hostname, char* caPath)
+{
+	int ret;
+
+	//OSStatus status;
+	//Note:  PCredHandle (PSecHandle) is the WIN32 equivalent of SecCertificateRef
+	CTSecCertificateRef rootCertRef = NULL;
+
+	// Create credentials.
+
+	//  ReqSSLCertificate (Obtains a native Security Certificate object/handle) 
+	//
+	//  MBEDTLS NOTES:
+	//
+	//  WIN32 NOTES:
+	//		ReqlSecCertificateRef is of type PCredHandle on WIN32, but it needs to point to allocated memory before supplying as input to AcquireCredentialHandle (ACH)
+	//		so ReqlSSLCertificate will allocate memory for this pointer and return it to the client, but the client is responsible for freeing it later 
+	//
+	//  DARWIN NOTES:
+	//
+	//		Read CA file in DER format from disk so we can use it/add it to the trust chain during the SSL Handshake Authentication
+	//		-- Non (password protected) PEM files can be converted to DER format offline with OpenSSL or in app with by removing PEM headers/footers and converting (from or to?) BASE64.  
+	//		   DER data may need headers chopped of in some instances.
+	//		-- Password protected PEM files must have their private/public key pairs generated using PCK12.  This can be done offline with OpenSSL or in app using Secure Transport
+	//
+
+#ifdef CTRANSPORT_WOLFSSL
+	rootCertRef = caPath;
+#elif defined(CTRANSPORT_USE_MBED_TLS) || defined(__APPLE__)
+	if (caPath)
+	{
+		if ((rootCertRef = CTSSLCertificate(caPath)) == NULL)
+		{
+			printf("ReqlSSLCertificate failed to generate SecCertificateRef\n");
+			CTCloseSSLSocket(conn->sslContext, conn->socket);
+			return CTSSLCertificateError;
+		}
+	}
+#endif
+	//ReqlSSLInit();
+
+	printf("----- Credentials Initialized\n");
+
+	//ReqlSSLContextRef sslContext = NULL;
+	//  Create an SSL/TLS Context using a 3rd Party Framework such as Apple SecureTransport, OpenSSL or mbedTLS
+	//  THEN send the first message in a synchronous fashion
+
+	void* sslFirstMessageBuffer = NULL;
+	int sslFirstMessageLen = 0;
+	if ((conn->sslContext = CTSSLContextCreate(&(conn->socket), &rootCertRef, hostname, &sslFirstMessageBuffer, sslFirstMessageLen)) == NULL)
+	{
+		//ReqlSSLCertificateDestroy(&rootCertRef);
+		return CTSecureTransportError;
+	}
+	printf("----- SSL Context Initialized\n");
+
+
+	CTSSLHandshakeSendFirstMessage(conn->socket, conn->sslContext, sslFirstMessageBuffer, sslFirstMessageLen);
+
+	SYSTEM_INFO systemInfo;
+	GetSystemInfo(&systemInfo);     // Initialize the structure.
+	printf(TEXT("CTPageSize() = %d.\n"), systemInfo.dwPageSize);
+	return (unsigned long)systemInfo.dwPageSize;
+
+}
+
+
+char* SSLFirstMessageHeaderLengthCallback(struct CTCursor* cursor, char* buffer, unsigned long length)
+{
+	printf("SSLFirstMessageHeaderLengthCallback...\n\n");
+
+	//the purpose of this function is to return the end of the header in the 
+	//connection's tcp stream to CoreTransport decrypt/recv thread
+	char* endOfHeader = buffer;// +sizeof(ReqlQueryMessageHeader);
+
+	//The client *must* set the cursor's contentLength property
+	//to aid CoreTransport in knowing when to stop reading from the socket
+
+	//if (cursor->contentLength == 0)
+		cursor->contentLength = length;// 5 + 88 + 5 + 4583 + 5 + 333 + 5 + 4;// length;// ((ReqlQueryMessageHeader*)buffer)->length;
+
+	//The cursor headerLength is calculated as follows after this function returns
+	return endOfHeader;
+}
+
+
+void SSLFirstMessageQueryCallback(CTError* err, CTCursor* cursor)
+{
+	int ret = 0;
+	int wolfErr = 0;
+	char buffer[80];
+	CTClientError scRet;
+
+	printf("SSLFirstMessageQueryCallback len:  \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
+
+#ifdef CTRANSPORT_WOLFSSL
+
+	CTSSLDecryptTransient dTransient = { 0, 0, 0, cursor->file.buffer };
+	CTSSLEncryptTransient eTransient = { 0, cursor->overlappedResponse.len, NULL };
+
+	printf("SSLFirstMessageQueryCallback::CoreTransport supplying (%lu) handshake bytes to WolfSSL...\n", cursor->headerLength + cursor->contentLength);
+
+	//we are finished sending the first response, reset the send context for the second client message after the recv
+
+	//Let WolfSSL Decrypt as many bytes from our encrypted input buffer ass possible in a single pass to wolfSSL_read
+	wolfSSL_SetIOWriteCtx(cursor->conn->sslContext->ctx, &eTransient);
+	wolfSSL_SetIOReadCtx(cursor->conn->sslContext->ctx, &dTransient);
+
+
+	/* Connect to wolfSSL on the server side */
+	while ((ret = wolfSSL_connect(cursor->conn->sslContext->ctx)) != SSL_SUCCESS) {
+
+		wolfErr = wolfSSL_get_error(cursor->conn->sslContext->ctx, 0);
+		wolfSSL_ERR_error_string(wolfErr, buffer);
+		fprintf(stderr, "SSLFirstMessageQueryCallback: wolfSSL_connect failed to send/read handshake data (%d): \n\n%s\n\n", wolfSSL_get_error(cursor->conn->sslContext->ctx, 0), buffer);
+
+		//HANDLE INCOMPLETE MESSAGE: the buffer didn't have as many bytes as WolfSSL needed for decryption
+		if (wolfErr == WOLFSSL_ERROR_WANT_READ)
+		{
+			//assert(1 == 0);
+			//eTransient = (CTSSLEncryptTransient*)wolfSSL_GetIOWriteCtx(cursor->conn->sslContext->ctx);
+			//eTransient->ct_socket_fd = cursor->conn->socket;
+			//wolfSSL_SetIOWriteCtx(cursor->conn->sslContext->ctx, &(cursor->conn->socket));
+			return CTSuccess;
+		}
+		else if (wolfErr == SSL_ERROR_WANT_WRITE)
+		{
+			//wolfSSL_SetIOWriteCtx(cursor->conn->sslContext->ctx, &eTransient);
+			//assert(1 == 0);
+
+			//eTransient = (CTSSLEncryptTransient*)wolfSSL_GetIOWriteCtx(cursor->conn->sslContext->ctx);
+			//eTransient->wolf_socket_fd = cursor->conn->socket;
+			//eTransient->ct_socket_fd = 0;
+			/*
+			assert(eTransient && eTransient->messageLen == 6);
+			//the second client handshake message
+			cursor->headerLengthCallback = SSLSecondMessageHeaderLengthCallback;
+			cursor->responseCallback = SSLSecondMessageResponseCallback;
+			cursor->queryCallback = SSLSecondMessageQueryCallback;
+			cursor->contentLength = cursor->headerLength = 0;
+			cursor->conn->responseCount = 0;
+			cursor->file.buffer = cursor->requestBuffer;
+			cursor->overlappedResponse.buf = eTransient->messageBuffer;// (char*)(OutBuffers[0].pvBuffer);
+			cursor->overlappedResponse.len = eTransient->messageLen;//(char*)(OutBuffers[0].cbBuffer);
+			cursor->overlappedResponse.stage = CT_OVERLAPPED_SEND; //we need to send but bypass encrypt bc this is the ssl handshake
+			assert(cursor->overlappedResponse.buf);
+			CTCursorSendOnQueue(cursor, (char**)&(cursor->overlappedResponse.buf), cursor->overlappedResponse.len);
+			return CTSuccess;
+			*/
+			//continue;
+
+		}
+		/*
+		err = wolfSSL_get_error(sslContextRef->ctx, ret);
+		if (err != SSL_ERROR_WANT_READ && err != SSL_ERROR_WANT_WRITE)
+		{
+			fprintf(stderr, "ERROR: wolfSSL handshake failed!\n");
+		}
+		return err;
+		*/
+	}
+	//wolf_handshake_complete = 1;
+#endif(_WIN32)
+}
+
+void SSLFirstMessageResponseCallback(CTError* err, CTCursor* cursor)
+{
+	printf("SSLFirstMessageResponseCallback header:  \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
+	int ret = 0;
+	if ((ret = CTSSLHandshakeProcessFirstResponse(cursor, cursor->conn->socket, cursor->conn->sslContext)) != noErr)
+	{
+#ifdef CTRANSPORT_WOLFSSL
+		if (ret == SSL_ERROR_WANT_READ)
+		{
+			assert(1 == 0);
+			return CTSuccess;
+		}
+		else if (ret == SSL_ERROR_WANT_WRITE)
+		{
+			assert(1 == 0);
+			return CTSuccess;
+		}
+#endif
+		//ReqlSSLCertificateDestroy(&rootCertRef);
+		printf("CTSSLHandshake with status:  %d\n", ret);
+		err->id = CTSSLHandshakeError;
+		CTCloseSSLSocket(cursor->conn->sslContext, cursor->conn->socket);
+		cursor->conn->target->callback(err, cursor->conn);
+	}
+}
 
 coroutine int CTSSLRoutine(CTConnection *conn, char * hostname, char * caPath)
 {
@@ -1331,14 +1865,21 @@ coroutine int CTSSLRoutine(CTConnection *conn, char * hostname, char * caPath)
 	
 	printf("----- Credentials Initialized\n");
 
+
+
 	//ReqlSSLContextRef sslContext = NULL;
 	//  Create an SSL/TLS Context using a 3rd Party Framework such as Apple SecureTransport, OpenSSL or mbedTLS
-	if( (conn->sslContext = CTSSLContextCreate(&(conn->socket), &rootCertRef, hostname)) == NULL )
+	//  THEN send the first message in a synchronous fashion
+
+	void* sslFirstMessageBuffer = NULL;
+	int sslFirstMessageLen = 0;
+	if ((conn->sslContext = CTSSLContextCreate(&(conn->socket), &rootCertRef, hostname, &sslFirstMessageBuffer, &sslFirstMessageLen)) == NULL)
 	{
 		//ReqlSSLCertificateDestroy(&rootCertRef);
-        return CTSecureTransportError;
-	}	
+		return CTSecureTransportError;
+	}
 	printf("----- SSL Context Initialized\n");
+
 #ifdef __APPLE__   
     
     //7.#  Elevate Trust Settings on the CA (Not on iOS, mon!)
@@ -1365,25 +1906,93 @@ coroutine int CTSSLRoutine(CTConnection *conn, char * hostname, char * caPath)
     //SecIdentityRef certIdentity = ReqlSSLCertficateIdentity();
 #endif 
 
-	
-    //  Perform the SSL Layer Auth Handshake over TLS
-	if( (ret = CTSSLHandshake(conn->socket, conn->sslContext, rootCertRef, hostname)) != noErr )
-	//if( (status = ReqlSSLHandshake(conn, rootCert)) != noErr )
-    {
-		//ReqlSSLCertificateDestroy(&rootCertRef);
-        printf("CTSSLHandshake with status:  %d\n", ret);
-        CTCloseSSLSocket(conn->sslContext, conn->socket);
-        return CTSSLHandshakeError;
-    }
+#ifdef CTRANSPORT_WOLFSSL
 
-	if ( (ret = CTVerifyServerCertificate(conn->sslContext, hostname)) != noErr)
+	//get a cursor to use for the first async non-blocking handshake message
+	CTCursor* handshakeCursor = CTGetNextPoolCursor();
+	memset(handshakeCursor, 0, sizeof(CTCursor));
+
+	//WolfSSL Callbacks will need a connection object to place on CTCursor's for send/recv
+	CTSSLEncryptTransient* transient = (CTSSLEncryptTransient*)&(handshakeCursor->requestBuffer[65535 - sizeof(CTSSLEncryptTransient)]);// { 0, 0, NULL };
+	transient->wolf_socket_fd = 0;
+	transient->messageLen = 0;
+	transient->messageBuffer;
+	wolfSSL_SetIOWriteCtx(conn->sslContext->ctx, transient);
+#elif defined(_WIN32)
+	//send the first message in an async non-blocking fashion on a thread pool queeu
+	if (conn->socketContext.txQueue)
 	{
-		//ReqlSSLCertificateDestroy(&rootCertRef);
-        printf("CTVerifyServerCertificate with status:  %d\n", ret);
-        CTCloseSSLSocket(conn->sslContext, conn->socket);
-        return CTSSLHandshakeError;
+		CTCursor* handshakeCursor = CTGetNextPoolCursor();
+		//send the TLS Handshake first message in an async non-blocking fashion
+		memset(handshakeCursor, 0, sizeof(CTCursor));
+
+		handshakeCursor->headerLengthCallback = SSLFirstMessageHeaderLengthCallback;
+		handshakeCursor->responseCallback = SSLFirstMessageResponseCallback;
+
+		handshakeCursor->file.buffer = handshakeCursor->requestBuffer;
+		handshakeCursor->overlappedResponse.buf = (char*)(sslFirstMessageBuffer);
+		handshakeCursor->overlappedResponse.len = sslFirstMessageLen;
+
+		handshakeCursor->conn = conn; //assume conn is permanent memory from core transport connection pool
+		handshakeCursor->overlappedResponse.stage = CT_OVERLAPPED_SEND; //we need to bypass encrypt bc sthis is the ssl handshake
+		assert(handshakeCursor->overlappedResponse.buf);
+		CTCursorSendOnQueue(handshakeCursor, (char**)&(handshakeCursor->overlappedResponse.buf), handshakeCursor->overlappedResponse.len);
+		return CTSuccess;
 	}
-	
+
+	//send first message in a blocking fashion
+	CTSSLHandshakeSendFirstMessage(conn->socket, conn->sslContext, sslFirstMessageBuffer, sslFirstMessageLen);
+#endif
+	//else if( !conn->socketContext.txQueue )
+	//{
+
+		//commence with the rest of the TLS handshake
+		if ((ret = CTSSLHandshake(conn->socket, conn->sslContext, rootCertRef, hostname)) != noErr)
+		{
+#ifdef CTRANSPORT_WOLFSSL
+			if (ret == SSL_ERROR_WANT_READ)
+			{
+				assert(1 == 0);
+				return CTSuccess;
+
+			}
+			else if (ret == SSL_ERROR_WANT_WRITE)
+			{
+
+
+				//send the TLS Handshake first message in an async non-blocking fashion
+				handshakeCursor->headerLengthCallback = SSLFirstMessageHeaderLengthCallback;
+				handshakeCursor->responseCallback = SSLFirstMessageResponseCallback;
+				//handshakeCursor->queryCallback = SSLFirstMessageQueryCallback;
+				handshakeCursor->file.buffer = handshakeCursor->requestBuffer;
+				handshakeCursor->overlappedResponse.buf = transient->messageBuffer;// (char*)(sslFirstMessageBuffer);
+				handshakeCursor->overlappedResponse.len = transient->messageLen;// sslFirstMessageLen;
+
+				handshakeCursor->conn = conn; //assume conn is permanent memory from core transport connection pool
+				handshakeCursor->overlappedResponse.stage = CT_OVERLAPPED_SEND; //we need to bypass encrypt bc sthis is the ssl handshake
+				assert(handshakeCursor->overlappedResponse.buf);
+				
+				CTCursorSendOnQueue(handshakeCursor, (char**)&(handshakeCursor->overlappedResponse.buf), handshakeCursor->overlappedResponse.len);
+				return CTSuccess;
+			}
+#endif
+			//ReqlSSLCertificateDestroy(&rootCertRef);
+			printf("CTSSLHandshake with status:  %d\n", ret);
+			CTCloseSSLSocket(conn->sslContext, conn->socket);
+			return CTSSLHandshakeError;
+		}
+
+		if ((ret = CTVerifyServerCertificate(conn->sslContext, hostname)) != noErr)
+		{
+			//ReqlSSLCertificateDestroy(&rootCertRef);
+			printf("CTVerifyServerCertificate with status:  %d\n", ret);
+			CTCloseSSLSocket(conn->sslContext, conn->socket);
+			return CTSSLHandshakeError;
+		}
+
+
+	//}
+
 
 	//mbedtls_ssl_flush_output(&(conn->sslContext->ctx));
 
@@ -1431,7 +2040,6 @@ unsigned long CTPageSize()
 
 #endif
 }
-
 
 coroutine int CTConnectRoutine(CTTarget * service, CTConnectionClosure callback)
 {
@@ -1484,33 +2092,39 @@ coroutine int CTConnectRoutine(CTTarget * service, CTConnectionClosure callback)
 #ifdef _WIN32//CTRANSPORT_USE_MBED_TLS
 	printf("Before CTSocketCreate()\n");
     //  Create a [non-blocking] TCP socket and return a socket fd
-    if( (conn.socket = CTSocketCreate()) < 0)
+    if( (conn.socket = CTSocketCreate((service->cxQueue ? 1 : 0))) < 0)
     {
         error.id = (int)conn.socket; //Note: hope that 64 bit socket handle is within 32 bit range?!
         goto CONN_CALLBACK;
         //return conn.socket;
     }
 
-		printf("Before CTSocketCreateEventQueue(0)\n");
-
-	if( CTSocketCreateEventQueue(&(conn.socketContext)) < 0)
-	{
-		printf("ReqlSocketCreateEventQueue failed\n");
-		error.id = (int)conn.event_queue;
-        goto CONN_CALLBACK;
-	}
-
-			printf("Before ReqlSocketConnect\n");
+	printf("Before CTSocketConnect\n");
 
     //  Connect the [non-blocking] socket to the server asynchronously and return a kqueue fd
     //  associated with the socket so we can listen/wait for the connection to complete
-    if( (conn.event_queue = CTSocketConnect(conn.socket, service)) < 0 )
+
+	if (service->cxQueue)
+	{
+		//CTSocketClose(service->socket);
+		service->socket = conn.socket;
+		CreateIoCompletionPort((HANDLE)service->socket, service->cxQueue, (ULONG_PTR)NULL, 1);
+		return CTSocketConnectOnQueue(service->socket, service, callback);
+	}
+	else if( (conn.event_queue = CTSocketConnect(conn.socket, service)) < 0 )
     {
         error.id = (int)conn.socket;
         goto CONN_CALLBACK;
-        //return conn.event_queue;
     }
-	//printf("ReqlSocketConnect End\n");
+
+	/*
+	if (CTSocketCreateEventQueue(&(conn.socketContext)) < 0)
+	{
+		printf("ReqlSocketCreateEventQueue failed\n");
+		error.id = (int)conn.event_queue;
+		goto CONN_CALLBACK;
+	}
+	*/
 #else
 	itoa((int)service->port, port, 10);
 	mbedtls_net_init(&(conn.socketContext.ctx));
@@ -1530,19 +2144,19 @@ coroutine int CTConnectRoutine(CTTarget * service, CTConnectionClosure callback)
     CFRunLoopWakeUp(CFRunLoopGetCurrent());
 #endif
 
-	printf("Before ReqlSocketWait\n");
+	printf("Before CTSocketWait\n");
 
     //Wait for socket connection to complete
     if( CTSocketWait(conn.socket, conn.event_queue, EVFILT_WRITE) != conn.socket )
     {
-        printf("ReqlSocketWait failed\n");
+        printf("CTSocketWait failed\n");
         error.id = CTSocketEventError;
         CTSocketClose(conn.socket);
         goto CONN_CALLBACK;
         //return ReqlEventError;
     }
 
-		printf("Before ReqlGetSocketError\n");
+	printf("Before CTSocketGetError\n");
 
     //Check for socket error to ensure that the connection succeeded
     if( (error.id = CTSocketGetError(conn.socket)) != 0 )
@@ -1558,31 +2172,32 @@ coroutine int CTConnectRoutine(CTTarget * service, CTConnectionClosure callback)
     //There is some short order work that would be good to parallelize regarding loading the cert and saving it to keychain
     //However, the SSLHandshake loop has already been optimized with yields for every asynchronous call
 
-	printf("Before ReqlSSLRoutine Host = %s\n", conn.socketContext.host);
-	printf("Before ReqlSSLRoutine Host = %s\n", service->host);
+	printf("Before CTSSLRoutine Host = %s\n", conn.socketContext.host);
+	printf("Before CTSSLRoutine Host = %s\n", service->host);
 
-	
     if( (status = CTSSLRoutine(&conn, conn.socketContext.host, service->ssl.ca)) != 0 )
     {
-        printf("ReqlSSL failed with error: %d\n", (int)status );
+        printf("CTSSLRoutine failed with error: %d\n", (int)status );
         error.id = CTSSLHandshakeError;
         goto CONN_CALLBACK;
         //return status;
     }
+
+	//if the client specified tx, rx queues on the target as input
+	//copy them to the socket context now for the blocking ssl handshake routine if no cxQueue was specified
+	conn.socketContext.txQueue = service->txQueue;// CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
+	conn.socketContext.rxQueue = service->rxQueue;// CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
+	if (conn.socketContext.rxQueue)
+	{
+		ULONG_PTR dwCompletionKey = (ULONG_PTR)NULL;
+		CreateIoCompletionPort((HANDLE)conn.socket, conn.socketContext.rxQueue, dwCompletionKey, 1);
+	}
 	
     //The connection completed successfully, allocate memory to return to the client
     error.id = CTSuccess;
     
-    //generate a client side token for the connection
-    //conn.token = ++REQL_NUM_CONNECTIONS;
-    //conn.query_buf[0] = (void*)malloc( REQL_QUERY_BUFF_SIZE);
-    //conn.query_buf[1] = (void*)malloc( REQL_QUERY_BUFF_SIZE);
-    //conn.response_buf[0] = (void*)malloc( REQL_RESPONSE_BUFF_SIZE);
-    //conn.response_buf[1] = (void*)malloc( REQL_RESPONSE_BUFF_SIZE);
-    
 CONN_CALLBACK:
     //printf("before callback!\n");
-
 	conn.target = service;
     callback(&error, &conn);
     //printf("After callback!\n");
@@ -1602,6 +2217,137 @@ CONN_CALLBACK:
     return error.id;
 }
 
+void populate_sockaddr(int af, int port, char addr[], struct sockaddr_storage* dst, socklen_t* addrlen) {
+
+	if (af == AF_INET) {
+		struct sockaddr_in* dst_in4 = (struct sockaddr_in*)dst;
+
+		*addrlen = sizeof(*dst_in4);
+		memset(dst_in4, 0, *addrlen);
+		dst_in4->sin_family = af;
+		dst_in4->sin_port = htons(port);
+		inet_pton(af, addr, &dst_in4->sin_addr);
+
+	}
+	else if (af == AF_INET6) {
+		struct sockaddr_in6* dst_in6 = (struct sockaddr_in6*)dst;
+
+		*addrlen = sizeof(*dst_in6);
+		memset(dst_in6, 0, *addrlen);
+		dst_in6->sin6_family = af;
+		dst_in6->sin6_port = htons(port);
+		// unnecessary because of the memset(): dst_in6->sin6_flowinfo = 0;
+		inet_pton(af, addr, &dst_in6->sin6_addr);
+	} // else ...
+}
+
+
+char* DNSResolveHeaderLengthCallback(struct CTCursor* cursor, char* buffer, unsigned long length)
+{
+	printf("DNSResolveResponseCallback headerLengthCallback...\n\n");
+
+	//the purpose of this function is to return the end of the header in the 
+	//connection's tcp stream to CoreTransport decrypt/recv thread
+	char* endOfHeader = buffer;// +sizeof(ReqlQueryMessageHeader);
+
+	//The client *must* set the cursor's contentLength property
+	//to aid CoreTransport in knowing when to stop reading from the socket
+	cursor->contentLength = length;// ((ReqlQueryMessageHeader*)buffer)->length;
+
+	//The cursor headerLength is calculated as follows after this function returns
+	return endOfHeader;
+}
+
+
+void DNSResolveResponseCallback(CTError* err, CTCursor* cursor)
+{
+	printf("DNSResolveResponseCallback header:  \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
+
+	int ret = 0;
+	socklen_t addrlen;
+	int DNS_PORT = 53;
+	//populate_sockaddr(AF_INET, (int)DNS_PORT, "8.8.8.8", &(cursor->target->host_addr), &addrlen);
+
+	CTError error = { 0,0,NULL };
+	//check the result
+	//int fromlen = sizeof(target->host_addr);
+	int cbReceived = cursor->contentLength + cursor->headerLength;// recvfrom(target->socket, buff, 2048, 0, (struct sockaddr*)&(target->host_addr), &fromlen);
+
+	if (cbReceived < 0)
+	{
+		printf("Error Receiving Data: %d", cbReceived);
+		error.id = cbReceived;
+		goto CONN_CALLBACK;
+	}
+
+	if (0 == cbReceived)
+	{
+		printf("No Data Received: %d", cbReceived);
+		assert(1 == 0);
+		//error.id = cbReceived;
+		//goto CONN_CALLBACK;
+	}
+
+	printf("recvfrom (%d) = \n\n%.*s\n\n", cbReceived, cbReceived, cursor->file.buffer);
+
+
+	//-- Parse the DNS response received with DNS API
+	//local pDnsResponseBuff = ffi.cast("DNS_MESSAGE_BUFFER*", buff);
+	DNS_MESSAGE_BUFFER* pDnsResponseBuff = (DNS_MESSAGE_BUFFER*)cursor->file.buffer;
+	PDNS_HEADER pHeader = &(pDnsResponseBuff->MessageHead);
+	DNS_BYTE_FLIP_HEADER_COUNTS(pHeader);
+	if (pDnsResponseBuff->MessageHead.Xid != cursor->target->dns.wID)
+	{
+		printf("Wrong TransactionID: X.id %d != wID %d", pDnsResponseBuff->MessageHead.Xid, cursor->target->dns.wID);
+		assert(1 == 0);
+	}
+
+	DNS_RECORD* pRecord = NULL;// ffi.new("DNS_RECORD *[1]", nil);
+	WORD dnsLen = (WORD)cbReceived;
+	DNS_STATUS status = DnsExtractRecordsFromMessage_UTF8(pDnsResponseBuff, dnsLen, &(pRecord));
+
+	if (status != 0)
+	{
+		printf("DnsExtractRecordsFromMessage_UTF8 failed with error code: %d\n", status);
+		assert(1 == 0);
+	}
+
+
+	if (pRecord == NULL) assert(1 == 0);
+
+	//pRecord = pRecord[0];
+	DNS_RECORD* pRecordA = (DNS_RECORD*)pRecord;
+
+	while (pRecordA && pRecordA->wType == DNS_TYPE_A)
+	{
+		//local a = IN_ADDR();
+		//a.S_addr = record.Data.A.IpAddress
+
+		//TO DO:  we are only handling A records and only the first one
+		populate_sockaddr(AF_INET, (int)(cursor->target->port), cursor->target->host, &(cursor->target->host_addr), &addrlen);
+		cursor->target->host_addr.sin_addr.s_addr = pRecordA->Data.A.IpAddress;
+		assert(INADDR_NONE != cursor->target->host_addr.sin_addr.s_addr);
+		break;
+
+		pRecordA = pRecordA->pNext;
+	}
+
+	//--Free the resources
+	if (pRecord)
+		DnsRecordListFree(pRecord, DnsFreeRecordList);
+
+
+	//initiate the async connection
+	printf("CTTargetResolveHost host = %s\n", cursor->target->host);
+	CTConnectRoutine(cursor->target, cursor->target->callback);
+	return;
+
+CONN_CALLBACK:
+	//CTConnection conn = { 0 };
+	//conn.target = target;
+	cursor->target->callback(&error, NULL);
+	return;// error.id;
+}
 
 
 /***
@@ -1613,69 +2359,70 @@ CONN_CALLBACK:
  *  callback to the calling runloop
  *
  ***/
-coroutine int CTTargetResolveHost(CTTarget * target, CTConnectionClosure callback)
+coroutine int CTTargetResolveHost(CTTarget* target, CTConnectionClosure callback)
 {
- 
+
 #ifndef _WIN32
-    //Launch asynchronous query using modified version of Sustrik's libdill DNS implementation
-    struct dill_ipaddr addr[1];
-    struct dns_addrinfo *ai = NULL;
-    if( dill_ipaddr_dns_query_ai(&ai, addr, 1, service->host, service->port, DILL_IPADDR_IPV4, service->dns.resconf, service->dns.nssconf) != 0 || ai == NULL )
-    {
-        printf("service->dns.resconf = %s", service->dns.resconf);
-        printf("dill_ipaddr_dns_query_ai failed with errno:  %d", errno);
-        ReqlError err = {ReqlDriverErrorClass, ReqlDNSError, NULL};
-        callback(&err, NULL);
-        return ReqlDNSError;
-    }
-    
-    //TO DO:  We could use this opportunity to do work that validates ReqlService properties, like loading SSL Certificate
-    //CFRunLoopWakeUp(CFRunLoopGetCurrent());
-    //CFRunLoopSourceSignal(runLoopSource);
-    CFRunLoopWakeUp(CFRunLoopGetCurrent());
+	//Launch asynchronous query using modified version of Sustrik's libdill DNS implementation
+	struct dill_ipaddr addr[1];
+	struct dns_addrinfo* ai = NULL;
+	if (dill_ipaddr_dns_query_ai(&ai, addr, 1, service->host, service->port, DILL_IPADDR_IPV4, service->dns.resconf, service->dns.nssconf) != 0 || ai == NULL)
+	{
+		printf("service->dns.resconf = %s", service->dns.resconf);
+		printf("dill_ipaddr_dns_query_ai failed with errno:  %d", errno);
+		ReqlError err = { ReqlDriverErrorClass, ReqlDNSError, NULL };
+		callback(&err, NULL);
+		return ReqlDNSError;
+	}
 
-    //printf("Before DNS wait\n");
-    yield();
+	//TO DO:  We could use this opportunity to do work that validates ReqlService properties, like loading SSL Certificate
+	//CFRunLoopWakeUp(CFRunLoopGetCurrent());
+	//CFRunLoopSourceSignal(runLoopSource);
+	CFRunLoopWakeUp(CFRunLoopGetCurrent());
 
-    int numResolvedAddresses = 0;
-    if( (numResolvedAddresses = dill_ipaddr_dns_query_wait_ai(ai, addr, 1, service->port, DILL_IPADDR_IPV4, -1)) < 1 )
-    {
-        //printf("dill_ipaddr_dns_query_wait_ai failed to resolve any IPV4 addresses!");
-        ReqlError err = {ReqlDriverErrorClass, ReqlDNSError, NULL};
-        callback(&err, NULL);
-        return ReqlDNSError;
-    }
- 
-    //printf("DNS resolved %d ip address(es)\n", numResolvedAddresses);
-    struct sockaddr_in * ptr = (struct sockaddr_in*)addr;//(addr[0]);
-    service->host_addr = *ptr;//(struct sockaddr_in*)addresses;
-#else
+	//printf("Before DNS wait\n");
+	yield();
 
-//TODO:
-	//--------------------------------------------------------------------
-//  ConnectAuthSocket establishes an authenticated socket connection 
-//  with a server and initializes needed security package resources.
+	int numResolvedAddresses = 0;
+	if ((numResolvedAddresses = dill_ipaddr_dns_query_wait_ai(ai, addr, 1, service->port, DILL_IPADDR_IPV4, -1)) < 1)
+	{
+		//printf("dill_ipaddr_dns_query_wait_ai failed to resolve any IPV4 addresses!");
+		ReqlError err = { ReqlDriverErrorClass, ReqlDNSError, NULL };
+		callback(&err, NULL);
+		return ReqlDNSError;
+	}
+
+	//printf("DNS resolved %d ip address(es)\n", numResolvedAddresses);
+	struct sockaddr_in* ptr = (struct sockaddr_in*)addr;//(addr[0]);
+	service->host_addr = *ptr;//(struct sockaddr_in*)addresses;
+
+#elif 0
+
+	//TODO:
+		//--------------------------------------------------------------------
+	//  ConnectAuthSocket establishes an authenticated socket connection 
+	//  with a server and initializes needed security package resources.
 
 	DWORD dwRetval;
 	char port[6];
-	struct addrinfo *result = NULL;
-    struct addrinfo *ptr = NULL;
-    struct addrinfo hints;
+	struct addrinfo* result = NULL;
+	struct addrinfo* ptr = NULL;
+	struct addrinfo hints;
 	int i = 0;
 
-    struct sockaddr_in  *sockaddr_ipv4;
-    //unsigned long  ulAddress;
-	struct hostent *pHost = NULL;
-    //sockaddr_in    sin;
+	struct sockaddr_in* sockaddr_ipv4;
+	//unsigned long  ulAddress;
+	struct hostent* pHost = NULL;
+	//sockaddr_in    sin;
 
-    //--------------------------------------------------------------------
-    //  Lookup the server's address.
-		printf("ReqlServiceResolveHost host = %s\n", target->host);
+	//--------------------------------------------------------------------
+	//  Lookup the server's address.
+	printf("ReqlServiceResolveHost host = %s\n", target->host);
 
-    target->host_addr.sin_addr.s_addr = inet_addr (target->host);
-    if (INADDR_NONE == target->host_addr.sin_addr.s_addr ) 
-    {	
-		
+	target->host_addr.sin_addr.s_addr = inet_addr(target->host);
+	if (INADDR_NONE == target->host_addr.sin_addr.s_addr)
+	{
+
 		/*
 		pHost = gethostbyname (service->host);
 		if ( pHost==NULL) {
@@ -1683,24 +2430,24 @@ coroutine int CTTargetResolveHost(CTTarget * target, CTConnectionClosure callbac
 			//WSACleanup();
 			return -1;
 		}
-		memcpy((void*)&(service->host_addr.sin_addr.s_addr) , (void*)(pHost->h_addr), (size_t)(strlen(pHost->h_addr)) );		 
+		memcpy((void*)&(service->host_addr.sin_addr.s_addr) , (void*)(pHost->h_addr), (size_t)(strlen(pHost->h_addr)) );
 
-		//memcpy((void*)&(service->addr) , (void*)*(pHost->h_addr_list), (size_t)(pHost->h_length));		 
+		//memcpy((void*)&(service->addr) , (void*)*(pHost->h_addr_list), (size_t)(pHost->h_length));
 		*/
-		
+
 		//set port param
 		_itoa((int)target->port, port, 10);
 		//
 		memset(&hints, 0, sizeof(struct addrinfo));
 		dwRetval = getaddrinfo(target->host, port, &hints, &result);
-		if ( dwRetval != 0 ) {
+		if (dwRetval != 0) {
 			printf("getaddrinfo failed with error: %d\n", dwRetval);
 			//WSACleanup();
 			return -1;
 		}
-		
-		 // Retrieve each address and print out the hex bytes
-		for(ptr=result; ptr != NULL ;ptr=ptr->ai_next) 
+
+		// Retrieve each address and print out the hex bytes
+		for (ptr = result; ptr != NULL; ptr = ptr->ai_next)
 		{
 
 			printf("getaddrinfo response %d\n", i++);
@@ -1708,33 +2455,216 @@ coroutine int CTTargetResolveHost(CTTarget * target, CTConnectionClosure callbac
 			printf("\tFamily: ");
 			printf("\tLength of this sockaddr: %d\n", (int)(ptr->ai_addrlen));
 			printf("\tCanonical name: %s\n", ptr->ai_canonname);
-		
-			if( ptr->ai_family != AF_INET )
+
+			if (ptr->ai_family != AF_INET)
 			{
 				continue;
 			}
 			else
 			{
 				sockaddr_ipv4 = (struct sockaddr_in*)result->ai_addr;
-					printf("ReqlServiceResolveHost host before copy = %s\n", target->host);
+				printf("ReqlServiceResolveHost host before copy = %s\n", target->host);
 
-				memcpy(&(target->host_addr) , sockaddr_ipv4, result->ai_addrlen);		 
-						printf("ReqlServiceResolveHost host after copy = %s\n", target->host);
+				memcpy(&(target->host_addr), sockaddr_ipv4, result->ai_addrlen);
+				printf("ReqlServiceResolveHost host after copy = %s\n", target->host);
 
 				break;
 			}
-		
-		 }
-	    freeaddrinfo(result);
-		
+
+		}
+		freeaddrinfo(result);
+
 
 	}
-	
-#endif    
-    //Perform the socket connection
-	printf("CTTargetResolveHost host = %s\n", target->host);
-    CTConnectRoutine(target, callback);
 
+#else
+
+	struct CTConnection conn = { 0 };
+	struct CTError error = { (CTErrorClass)0,0,0 };    //Reql API client functions will generally return ints as errors
+
+	//conn.socketContext.host = target->host;
+
+	//local remoteAddr = sockaddr_in(53, AF_INET);
+	//remoteAddr.sin_addr.S_addr = ws2_32.inet_addr(servername);
+
+	//struct sockaddr_strorage addr;
+	socklen_t addrlen;
+	int DNS_PORT = 53;
+	populate_sockaddr(AF_INET, (int)DNS_PORT, "8.8.8.8", &(target->host_addr), &addrlen);
+
+	//target->host_addr.sin_addr.s_addr = inet_addr("8.8.8.8");
+	assert(INADDR_NONE != target->host_addr.sin_addr.s_addr);
+
+
+	printf("Before CTSocketCreateUDP()\n");
+	//  Create a [non-blocking] TCP socket and return a socket fd
+	if ((target->socket = CTSocketCreateUDP()) < 0)
+	{
+		error.id = (int)target->socket; //Note: hope that 64 bit socket handle is within 32 bit range?!
+		goto CONN_CALLBACK;
+	}
+	CreateIoCompletionPort((HANDLE)target->socket, target->cxQueue, (ULONG_PTR)NULL, 1);
+
+	/*
+	printf("Before CTSocketCreateEventQueue(0)\n");
+
+	if (CTSocketCreateEventQueue(&(conn.socketContext)) < 0)
+	{
+		printf("ReqlSocketCreateEventQueue failed\n");
+		error.id = (int)conn.event_queue;
+		goto CONN_CALLBACK;
+	}
+	*/
+
+	//wType = wType or ffi.C.DNS_TYPE_A
+	//msTimeout = msTimeout or 60 * 1000  -- 1 minute
+
+
+	//-- Prepare the DNS request
+	//local dwBuffSize = ffi.new("DWORD[1]", 2048);
+	//local buff = ffi.new("uint8_t[2048]")
+	//local wID = clock:GetCurrentTicks() % 65536;
+
+	DWORD dwBuffSize = 2048;
+	uint8_t buff[2048];
+	WORD wType = DNS_TYPE_A;
+	BOOL wRecursiveNameQuery = TRUE;
+
+	target->dns.wID = GetTickCount() % 65536;
+
+	//wType = ffi.C.DNS_TYPE_MX - mail records
+	//wType = ffi.C.DNS_TYPE_CNAME
+
+	memset(buff, 0, 2048);
+
+	//TO DO:  Figure out how to write DNS Question manually for fully xplatform goodness
+	//local res = windns_ffi.DnsWriteQuestionToBuffer_UTF8(ffi.cast("DNS_MESSAGE_BUFFER*", buff), dwBuffSize, ffi.cast("char *", strToQuery), wType, wID, true)
+	BOOL res = DnsWriteQuestionToBuffer_UTF8((DNS_MESSAGE_BUFFER*)buff, &dwBuffSize, (char*)(target->host), wType, target->dns.wID, wRecursiveNameQuery);
+	if (res == 0)
+	{
+		error.id = CTDNSError;
+		goto CONN_CALLBACK;
+	}
+
+	printf("DnsWriteQuestionToBuffer_UTF8 (%d) = \n\n%.*s\n\n", dwBuffSize, dwBuffSize, buff);
+
+	//-- Send the request.
+	int iRes = sendto(target->socket, buff, dwBuffSize, 0, (struct sockaddr*)&(target->host_addr), sizeof(target->host_addr));
+
+	if (iRes == SOCKET_ERROR)
+	{
+		printf("Error sending data: %d", WSAGetLastError());
+		error.id = WSAGetLastError();
+		goto CONN_CALLBACK;
+	}
+
+	if (target->cxQueue)
+	{
+		//TO DO: figure out how to maintain using the same cursor for the connection DNS resolve and TLS handshake...
+		CTCursor* DNSResolveCursor = CTGetNextPoolCursor();
+
+		memset(DNSResolveCursor, 0, sizeof(CTCursor));
+
+		DNSResolveCursor->target = target;
+		DNSResolveCursor->headerLengthCallback = DNSResolveHeaderLengthCallback;
+		DNSResolveCursor->responseCallback = DNSResolveResponseCallback;
+
+		DNSResolveCursor->file.buffer = DNSResolveCursor->requestBuffer;
+		DNSResolveCursor->overlappedResponse.buf = DNSResolveCursor->file.buffer;
+		DNSResolveCursor->overlappedResponse.len = 2048;// (char*)(OutBuffers[0].cbBuffer);
+		unsigned long msgLength = 2048;
+
+		CTOverlappedTarget* olTarget = (CTOverlappedTarget*)&(target->overlappedTarget);// (target->ctx);
+		olTarget->cursor = DNSResolveCursor;
+		olTarget->target = target;
+		return CTTargetAsyncRecvFrom((CTOverlappedTarget**)&(olTarget), (char*)(DNSResolveCursor->overlappedResponse.buf), 0, &msgLength);
+	}
+	else
+	{
+		//-- Try to receive the results
+		//local RecvFromAddr = sockaddr_in();
+		//local RecvFromAddrSize = ffi.sizeof(RecvFromAddr);
+		//local cbReceived, err = self.Socket:receiveFrom(RecvFromAddr, RecvFromAddrSize, buff, 2048);
+
+		//struct sockaddr_in RecvFromAddr = sockaddr_in(IPPORT_DNS, AF_INET);
+		memset(buff, 0, 2048);
+
+		int fromlen = sizeof(target->host_addr);
+		int cbReceived = recvfrom(target->socket, buff, 2048, 0, (struct sockaddr*)&(target->host_addr), &fromlen);
+
+		if (cbReceived < 0)
+		{
+			printf("Error Receiving Data: %d", cbReceived);
+			error.id = cbReceived;
+			goto CONN_CALLBACK;
+		}
+
+		if (0 == cbReceived)
+		{
+			printf("No Data Received: %d", cbReceived);
+			assert(1 == 0);
+			//error.id = cbReceived;
+			//goto CONN_CALLBACK;
+		}
+
+		printf("recvfrom (%d) = \n\n%.*s\n\n", cbReceived, cbReceived, buff);
+
+
+		//-- Parse the DNS response received with DNS API
+		//local pDnsResponseBuff = ffi.cast("DNS_MESSAGE_BUFFER*", buff);
+		DNS_MESSAGE_BUFFER* pDnsResponseBuff = (DNS_MESSAGE_BUFFER*)buff;
+		PDNS_HEADER pHeader = &(pDnsResponseBuff->MessageHead);
+		DNS_BYTE_FLIP_HEADER_COUNTS(pHeader);
+		if (pDnsResponseBuff->MessageHead.Xid != target->dns.wID)
+		{
+			printf("Wrong TransactionID: X.id %d != wID %d", pDnsResponseBuff->MessageHead.Xid, target->dns.wID);
+			//assert(1 == 0);
+		}
+
+		DNS_RECORD* pRecord = NULL;// ffi.new("DNS_RECORD *[1]", nil);
+		WORD dnsLen = (WORD)cbReceived;
+		DNS_STATUS status = DnsExtractRecordsFromMessage_UTF8(pDnsResponseBuff, dnsLen, &(pRecord));
+
+		if (status != 0)
+		{
+			printf("DnsExtractRecordsFromMessage_UTF8 failed with error code: %d\n", status);
+			//assert(1 == 0);
+		}
+
+
+		if (pRecord == NULL) assert(1 == 0);
+
+		//pRecord = pRecord[0];
+		DNS_RECORD* pRecordA = (DNS_RECORD*)pRecord;
+
+		while (pRecordA && pRecordA->wType == wType)
+		{
+			//local a = IN_ADDR();
+			//a.S_addr = record.Data.A.IpAddress
+
+			//TO DO:  we are only handling A records and only the first one
+			populate_sockaddr(AF_INET, (int)(target->port), target->host, &(target->host_addr), &addrlen);
+			target->host_addr.sin_addr.s_addr = pRecordA->Data.A.IpAddress;
+			assert(INADDR_NONE != target->host_addr.sin_addr.s_addr);
+			break;
+
+			pRecordA = pRecordA->pNext;
+		}
+
+		//--Free the resources
+		if (pRecord)
+			DnsRecordListFree(pRecord, DnsFreeRecordList);
+
+#endif    
+		//Perform the socket connection
+		printf("CTTargetResolveHost host = %s\n", target->host);
+		return CTConnectRoutine(target, callback);
+	}
+
+CONN_CALLBACK:
+	conn.target = target;
+	callback(&error, &conn);
+	return error.id;
     /*
     //Remove observer that yields to coroutines
     CFRunLoopRemoveObserver(CFRunLoopGetCurrent(), runLoopObserver, kCFRunLoopDefaultMode);
@@ -1746,7 +2676,7 @@ coroutine int CTTargetResolveHost(CTTarget * target, CTConnectionClosure callbac
     CFRelease(runLoopSource);
     */
     
-    return CTSuccess;
+    //return CTSuccess;
 }
 
 
@@ -1779,8 +2709,14 @@ int CTConnect(CTTarget * target, CTConnectionClosure callback)
     //  It will perform the DNS request asynchronously on a bg thread internally maintained by CFHost API
     //  and return the result via callback to the current run loop
     //go(ReqlServiceResolveHost(service, callback));
-	CTTargetResolveHost(target, callback);  
-    return CTSuccess;
+
+	//Resolve on ThreadQueue vs Resolve on calling thread
+	if (target->cxQueue)
+		return CTTargetConnectOnQueue(target, callback);
+	else
+		return CTTargetResolveHost(target, callback);
+
+    //return CTSuccess;
 }
 
 

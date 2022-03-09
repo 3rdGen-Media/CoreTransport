@@ -48,62 +48,44 @@ typedef struct CTRANSPORT_PACK_ATTRIBUTE CTDNS
 {
     char * resconf;
     char * nssconf;
+	WORD wID;// = GetTickCount() % 65536;
+
 }CTDNS;
-
-#pragma mark -- HTTPTarget [ReqlConnectionOptions]
-/* * *
- *  ReqlService [alias: ReqlConnectionOptions]
- *
- *  Generally, an ReqlService object's lifetime is shortlived
- *  as it is only used to create an ReØMQL [ReqlConnection] object
- *
- *  --Property names will mimic those of NodeJS API, where appropriate
- *  --Properties are ordered from largest to smallest with variable length buffers placed at the end
- *  --The host_addr property is not present in the NodeJS API:
- *      The client can use this property to indicate they chose to resolve DNS manually
- *      before calling ReqlConnect if desired,
- *      thus, bypassing the ReqlConnectRoutine Hostname DNS Resolve Step
- *
- * * */
-typedef struct CTTarget      //72 bytes, 8 byte data alignment
-{
-
-#ifdef _WIN32
-
-	//Pre-resolved socket address input or storage for async resolve
-    struct sockaddr_in host_addr;   //16 bytes
-
-#endif
-
-    //Server host address string
-    char * host;                    //8 bytes
-    
-    //RethinkDB SASL SCRAM SHA-256 Handshake Credentials
-    char * user;                    //8 bytes
-    char * password;                //8 bytes
-    
-    //TLS SSL: Root Certificate Authority File Path
-    CTSSL ssl;                    //8 bytes
-    
-    //DNS:  Nameserver [resolv.conf] and NSSwitch.conf File Paths
-    CTDNS dns;                    //16 bytes
-    
-    //ReqlConnectionCallback * callback;  //8 bytes
-    
-    //TCP Socket Connection Input
-    int64_t timeout;                //-1 indicates wait forever
-
-	void	* ctx;
-    unsigned short port;
-    
-    //explicit padding
-    unsigned char padding[2];
-}CTTarget;
-typedef CTTarget CTConnectionOptions;
 
 #pragma mark -- HTTPConnection Struct
 
 typedef struct CTCursor;
+typedef struct CTTarget;
+
+typedef enum CTOverlappedStage
+{
+	CT_OVERLAPPED_SCHEDULE,
+	CT_OVERLAPPED_SCHEDULE_RECV,			//TCP
+	CT_OVERLAPPED_SCHEDULE_RECV_DECRYPT,	//TCP + TLS
+	CT_OVERLAPPED_SCHEDULE_RECV_FROM,		//UDP
+	CT_OVERLAPPED_EXECUTE,
+	CT_OVERLAPPED_RECV,						//TCP
+	CT_OVERLAPPED_RECV_DECRYPT,				//TCP + TLS
+	CT_OVERLAPPED_RECV_FROM,				//UDP
+	CT_OVERLAPPED_SEND,						//TCP
+	CT_OVERLAPPED_ENCRYPT_SEND,				//TLS + TCP
+}CTOverlappedStage;
+
+
+typedef struct CTOverlappedTarget
+{
+	WSAOVERLAPPED		Overlapped;
+	struct CTTarget* target;
+	//char* buf;
+	DWORD				Flags;
+	//unsigned long		len;
+	//uint64_t			queryToken;
+	//WSABUF			wsaBuf;
+	struct CTCursor* cursor;
+	CTOverlappedStage   stage;
+
+	//struct CTOverlappedResponse *overlappedResponse;	//ptr to the next overlapped
+}CTOverlappedTarget;
 
 /* * *
  *  CTConnection [ReqlConnection]
@@ -112,8 +94,6 @@ typedef struct CTCursor;
  * * */
 typedef struct CTConnection
 {
-    //ReqlService * service;
-
     //BSD Socket TLS Connection
     CTSSLContextRef sslContext;
     //SSLContextRef sslWriteContext;
@@ -141,23 +121,106 @@ typedef struct CTConnection
 	//a user defined context object
 	//void * ctx;
 	union {
-		CTTarget * target;
-		CTTarget * service;
+		struct CTTarget * target;
+		struct CTTarget * service;
 	};
 	
-	CTFile * response_files;
+	void * object_wrapper;
+
 	//BSD Socket Event Queue
 	int event_queue;
 	char padding[4];
 }CTConnection;
 
 
+#pragma mark -- CTConnection API Callback Typedefs
+/* * *
+ *  CTConnectionCallback
+ *
+ *  A callback for receiving asynchronous connection results
+ *  that gets scheduled back to the calling event loop on completion
+ * * */
+typedef void (*CTConnectionCallback)(struct CTError* err, struct CTConnection* conn);
+
+//A completion block handler that returns the HTTP(S) status code
+//and the relevant JSON documents from the database store associated with the request
+//typedef void (^ReqlConnectionClosure)(ReqlError * err, ReqlConnection * conn);
+typedef int (*CTConnectionClosure)(struct CTError* err, struct CTConnection* conn);
+
+
+#pragma mark -- HTTPTarget [ReqlConnectionOptions]
+/* * *
+ *  ReqlService [alias: ReqlConnectionOptions]
+ *
+ *  Generally, an ReqlService object's lifetime is shortlived
+ *  as it is only used to create an ReØMQL [ReqlConnection] object
+ *
+ *  --Property names will mimic those of NodeJS API, where appropriate
+ *  --Properties are ordered from largest to smallest with variable length buffers placed at the end
+ *  --The host_addr property is not present in the NodeJS API:
+ *      The client can use this property to indicate they chose to resolve DNS manually
+ *      before calling ReqlConnect if desired,
+ *      thus, bypassing the ReqlConnectRoutine Hostname DNS Resolve Step
+ *
+ * * */
+typedef struct CTTarget      //72 bytes, 8 byte data alignment
+{
+
 #ifdef _WIN32
-typedef enum CTOverlappedResponseType
+
+	//TO DO:  replace this with sockaddr_storage
+	//Pre-resolved socket address input or storage for async resolve
+	struct sockaddr_in host_addr;   //16 bytes
+
+#endif
+
+	//Server host address string
+	char* host;                    //8 bytes
+
+	//RethinkDB SASL SCRAM SHA-256 Handshake Credentials
+	char* user;                    //8 bytes
+	char* password;                //8 bytes
+
+	//We place a socket on target to allow for transient async DNS and async connections
+	CTSocket	socket;
+
+	//TLS SSL: Root Certificate Authority File Path
+	CTSSL ssl;                    //8 bytes
+
+	//DNS:  Nameserver [resolv.conf] and NSSwitch.conf File Paths
+	CTDNS dns;                    //16 bytes
+
+	//ReqlConnectionCallback * callback;  //8 bytes
+
+	//TCP Socket Connection Input
+	int64_t timeout;                //-1 indicates wait forever
+
+	CTThreadQueue cxQueue;			//The desired kernel queue for the socket connection to async connect AND async recv on 
+	CTThreadQueue txQueue;			//The desired kernel queue for the socket connection to async send on
+	CTThreadQueue rxQueue;			//The desired kernel queue for the socket connection to async send on
+	CTConnectionClosure	callback;
+
+	struct CTOverlappedTarget		overlappedTarget;
+
+	void* ctx;
+	unsigned short port;
+
+	//explicit padding
+	unsigned char padding[2];
+}CTTarget;
+typedef CTTarget CTConnectionOptions;
+
+
+#ifdef _WIN32
+
+/*
+typedef enum CTOverlappedConnectionStage
 {
 	CT_OVERLAPPED_SCHEDULE,
 	CT_OVERLAPPED_EXECUTE,
 }CTOverlappedResponseType;
+*/
+
 
 typedef struct CTOverlappedResponse
 {
@@ -169,7 +232,7 @@ typedef struct CTOverlappedResponse
 	uint64_t			queryToken;
 	WSABUF				wsaBuf;
 	void *				cursor;
-	CTOverlappedResponseType type;
+	CTOverlappedStage	stage;
 
 	//struct CTOverlappedResponse *overlappedResponse;	//ptr to the next overlapped
 }CTOverlappedResponse;
@@ -206,28 +269,33 @@ typedef struct CTCursor
 	unsigned long				headerLength;
 	unsigned long				contentLength;
     CTConnection*				conn;
+	CTTarget*					target;
 	CTOverlappedResponse		overlappedResponse;
 	char						requestBuffer[65536L];
 	uint64_t					queryToken;
 	CTCursorHeaderLengthFunc	headerLengthCallback;
 	CTCursorCompletionFunc		responseCallback;
+	CTCursorCompletionFunc		queryCallback;
+
 	//Reql
 }CTCursor;
 typedef int CTStatus;
 
-#pragma mark -- CTConnection API Callback Typedefs
-/* * *
- *  CTConnectionCallback
- *
- *  A callback for receiving asynchronous connection results
- *  that gets scheduled back to the calling event loop on completion
- * * */
-typedef void (*CTConnectionCallback)(struct CTError * err, struct CTConnection* conn);
+//TO DO:  remove this
+//extern CTConnection CTHandshakeConnection;
 
-//A completion block handler that returns the HTTP(S) status code
-//and the relevant JSON documents from the database store associated with the request
-//typedef void (^ReqlConnectionClosure)(ReqlError * err, ReqlConnection * conn);
-typedef int (*CTConnectionClosure)(struct CTError * err, struct CTConnection * conn);
+//create a pool of connections and cursors that we can create at compile time 
+//	1)  to avoid connection copies...
+//  2)  to have permanent memory that can be used for transiet async non-blocking pipeline routines
+extern int			 CT_MAX_CONNECTIONS;			// Total number of available connections in the pool;
+extern int			 CT_NUM_CONNECTIONS;			// Count of active connections strictly <= CT_MAX_CONNECTIONS
+extern int			 CT_MAX_INFLIGHT_CONNECTIONS;	//A limit to the number of connections that can be scheduled/pending at any given time
+
+extern int			 CT_NUM_CURSORS;
+extern int			 CT_CURSOR_INDEX;
+
+extern CTConnection *	CT_CONNECTION_POOL;
+extern CTCursor		*	CT_CURSOR_POOL;
 
 #pragma mark -- CTConnection API Method Function Pointer Definitions
 typedef int (*CTConnectFunc)(struct CTTarget * service, CTConnectionClosure callback);

@@ -80,8 +80,20 @@ CXConnection * _reqlCXConn;
 
 int _cxURLConnectionClosure(CTError *err, CXConnection * conn)
 {
-	if( err->id == CTSuccess && conn ){ _httpCXConn = conn; }
-	else {} //process errors
+	if (err->id == CTSuccess && conn) 
+	{
+		_httpCXConn = conn;
+		/*
+		if (CTSocketCreateEventQueue(&(conn->connection()->socketContext)) < 0)
+		{
+			printf("ReqlSocketCreateEventQueue failed\n");
+			err->id = (int)conn->connection()->event_queue;
+			//goto CONN_CALLBACK;
+		}
+		*/
+	}
+	else { assert(1 == 0); } //process errors
+
 	return err->id;
 }
 
@@ -208,15 +220,53 @@ void SystemKeyboardEventLoop()
 	}
 }
 
+#define HAPPYEYEBALLS_MAX_INFLIGHT_CONNECTIONS 1024
+CTConnection HAPPYEYEBALLS_CONNECTION_POOL[HAPPYEYEBALLS_MAX_INFLIGHT_CONNECTIONS];
+
+#define CT_MAX_INFLIGHT_CURSORS 1024
+CTCursor _httpCursor[CT_MAX_INFLIGHT_CURSORS];
+CTCursor _reqlCursor;
+
 int main(int argc, char **argv) 
 {	
+	//Static Definitions
+	int i;
+
+	HANDLE cxThread, txThread, rxThread;
+	CTThreadQueue cxQueue, txQueue, rxQueue;
+
+	ULONG_PTR dwCompletionKey = (ULONG_PTR)NULL;
+
+	CTTarget httpTarget = {0};
+	CTTarget reqlService = {0};
+	//char* caPath = (char*)certStr;//"C:\\Development\\git\\CoreTransport\\bin\\Keys\\ComposeSSLCertficate.der";// .. / Keys / ComposeSSLCertificate.der";// MSComposeSSLCertificate.cer";
+
 	//These are only relevant for custom DNS resolution, which has not been implemented yet for WIN32 platforms
 	//char * resolvConfPath = "../Keys/resolv.conf";
 	//char * nsswitchConfPath = "../Keys/nsswitch.conf";
 
-	CTTarget httpTarget = {0};
-	CTTarget reqlService = {0};
-	
+	//Connection & Cursor Pool Initialization
+	CTCreateConnectionPool(&(HAPPYEYEBALLS_CONNECTION_POOL[0]), HAPPYEYEBALLS_MAX_INFLIGHT_CONNECTIONS);
+	CTCreateCursorPool(&(_httpCursor[0]), CT_MAX_INFLIGHT_CURSORS);
+
+	//Thread Pool Initialization
+	cxQueue = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
+	txQueue = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
+	rxQueue = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
+
+	for (i = 0; i < 1; ++i)
+	{
+		//On Darwin Platforms we utilize a thread pool implementation through GCD that listens for available data on the socket
+		//and provides us with a dispatch_queue on a dedicated pool thread for reading
+		//On Win32 platforms we create a thread/pool of threads to associate an io completion port
+		//When Win32 sees that data is available for read it will read for us and provide the buffers to us on the completion port thread/pool
+
+		cxThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CX_Dequeue_Connect, cxQueue, 0, NULL);
+		txThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CX_Dequeue_Encrypt_Send, txQueue, 0, NULL);
+		rxThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CX_Dequeue_Recv_Decrypt, rxQueue, 0, NULL);
+	}
+
+
 	//Define https connection target
 	//We aren't doing any authentication via http
 	httpTarget.host = (char*)http_server;
@@ -224,6 +274,9 @@ int main(int argc, char **argv)
 	httpTarget.ssl.ca = NULL;//(char*)caPath;
 	//httpTarget.dns.resconf = (char*)resolvConfPath;
 	//httpTarget.dns.nssconf = (char*)nsswitchConfPath;
+	httpTarget.txQueue = txQueue;
+	httpTarget.rxQueue = rxQueue;
+	httpTarget.cxQueue = cxQueue;
 
 	//Define RethinkDB service connection target
 	//We are doing SCRAM authentication over TLS required by RethinkDB
@@ -244,11 +297,29 @@ int main(int argc, char **argv)
 	//Keep the app running using platform defined run loop
 	SystemKeyboardEventLoop();
 
-	//Deleting CXConnection object
-	//will shutdown the internal Reql C API socket connection + associated ssl context
+	//Deleting CXConnection objects will
+	//Clean up socket connections
 	delete _httpCXConn;
 	//delete _reqlCXConn;	
+	
+	//Clean  Up Auth Memory
 	ct_scram_cleanup();
+
+	//Clean Up SSL Memory
 	CTSSLCleanup();
+
+	//TO DO:  Shutdown threads
+
+	//Cleanup Thread Handles
+	if (cxThread && cxThread != INVALID_HANDLE_VALUE)
+		CloseHandle(cxThread);
+
+	if (txThread && txThread != INVALID_HANDLE_VALUE)
+		CloseHandle(txThread);
+
+	if (rxThread && rxThread != INVALID_HANDLE_VALUE)
+		CloseHandle(rxThread);
+
+
 	return 0;
 }

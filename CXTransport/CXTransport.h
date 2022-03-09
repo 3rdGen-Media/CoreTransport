@@ -86,6 +86,7 @@
 #include <CoreTransport/CTransport.h>
 #include "CXTransport/CXConnection.h"
 #include "CXTransport/CXCursor.h"
+#include "CXTransport/CXQueue.h"
 //#include "CXReQL/CXReQLService.h"
 //#include "CXReQL/CXReQLConnection.h"
 //#include "CXReQL/CXURLRequest.h"

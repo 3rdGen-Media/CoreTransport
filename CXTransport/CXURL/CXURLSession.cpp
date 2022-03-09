@@ -53,6 +53,19 @@ static int _CXURLSessionConnectionCallback(CTError* err, CTConnection * conn)
 		//*Note:  On platforms where the SSL Context is not thread safe, such as Darwin w/ SecureTransport, we need to manually specify the same [GCD] thread queue for send and receive
 		//because the SSL Context API (SecureTransport) is not thread safe when reading and writing simultaneously
 
+		//if the client didn't supply tx/rx thread queues, create them now because CXConnection object requires them for initialization
+		if (!conn->socketContext.txQueue)
+		{
+			if (CTSocketCreateEventQueue(&(conn->socketContext)) < 0)
+			{
+				printf("_CXURLSessionConnectionCallback::CTSocketCreateEventQueue failed\n");
+				err->id = (int)conn->event_queue;
+			}
+		}
+
+		assert(conn->socketContext.rxQueue);
+		assert(conn->socketContext.txQueue);
+
 		//Wrap the CTConnection in a C++ CXConnection Object
 		//A CXConnection gets created with a CTConnection (socket + ssl context) and a dedicated thread queue for reading from the connection's socket
 		cxConnection = new CXConnection(conn, conn->socketContext.rxQueue, conn->socketContext.txQueue);
@@ -75,6 +88,7 @@ static int _CXURLSessionConnectionCallback(CTError* err, CTConnection * conn)
 
 std::pair<CXConnectionClosure, void*> CXURLSession::pendingConnectionForKey(CTTarget* target)
 {
+	int x = 1;
 	return _pendingConnections.at(target);
 }
 
@@ -82,6 +96,7 @@ void CXURLSession::addPendingConnection(CTTarget* target, std::pair<CXConnection
 {
 	//assert(_pendingConnections);
 	_pendingConnections.insert(std::make_pair(target, targetCallbackContext));
+	return;
 }
 
 void CXURLSession::removePendingConnection(CTTarget * target)

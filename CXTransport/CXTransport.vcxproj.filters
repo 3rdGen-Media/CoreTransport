@@ -52,6 +52,9 @@
     <ClInclude Include="CXURL\CXURLCursor.h">
       <Filter>CXURL</Filter>
     </ClInclude>
+    <ClInclude Include="CXTransport\CXQueue.h">
+      <Filter>CXTransport</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CXTransport\CXConnection.cpp">
@@ -83,6 +86,9 @@
     </ClCompile>
     <ClCompile Include="CXReQL\CXReQLCursor.cpp">
       <Filter>CXReQL</Filter>
+    </ClCompile>
+    <ClCompile Include="CXTransport\CXQueue.cpp">
+      <Filter>CXTransport</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

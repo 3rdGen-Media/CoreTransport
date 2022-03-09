@@ -171,7 +171,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\lib\x86;$(VLD_DIR)\lib\Win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>ctSCRAMd.lib;ws2_32.lib;secur32.lib;crypt32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ctSCRAMd.lib;Dnsapi.lib;ws2_32.lib;secur32.lib;crypt32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImportLibrary>$(SolutionDir)lib\x86\CTransportd.lib</ImportLibrary>
     </Link>
     <PostBuildEvent>
@@ -194,7 +194,7 @@ exit 0</Command>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\lib\x64;$(WOLFSSL_DIR)\x64\DLL Debug;$(VLD_DIR)\lib\Win64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>wolfssl.lib;ctSCRAMd.lib;ws2_32.lib;secur32.lib;crypt32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ctSCRAMd.lib;wolfssl.lib;Dnsapi.lib;ws2_32.lib;secur32.lib;crypt32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImportLibrary>$(SolutionDir)lib\x64\CTransportd.lib</ImportLibrary>
     </Link>
     <PostBuildEvent>
@@ -229,11 +229,10 @@ copy .\protobuf\*.h ..\include\CoreTransport\protobuf
 exit 0</Command>
     </PostBuildEvent>
     <Lib>
-      <AdditionalDependencies>
-      </AdditionalDependencies>
+      <AdditionalDependencies>wolfssl.lib;Dnsapi.lib</AdditionalDependencies>
     </Lib>
     <Lib>
-      <AdditionalLibraryDirectories>$(WOLFSSL_DIR)\x64\Debug;$(VLD_DIR)\lib\Win64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(WOLFSSL_DIR)\Debug;$(VLD_DIR)\lib\Win64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug (Static)|x64'">
@@ -260,7 +259,7 @@ exit 0</Command>
     </PostBuildEvent>
     <Lib>
       <AdditionalLibraryDirectories>$(WOLFSSL_DIR)\x64\Debug;$(VLD_DIR)\lib\Win64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>wolfssl.lib</AdditionalDependencies>
+      <AdditionalDependencies>wolfssl.lib;Dnsapi.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -279,7 +278,7 @@ exit 0</Command>
       <OptimizeReferences>true</OptimizeReferences>
       <ImportLibrary>$(SolutionDir)lib\x86\CTransport.lib</ImportLibrary>
       <AdditionalLibraryDirectories>..\lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>ctSCRAM.lib;ws2_32.lib;secur32.lib;crypt32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ctSCRAM.lib;Dnsapi.lib;ws2_32.lib;secur32.lib;crypt32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>if not exist ..\include\CoreTransport\CTransport mkdir ..\include\CoreTransport\CTransport
@@ -306,7 +305,7 @@ exit 0</Command>
       <OptimizeReferences>true</OptimizeReferences>
       <ImportLibrary>$(SolutionDir)lib\x64\CTransport.lib</ImportLibrary>
       <AdditionalLibraryDirectories>..\lib\x64;$(WOLFSSL_DIR)\x64\DLL Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>wolfssl.lib;ctSCRAM.lib;ws2_32.lib;secur32.lib;crypt32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ctSCRAM.lib;wolfssl.lib;Dnsapi.lib;ws2_32.lib;secur32.lib;crypt32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>if not exist ..\include\CoreTransport\CTransport mkdir ..\include\CoreTransport\CTransport
@@ -344,11 +343,10 @@ copy .\protobuf\*.h ..\include\CoreTransport\protobuf
 exit 0</Command>
     </PostBuildEvent>
     <Lib>
-      <AdditionalDependencies>
-      </AdditionalDependencies>
+      <AdditionalDependencies>wolfssl.lib;Dnsapi.lib</AdditionalDependencies>
     </Lib>
     <Lib>
-      <AdditionalLibraryDirectories>$(WOLFSSL_DIR)\x86\Release;$(VLD_DIR)\lib\Win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(WOLFSSL_DIR)\Release;$(VLD_DIR)\lib\Win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release (Static)|x64'">
@@ -383,6 +381,7 @@ exit 0</Command>
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="CTransport\CTQueue.c" />
     <ClCompile Include="CTransport\CTransportAPI.c" />
     <ClCompile Include="CTransport\CTReQL.c" />
     <ClCompile Include="CTransport\CTSocket.c" />
@@ -393,7 +392,9 @@ exit 0</Command>
     <ClInclude Include="CTransport.h" />
     <ClInclude Include="CTransport\CTConnection.h" />
     <ClInclude Include="CTransport\CTCoroutine.h" />
+    <ClInclude Include="CTransport\CTDNS.h" />
     <ClInclude Include="CTransport\CTError.h" />
+    <ClInclude Include="CTransport\CTQueue.h" />
     <ClInclude Include="CTransport\CTransportAPI.h" />
     <ClInclude Include="CTransport\CTReQL.h" />
     <ClInclude Include="CTransport\CTSocket.h" />

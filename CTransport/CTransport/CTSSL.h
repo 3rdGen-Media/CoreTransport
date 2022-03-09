@@ -37,6 +37,23 @@ typedef struct CTSSLContext
 }CTSSLContext;
 typedef CTSSLContext* CTSSLContextRef;
 
+//TO DO:  work out alignment and padding of this struct
+typedef struct CTSSLDecryptTransient
+{
+	int			  socketfd;
+	unsigned long bytesToDecrypt;
+	unsigned long totalBytesProcessed;
+	char* buffer;
+}CTSSLDecryptTransient;
+
+typedef struct CTSSLEncryptTransient
+{
+	int			  wolf_socket_fd;
+	//CTSocket	  ct_socket_fd;
+	int			  messageLen;
+	void		  *messageBuffer;
+}CTSSLEncryptTransient;
+
 #elif defined(CTRANSPORT_USE_MBED_TLS)	//MBED_TLS API
 //mbded tls
 #include "mbedtls/net.h"
@@ -142,7 +159,8 @@ CTRANSPORT_API CTRANSPORT_INLINE  CTSecCertificateRef CTSSLCertificate(const cha
  *
  *	Create a platform specific SSL Context with a platform provided socket
  ***/
-CTRANSPORT_API CTRANSPORT_INLINE  CTSSLContextRef CTSSLContextCreate(CTSocket* socketfd, CTSecCertificateRef * certRef, const char * serverName);
+//CTRANSPORT_API CTRANSPORT_INLINE  CTSSLContextRef CTSSLContextCreate(CTSocket* socketfd, CTSecCertificateRef * certRef, const char * serverName, CTThreadQueue txQueue);
+CTRANSPORT_API CTRANSPORT_INLINE  CTSSLContextRef CTSSLContextCreate(CTSocket* socketfd, CTSecCertificateRef* certRef, const char* serverName, void** firstMessage, int* firstMessageLen);
 
 /***
  *	ReqlSSLContextDestroy
@@ -150,6 +168,12 @@ CTRANSPORT_API CTRANSPORT_INLINE  CTSSLContextRef CTSSLContextCreate(CTSocket* s
  *	Destroy a platform specific SSL Context attached to a platform provided socket
  ***/
 CTRANSPORT_API CTRANSPORT_INLINE  void CTSSLContextDestroy(CTSSLContextRef sslContextRef);
+
+
+CTRANSPORT_API CTRANSPORT_INLINE void CTSSLHandshakeSendFirstMessage(CTSocket socketfd, CTSSLContextRef sslContextRef, void* firstMessageBuffer, int firstMessageLen);
+
+//CTRANSPORT_API int CTSSLHandshakeProcessFirstResponse(CTSocket socketfd, CTSSLContextRef sslContextRef, char* responseBuffer);
+//CTRANSPORT_API int CTSSLHandshakeRecvSecondResponse(CTSocket socketfd, CTSSLContextRef sslContextRef, CTSecCertificateRef rootCertRef, const char* serverName);
 
 /***
  *  CTSSLHandshake
@@ -193,6 +217,7 @@ CTRANSPORT_API CTRANSPORT_INLINE CTSSLStatus CTSSLEncryptMessage(CTSSLContextRef
  *	ReqlSSLWrite
 /*****************************************************************************/
 CTRANSPORT_API CTRANSPORT_INLINE int CTSSLWrite( CTSocket socketfd, CTSSLContextRef sslContextRef, void * msg, unsigned long * msgLength );// * phContext, PBYTE pbIoBuffer, SecPkgContext_StreamSizes Sizes )
+
 
 
 

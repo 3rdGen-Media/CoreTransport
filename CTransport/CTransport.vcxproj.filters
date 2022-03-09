@@ -26,6 +26,9 @@
     <ClCompile Include="CTransport\CTFile.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="CTransport\CTQueue.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CTransport\CTConnection.h">
@@ -62,6 +65,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CTransport\CTFile.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CTransport\CTDNS.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CTransport\CTQueue.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

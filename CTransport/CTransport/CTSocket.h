@@ -16,7 +16,51 @@
 //#include <windows.h>
 #define WIN32_LEAN_AND_MEAN
 #include <winsock2.h>
+#include <mswsock.h>
 #include <ws2tcpip.h>
+
+// #######################################################################
+// ############ DEFINITIONS
+// #######################################################################
+#define OBJ_EXCLUSIVE           0x00000020L
+#define OBJ_KERNEL_HANDLE       0x00000200L
+#define FILE_NON_DIRECTORY_FILE 0x00000040
+
+typedef LONG NTSTATUS;
+
+typedef struct _IO_STATUS_BLOCK {
+	union {
+		NTSTATUS Status;
+		PVOID Pointer;
+	};
+	ULONG_PTR Information;
+} IO_STATUS_BLOCK, * PIO_STATUS_BLOCK;
+
+typedef struct _FILE_COMPLETION_INFORMATION {
+	HANDLE Port;
+	PVOID  Key;
+} FILE_COMPLETION_INFORMATION, * PFILE_COMPLETION_INFORMATION;
+
+typedef enum _FILE_INFORMATION_CLASS {
+	FileBasicInformation = 4,
+	FileStandardInformation = 5,
+	FilePositionInformation = 14,
+	FileEndOfFileInformation = 20,
+	FileReplaceCompletionInformation = 61,
+} FILE_INFORMATION_CLASS, * PFILE_INFORMATION_CLASS;
+
+typedef struct _FILE_BASIC_INFORMATION {
+	LARGE_INTEGER CreationTime;							// Created             
+	LARGE_INTEGER LastAccessTime;                       // Accessed    
+	LARGE_INTEGER LastWriteTime;                        // Modifed
+	LARGE_INTEGER ChangeTime;                           // Entry Modified
+	ULONG FileAttributes;
+} FILE_BASIC_INFORMATION, * PFILE_BASIC_INFORMATION;
+
+typedef NTSTATUS(WINAPI* pNtQueryInformationFile)(HANDLE, PIO_STATUS_BLOCK, PVOID, ULONG, FILE_INFORMATION_CLASS);
+typedef NTSTATUS(WINAPI* pNtSetInformationFile)(HANDLE, PIO_STATUS_BLOCK, PVOID, ULONG, FILE_INFORMATION_CLASS);
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -49,6 +93,7 @@ typedef struct CTSocketContext
 #else
 	CTSocket socket;
 #endif
+	CTThreadQueue			cxQueue;		//
 	CTThreadQueue			txQueue;		//an WIN32 iocp completion port
 	CTThreadQueue			rxQueue;
 	char * host;

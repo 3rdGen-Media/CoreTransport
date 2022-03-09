@@ -14,6 +14,7 @@ namespace CoreTransport
 //#define CX_PAGE_SIZE				4096L //only use this to hard code or test changes in page size
 #define	CX_MAX_INFLIGHT_QUERIES	8L
 
+#define CX_MAX_INFLIGHT_CONNECT_PACKETS 1L
 #define CX_MAX_INFLIGHT_DECRYPT_PACKETS 2L
 #define CX_MAX_INFLIGHT_ENCRYPT_PACKETS 1L
 
@@ -46,7 +47,7 @@ static unsigned long					CX_RESPONSE_BUFF_SIZE  = 0;	//Response buffer size will
 			
 			void addRequestCursorForKey(std::shared_ptr<CXCursor> &cursor, uint64_t requestToken) {_cursors.insert(std::make_pair(requestToken, cursor));}
 			void removeRequestCursorForKey(uint64_t requestToken) {_cursors.erase(requestToken);}
-			std::shared_ptr<CXCursor> getRequestCursorForKey(uint64_t requestToken) { return _cursors.at(requestToken); }
+			std::shared_ptr<CXCursor> getRequestCursorForKey(uint64_t requestToken) { return _cursors.size() > 0 ? _cursors.at(requestToken) : NULL; }
 			std::shared_ptr<CXCursor> createRequestCursor(uint64_t queryToken);
 
 			void printQueries()

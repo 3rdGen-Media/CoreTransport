@@ -65,6 +65,7 @@ typedef enum CTClientError
 	CTSocketDisconnet				= EDISCON,
 #endif
 	CTSocketIOPending				 = WSA_IO_PENDING,	 //ReqlAsyncSend is sending in an async state
+    CTDNSError                       = -140,
     CTRunLoopError					 = -130,
     CTSysCallError					 = -120,
     CTSocketDNSError                 = -110, //Unable to resolve the ReqlService host address via DNS
@@ -76,6 +77,7 @@ typedef enum CTClientError
     CTSecureTransportError           = -50, //An SSL/TLS layer call produced the error
     CTSocketEventError               = -40, //An unexpected kqueue/kevent behavior produced the error
     CTSocketConnectError             = -30, //A bsd socket connection call produced the error
+    CTSocketBindError                = -25,
     CTSocketDomainError              = -20, //An invalid input domain produced the error
     CTSocketError					 = -10, //A bsd socket call produced the error
     CTSuccess						 = 0,   //No Error

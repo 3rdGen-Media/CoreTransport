@@ -378,6 +378,7 @@ exit 0</Command>
     <ClInclude Include="CXReQL\CXReQLQuery.h" />
     <ClInclude Include="CXReQL\CXReQLSession.h" />
     <ClInclude Include="CXTransport\CXCursor.h" />
+    <ClInclude Include="CXTransport\CXQueue.h" />
     <ClInclude Include="CXURL.h" />
     <ClInclude Include="CXTransport.h" />
     <ClInclude Include="CXTransport\CXConnection.h" />
@@ -393,6 +394,7 @@ exit 0</Command>
     <ClCompile Include="CXReQL\CXReQLSession.cpp" />
     <ClCompile Include="CXTransport\CXConnection.cpp" />
     <ClCompile Include="CXTransport\CXCursor.cpp" />
+    <ClCompile Include="CXTransport\CXQueue.cpp" />
     <ClCompile Include="CXURL\CXURLCursor.cpp" />
     <ClCompile Include="CXURL\CXURLInterface.cpp" />
     <ClCompile Include="CXURL\CXURLRequest.cpp" />

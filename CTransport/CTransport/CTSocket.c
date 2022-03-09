@@ -20,17 +20,72 @@ void CTSocketInit(void)
 
 }
 
+CTSocket CTSocketCreateUDP(void)
+{
+    // Standard unix socket definitions
+    CTSocket socketfd;
+    struct linger lin;
+    int iResult;
+    u_long nonblockingMode = 0;
+    struct timeval timeout = { 0,0 };
+    BOOL     bOptVal = TRUE;
+    int      bOptLen = sizeof(BOOL);
+#ifdef _WIN32
+    socketfd = WSASocket(AF_INET, SOCK_DGRAM, IPPROTO_UDP , NULL, 0, WSA_FLAG_OVERLAPPED);
+#elif defined(__APPLE__)
+
+#endif
+
+    // Create the non-blocking unix socket file descriptor for a tcp stream
+    if (socketfd < 0 || socketfd == INVALID_SOCKET)
+    {
+        printf("socket(PF_INET, SOCK_STREAM, IPPROTO_TCP) failed with error:  %d", errno);
+        return CTSocketError;
+    }
+
+    // Set linger explicitly off to kill connections on close
+    // Note:  linger failure does not explicilty fail the connection
+    /*
+    lin.l_onoff = 0;
+    lin.l_linger = 0;
+    if ((setsockopt(socketfd, SOL_SOCKET, SO_LINGER, (const char*)&lin, sizeof(int))) < 0)
+    {
+        printf("setsockopt(socketfd, SOL_SOCKET, SO_LINGER,...) failed with error:  %d\n", errno);
+        //return CTSocketError;
+    }
+
+    //Disable Nagle
+    if ((setsockopt(socketfd, IPPROTO_TCP, TCP_NODELAY, (const char*)&bOptVal, bOptLen)) < 0)
+    {
+        printf("setsockopt(socketfd, IPPROTO_TCP, TCP_NODELAY,...) failed with error:  %d\n", errno);
+        //return CTSocketError;
+    }
+
+    //Send Keep alive messages automatically
+    if ((setsockopt(socketfd, SOL_SOCKET, SO_KEEPALIVE, (const char*)&bOptVal, bOptLen)) < 0)
+    {
+        printf("setsockopt(socketfd, SOL_SOCKET, SO_LINGER,...) failed with error:  %d\n", errno);
+        //return CTSocketError;
+    }
+    */
+
+    return socketfd;
+}
+
 //A helper function to create a socket
-CTSocket CTSocketCreate(void)
+CTSocket CTSocketCreate(int nonblocking)
 {
     // Standard unix socket definitions
     CTSocket socketfd;
 	struct linger lin;
 	int iResult;
-	u_long nonblockingMode = 0;
-	struct timeval timeout = {0,0};
+
+    //CTransport always uses non-blocking sockets, yuh
+    u_long nonblockingMode = (u_long)nonblocking;
+    struct timeval timeout = { 0,0 };
     BOOL     bOptVal = TRUE;
     int      bOptLen = sizeof(BOOL);
+
 #ifdef _WIN32
 	socketfd = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
 #elif defined(__APPLE__)
@@ -42,7 +97,18 @@ CTSocket CTSocketCreate(void)
         printf("socket(PF_INET, SOCK_STREAM, IPPROTO_TCP) failed with error:  %d", errno);
         return CTSocketError;
     }
-    
+
+    //-------------------------
+    // Set the socket I/O mode: In this case FIONBIO
+    // enables or disables the blocking mode for the 
+    // socket based on the numerical value of iMode.
+    // If iMode = 0, blocking is enabled; 
+    // If iMode != 0, non-blocking mode is enabled.
+
+    iResult = ioctlsocket(socketfd, FIONBIO, &nonblockingMode);
+    if (iResult != NO_ERROR)
+        printf("ioctlsocket failed with error: %ld\n", iResult);
+
     // Set linger explicitly off to kill connections on close
     // Note:  linger failure does not explicilty fail the connection
 
