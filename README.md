@@ -44,9 +44,9 @@ The general process for establishing and consuming from connections using CTrans
 
 ##  Create Thread Pool 
 ```
-   CTThread cxThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CTDequeue_Connect, cxQueue, 0, NULL);		
-   CTThread txThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CTDequeue_Encrypt_Send, txQueue, 0, NULL);
-   CTThread rxThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CTDequeue_Recv_Decrypt, rxQueue, 0, NULL);
+   CTThread cxThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CT_Dequeue_Connect, cxQueue, 0, NULL);		
+   CTThread txThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CT_Dequeue_Encrypt_Send, txQueue, 0, NULL);
+   CTThread rxThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CT_Dequeue_Recv_Decrypt, rxQueue, 0, NULL);
 ```
 
 ####  Define your target
@@ -139,12 +139,36 @@ The general process for establishing and consuming from connections using CTrans
    #include <CoreTransport/CXURL.h>
    using namespace CoreTransport;
 ```
+
+##  Create Connection + Cursor Pool (same as CTransport)
+```
+   CTCreateConnectionPool(&(HAPPYEYEBALLS_CONNECTION_POOL[0]), HAPPYEYEBALLS_MAX_INFLIGHT_CONNECTIONS);
+   CTCreateCursorPool(&(_httpCursor[0]), CT_MAX_INFLIGHT_CURSORS);
+```
+
+##  Create Socket Queues (same as CTransport)
+```	
+   CTThreadQueue cxQueue = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
+   CTThreadQueue txQueue = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
+   CTThreadQueue rxQueue = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
+```
+
+##  Create Thread Pool 
+```
+   CTThread cxThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CX_Dequeue_Connect, cxQueue, 0, NULL);		
+   CTThread txThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CX_Dequeue_Encrypt_Send, txQueue, 0, NULL);
+   CTThread rxThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CX_Dequeue_Recv_Decrypt, rxQueue, 0, NULL);
+```
+
 ####  Define your target (same as CTransport)
 ```
    CTTarget httpTarget = {0};
    httpTarget.host =     "learnopengl.com";
    httpTarget.port =     443;
    httpTarget.ssl.ca =   NULL;  //CTransport will look for the certificate in the platform CA trust store
+   httpTarget.cxQueue =  cxQueue; //If no connection queue is specified, the connection will be sync + blocking on the current thread
+   httpTarget.txQueue =  txQueue; //If no send queue for the socket is specified one will be created internal to CTransport
+   httpTarget.rxQueue =  rxQueue; //If no recv queue for the socket is specified one will be created internal to CTransport  
 ```
 
 ####  Connect with Closure
