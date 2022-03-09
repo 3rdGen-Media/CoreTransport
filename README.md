@@ -38,16 +38,16 @@ The general process for establishing and consuming from connections using CTrans
 
 ##  Create Socket Queues
 ```	
-   cxQueue = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
-   txQueue = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
-   rxQueue = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
+   CTThreadQueue cxQueue = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
+   CTThreadQueue txQueue = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
+   CTThreadQueue rxQueue = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
 ```
 
 ##  Create Thread Pool 
 ```
-   cxThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CTDequeue_Connect, cxQueue, 0, NULL);		
-   txThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CTDequeue_Encrypt_Send, txQueue, 0, NULL);
-   rxThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CTDequeue_Recv_Decrypt, rxQueue, 0, NULL);
+   CTThread cxThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CTDequeue_Connect, cxQueue, 0, NULL);		
+   CTThread txThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CTDequeue_Encrypt_Send, txQueue, 0, NULL);
+   CTThread rxThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CTDequeue_Recv_Decrypt, rxQueue, 0, NULL);
 ```
 
 ####  Define your target
