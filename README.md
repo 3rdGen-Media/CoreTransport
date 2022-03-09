@@ -31,7 +31,6 @@ The general process for establishing and consuming from connections using CTrans
 
 ##  Create Connection + Cursor Pool
 ```
-   //Supply a pool of connections and cursors to CTransport to both avoid allocations and allow async connection + handshake to pump 
    CTCreateConnectionPool(&(HAPPYEYEBALLS_CONNECTION_POOL[0]), HAPPYEYEBALLS_MAX_INFLIGHT_CONNECTIONS);
    CTCreateCursorPool(&(_httpCursor[0]), CT_MAX_INFLIGHT_CURSORS);
 ```
