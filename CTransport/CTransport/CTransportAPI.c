@@ -2327,7 +2327,7 @@ void DNSResolveResponseCallback(CTError* err, CTCursor* cursor)
 		populate_sockaddr(AF_INET, (int)(cursor->target->port), cursor->target->host, &(cursor->target->host_addr), &addrlen);
 		cursor->target->host_addr.sin_addr.s_addr = pRecordA->Data.A.IpAddress;
 		assert(INADDR_NONE != cursor->target->host_addr.sin_addr.s_addr);
-		break;
+		//break;
 
 		pRecordA = pRecordA->pNext;
 	}
@@ -2618,7 +2618,7 @@ coroutine int CTTargetResolveHost(CTTarget* target, CTConnectionClosure callback
 		if (pDnsResponseBuff->MessageHead.Xid != target->dns.wID)
 		{
 			printf("Wrong TransactionID: X.id %d != wID %d", pDnsResponseBuff->MessageHead.Xid, target->dns.wID);
-			//assert(1 == 0);
+			assert(1 == 0);
 		}
 
 		DNS_RECORD* pRecord = NULL;// ffi.new("DNS_RECORD *[1]", nil);
@@ -2628,7 +2628,7 @@ coroutine int CTTargetResolveHost(CTTarget* target, CTConnectionClosure callback
 		if (status != 0)
 		{
 			printf("DnsExtractRecordsFromMessage_UTF8 failed with error code: %d\n", status);
-			//assert(1 == 0);
+			assert(1 == 0);
 		}
 
 

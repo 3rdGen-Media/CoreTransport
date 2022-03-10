@@ -52,7 +52,7 @@
  ***/
 
 //Define a CTransport API CTTarget C style struct to initiate an HTTPS connection with a CTransport API CTConnection
-static const char* http_server = "learnopengl.com";
+static const char* http_server = "example.com";
 static const unsigned short		http_port = 443;
 
 //Define a CTransport API ReqlService (ie CTTarget) C style struct to initiate a RethinkDB TLS connection with a CTransport API CTConnection
@@ -126,12 +126,12 @@ void SendHTTPRequest()
 
 	_itoa(httpsRequestCount, filepath + 5, 10);
 
-	strcat(filepath, ".png");
+	strcat(filepath, ".txt");
 	httpsRequestCount++;
 	
 	//Create a CXTransport API C++ CXURLRequest
 	//std::shared_ptr<CXURLRequest> getRequest = CXURL.GET("/index.html", filepath);
-	std::shared_ptr<CXURLRequest> getRequest = CXURL.GET("/img/textures/wood.png", filepath);
+	std::shared_ptr<CXURLRequest> getRequest = CXURL.GET("/index.html", filepath);
 
 	//Add some HTTP headers to the CXURLRequest
 	getRequest->setValueForHTTPHeaderField("Accept:", "*/*");

@@ -51,7 +51,7 @@ CTCursor _reqlCursor;
  ***/
 
 //Define a CTransport API CTTarget C style struct to initiate an HTTPS connection with a CTransport API CTConnection
-static const char* http_server = "learnopengl.com";//"mineralism.s3 - us - west - 2.amazonaws.com";
+static const char* http_server = "example.com";//"mineralism.s3 - us - west - 2.amazonaws.com";
 static const unsigned short	http_port = 443;
 
 //Define a CTransport API ReqlService (ie CTTarget) C style struct to initiate a RethinkDB TLS connection with a CTransport API CTConnection
@@ -173,7 +173,7 @@ char* httpHeaderLengthCallback(struct CTCursor* pCursor, char* buffer, unsigned 
 
 	//The client *must* set the cursor's contentLength property
 	//to aid CoreTransport in knowing when to stop reading from the socket
-	pCursor->contentLength = 1641845;
+	pCursor->contentLength = 1256;// 1641845;
 
 	//The cursor headerLength is calculated as follows after this function returns
 	//cursor->headerLength = endOfHeader - buffer;
@@ -225,7 +225,7 @@ void sendHTTPRequest(CTCursor* cursor)
 	unsigned long queryStrLength;
 
 	//send request
-	char GET_REQUEST[1024] = "GET /img/textures/wood.png HTTP/1.1\r\nHost: learnopengl.com\r\nUser-Agent: CoreTransport\r\nAccept: */*\r\n\r\n\0";
+	char GET_REQUEST[1024] = "GET /index.html HTTP/1.1\r\nHost: example.com\r\nUser-Agent: CoreTransport\r\nAccept: */*\r\n\r\n\0";
 	//char GET_REQUEST[1024] = "GET /index.html HTTP/1.1\r\nHost: example.com\r\nUser-Agent: CoreTransport\r\nAccept: */*\r\n\r\n\0";
 
 	//file path to open
@@ -235,7 +235,7 @@ void sendHTTPRequest(CTCursor* cursor)
 
 	_itoa(httpRequestCount, filepath + strlen(filepath), 10);
 
-	strcat(filepath, ".png");
+	strcat(filepath, ".txt");
 	httpRequestCount++;
 
 	//CoreTransport provides support for each cursor to read responses into memory mapped files

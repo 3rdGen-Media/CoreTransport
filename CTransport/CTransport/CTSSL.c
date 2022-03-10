@@ -3053,7 +3053,7 @@ int CTSSLHandshakeProcessFirstResponse(CTCursor * cursor, CTSocket socketfd, CTS
 	}
 	*/
 
-	dwSSPIFlags = ISC_REQ_CONFIDENTIALITY | ISC_REQ_STREAM | ISC_REQ_ALLOCATE_MEMORY   /*   | ISC_REQ_REPLAY_DETECT     | ISC_REQ_CONFIDENTIALITY   |
+	dwSSPIFlags = ISC_REQ_CONFIDENTIALITY | ISC_REQ_STREAM | ISC_REQ_ALLOCATE_MEMORY | ISC_RET_EXTENDED_ERROR  /*   | ISC_REQ_REPLAY_DETECT     | ISC_REQ_CONFIDENTIALITY   |
 				  ISC_RET_EXTENDED_ERROR    | | ISC_REQ_STREAM */;
 
 				  // Allocate data buffer.
@@ -3061,11 +3061,13 @@ int CTSSLHandshakeProcessFirstResponse(CTCursor * cursor, CTSocket socketfd, CTS
 	IoBuffer = cursor->file.buffer;
 
 	if (IoBuffer == NULL) { printf("**** Out of memory (1)\n"); return SEC_E_INTERNAL_ERROR; }
-	cbIoBuffer = cursor->headerLength + cursor->contentLength;
+	cbIoBuffer = cursor->overlappedResponse.buf - cursor->file.buffer;// cursor->headerLength + cursor->contentLength;
 	fDoRead = 1;//fDoInitialRead;
 
 	// Loop until the handshake is finished or an error occurs.
 	scRet = SEC_I_CONTINUE_NEEDED;
+
+	printf(" CTSSLHandhsakeProcessFirstResponse:: recvd %d bytes of handshake data \n\n", cursor->overlappedResponse.buf - cursor->file.buffer);
 
 	while (scRet == SEC_I_CONTINUE_NEEDED ||
 		scRet == SEC_E_INCOMPLETE_MESSAGE ||
@@ -3126,11 +3128,11 @@ int CTSSLHandshakeProcessFirstResponse(CTCursor * cursor, CTSocket socketfd, CTS
 		OutBuffer.pBuffers = OutBuffers;
 		OutBuffer.ulVersion = SECBUFFER_VERSION;
 
-
+		static int done = 1;
 		// Call InitializeSecurityContext.
 		scRet = InitializeSecurityContextA(&(cursor->conn->sslContext->hCred),
 			&(cursor->conn->sslContext->hCtxt),
-			(SEC_CHAR*)"aws-us-west-2-portal.5.dblayer.com",
+			(SEC_CHAR*)(cursor->conn->target->host),
 			dwSSPIFlags,
 			0,
 			SECURITY_NATIVE_DREP,
@@ -3141,6 +3143,8 @@ int CTSSLHandshakeProcessFirstResponse(CTCursor * cursor, CTSocket socketfd, CTS
 			&dwSSPIOutFlags,
 			NULL);
 
+		done = 0;
+
 		// If InitializeSecurityContext was successful (or if the error was
 		// one of the special extended ones), send the contends of the output
 		// buffer to the server.
@@ -3148,6 +3152,11 @@ int CTSSLHandshakeProcessFirstResponse(CTCursor * cursor, CTSocket socketfd, CTS
 			scRet == SEC_I_CONTINUE_NEEDED ||
 			FAILED(scRet) && (dwSSPIOutFlags & ISC_RET_EXTENDED_ERROR))
 		{
+			// Check for fatal error.
+			if (FAILED(scRet)) { printf("**** Error 0x%x returned by InitializeSecurityContext (2)\n", scRet); }
+
+			assert((LONG)scRet != 2148074278);
+
 			//assert(scRet != SEC_I_CONTINUE_NEEDED);
 			/*
 			if (OutBuffers[0].cbBuffer != 0 && OutBuffers[0].pvBuffer != NULL)
@@ -3168,13 +3177,60 @@ int CTSSLHandshakeProcessFirstResponse(CTCursor * cursor, CTSocket socketfd, CTS
 				OutBuffers[0].pvBuffer = NULL;
 			}
 			*/
+			if (OutBuffers[0].cbBuffer != 0 && OutBuffers[0].pvBuffer != NULL)
+				break;
+			else if (scRet == SEC_E_INCOMPLETE_MESSAGE)
+			{
 
-			break;
+				/*
+				cursor->headerLengthCallback = SSLFirstMessageHeaderLengthCallback;
+				cursor->responseCallback = SSLFirstMessageResponseCallback;
+
+				cursor->file.buffer = cursor->requestBuffer;
+				cursor->overlappedResponse.buf = (char*)(sslFirstMessageBuffer);
+				handshakeCursor->overlappedResponse.len = sslFirstMessageLen;
+
+				handshakeCursor->conn = conn; //assume conn is permanent memory from core transport connection pool
+				handshakeCursor->overlappedResponse.stage = CT_OVERLAPPED_SEND; //we need to bypass encrypt bc sthis is the ssl handshake
+				assert(handshakeCursor->overlappedResponse.buf);
+				CTCursorSendOnQueue(handshakeCursor, (char**)&(handshakeCursor->overlappedResponse.buf), handshakeCursor->overlappedResponse.len);
+				return CTSuccess;
+				*/
+
+				//printf(" CTSSLHandhsakeProcessFirstResponse:: recvd %d bytes of handshake data \n\n", cursor->overlappedResponse.buf - cursor->file.buffer);
+				unsigned long NumBytesRemaining = cbIoBuffer + ct_system_allocation_granularity();// 32768;   //request exactly the amount to complete the message NumBytesRemaining 
+												   //populated by CTSSLDecryptMessage2 above or request more if desired
+				CTOverlappedResponse* olResponse = &(cursor->overlappedResponse);
+				if ((scRet = CTCursorAsyncRecv(&olResponse, cursor->file.buffer, cbIoBuffer, &NumBytesRemaining)) != CTSocketIOPending)
+				{
+					//the async operation returned immediately
+					if (scRet == CTSuccess)
+					{
+						//printf("CTConnection::DecryptResponseCallback::CTAsyncRecv returned immediate with %lu bytes\n", NumBytesRemaining);
+						//scRet = CTSSLDecryptMessage(overlappedResponse->conn->sslContext, overlappedResponse->wsaBuf.buf, &NumBytesRecv);
+					}
+					else //failure
+					{
+						printf("CTConnection::DecryptResponseCallback::CTAsyncRecv failed with CTDriverError = %d\n", scRet);
+						break;
+					}
+
+				}
+				return scRet;
+
+			}
 		}
 
 		// If InitializeSecurityContext returned SEC_E_INCOMPLETE_MESSAGE,
 		// then we need to read more data from the server and try again.
-		if (scRet == SEC_E_INCOMPLETE_MESSAGE) { printf("SEC_E_INCOMPLETE_MESSAGE"); continue; }
+		if (scRet == SEC_E_INCOMPLETE_MESSAGE ) { printf("SEC_E_INCOMPLETE_MESSAGE"); continue; }
+
+		// Copy any leftover data from the "extra" buffer, and go around again.
+		if (InBuffers[1].BufferType == SECBUFFER_EXTRA)
+		{
+			MoveMemory(IoBuffer, IoBuffer + (cbIoBuffer - InBuffers[1].cbBuffer), InBuffers[1].cbBuffer);
+			cbIoBuffer = InBuffers[1].cbBuffer;
+		}
 
 	}
 
@@ -3242,7 +3298,7 @@ int CTSSLHandshakeProcessSecondResponse(CTCursor * cursor, CTSocket socketfd, CT
 	//eTransient->messageLen = 0;
 	//eTransient->messageBuffer = NULL;
 
-	printf("CTSSLHandshakeProcessFirstResponse::CoreTransport supplying (%lu) handshake bytes to WolfSSL...\n", cursor->headerLength + cursor->contentLength);
+	printf("CTSSLHandshakeProcessSecondResponse::CoreTransport supplying (%lu) handshake bytes to WolfSSL...\n", cursor->headerLength + cursor->contentLength);
 
 	//we are finished sending the first response, reset the send context for the second client message after the recv
 	wolfSSL_SetIOWriteCtx(cursor->conn->sslContext->ctx, &eTransient);
@@ -3255,7 +3311,7 @@ int CTSSLHandshakeProcessSecondResponse(CTCursor * cursor, CTSocket socketfd, CT
 
 		err = wolfSSL_get_error(sslContextRef->ctx, 0);
 		wolfSSL_ERR_error_string(err, buffer);
-		fprintf(stderr, "CTSSLHandshakeProcessFirstResponse: wolfSSL_connect failed to read (%d): \n\n%s\n\n", wolfSSL_get_error(sslContextRef->ctx, 0), buffer);
+		fprintf(stderr, "CTSSLHandshakeProcessSecondResponse: wolfSSL_connect failed to read (%d): \n\n%s\n\n", wolfSSL_get_error(sslContextRef->ctx, 0), buffer);
 
 		//HANDLE INCOMPLETE MESSAGE: the buffer didn't have as many bytes as WolfSSL needed for decryption
 		if (err == WOLFSSL_ERROR_WANT_READ)
@@ -3310,12 +3366,12 @@ int CTSSLHandshakeProcessSecondResponse(CTCursor * cursor, CTSocket socketfd, CT
 				//the async operation returned immediately
 				if (scRet == CTSuccess)
 				{
-					printf("CTSSLHandshakeProcessFirstResponse::CTAsyncRecv returned immediate with %lu bytes\n", NumBytesRemaining);
+					printf("CTSSLHandshakeProcessSecondResponse::CTAsyncRecv returned immediate with %lu bytes\n", NumBytesRemaining);
 					//scRet = CTSSLDecryptMessage(overlappedResponse->conn->sslContext, overlappedResponse->wsaBuf.buf, &NumBytesRecv);
 				}
 				else //failure
 				{
-					printf("CTSSLHandshakeProcessFirstResponse::CTAsyncRecv failed with CTDriverError = %d\n", scRet);
+					printf("CTSSLHandshakeProcessSecondResponse::CTAsyncRecv failed with CTDriverError = %d\n", scRet);
 					assert(1 == 0);
 				}
 			}
@@ -3431,7 +3487,7 @@ int CTSSLHandshakeProcessSecondResponse(CTCursor * cursor, CTSocket socketfd, CT
 		// Call InitializeSecurityContext.
 		scRet = InitializeSecurityContextA(&(sslContextRef->hCred),
 			&(sslContextRef->hCtxt),
-			(SEC_CHAR*)"aws-us-west-2-portal.5.dblayer.com",
+			(SEC_CHAR*)(cursor->conn->target->host),
 			dwSSPIFlags,
 			0,
 			SECURITY_NATIVE_DREP,
@@ -3583,7 +3639,7 @@ int CTSSLHandshake(CTSocket socketfd, CTSSLContextRef sslContextRef, CTSecCertif
 	}
 	*/
 
-    dwSSPIFlags = ISC_REQ_CONFIDENTIALITY| ISC_REQ_STREAM | ISC_REQ_ALLOCATE_MEMORY   /*   | ISC_REQ_REPLAY_DETECT     | ISC_REQ_CONFIDENTIALITY   |
+    dwSSPIFlags = ISC_REQ_CONFIDENTIALITY| ISC_REQ_STREAM | ISC_REQ_ALLOCATE_MEMORY |ISC_RET_EXTENDED_ERROR  /*   | ISC_REQ_REPLAY_DETECT     | ISC_REQ_CONFIDENTIALITY   |
                   ISC_RET_EXTENDED_ERROR    | | ISC_REQ_STREAM */ ;
 
     // Allocate data buffer.
@@ -3656,7 +3712,7 @@ int CTSSLHandshake(CTSocket socketfd, CTSSLContextRef sslContextRef, CTSecCertif
         // Call InitializeSecurityContext.
         scRet = InitializeSecurityContextA(														&(sslContextRef->hCred),
                                                                                                             &(sslContextRef->hCtxt),
-			(SEC_CHAR*)"aws-us-west-2-portal.5.dblayer.com",
+			(SEC_CHAR*)(serverName),
                                                                                                             dwSSPIFlags,
                                                                                                             0,
                                                                                                             SECURITY_NATIVE_DREP,
@@ -3675,6 +3731,8 @@ int CTSSLHandshake(CTSocket socketfd, CTSSLContextRef sslContextRef, CTSecCertif
            scRet == SEC_I_CONTINUE_NEEDED   ||
            FAILED(scRet) && (dwSSPIOutFlags & ISC_RET_EXTENDED_ERROR))
         {
+			if (FAILED(scRet)) { printf("**** Error 0x%x returned by InitializeSecurityContext (2)\n", scRet); }
+
             if(OutBuffers[0].cbBuffer != 0 && OutBuffers[0].pvBuffer != NULL)
             {
                 cbData = send(socketfd, (const char *)OutBuffers[0].pvBuffer, OutBuffers[0].cbBuffer, 0 );
@@ -3696,7 +3754,7 @@ int CTSSLHandshake(CTSocket socketfd, CTSSLContextRef sslContextRef, CTSecCertif
 
         // If InitializeSecurityContext returned SEC_E_INCOMPLETE_MESSAGE,
         // then we need to read more data from the server and try again.
-		if(scRet == SEC_E_INCOMPLETE_MESSAGE) { printf("SEC_E_INCOMPLETE_MESSAGE"); continue; }
+		if(scRet == SEC_E_INCOMPLETE_MESSAGE) { printf("SEC_E_INCOMPLETE_MESSAGE\n"); continue; }
 
         // If InitializeSecurityContext returned SEC_E_OK, then the
         // handshake completed successfully.
