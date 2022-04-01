@@ -99,10 +99,8 @@ The general process for establishing and consuming from connections using CTrans
 
    void httpResponseCallback(CTError * err, CTCursor *cursor)
    {
-	CTCursorMapFileR(cursor);
 	printf("httpResponseCallback header:  \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
-	//printf("httpResponseCallback body:    \n\n%.*s\n\n", cursor->file.size, cursor->file.buffer);
-	CTCursorCloseFile(cursor);
+	printf("httpResponseCallback body:    \n\n%.*s\n\n", cursor->file.size, cursor->file.buffer);
    }
 
    //Define a cursor which handles the buffers for sending a request and receiving an associated response
