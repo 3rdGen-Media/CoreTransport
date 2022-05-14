@@ -172,16 +172,16 @@ The general process for establishing and consuming from connections using CTrans
 ####  Connect with Closure
 ```
    CXConnection * _httpCXConn;
-   //CXTransport implements closures as C++ Lambdas
-   int _cxURLConnectionClosure(CTError *err, CXConnection * conn)
+   //Define Lambda for the connection callback
+   auto _cxURLconnectionClosure = [&](CTError* err, CXConnection* conn)
    {
-	if( err->id == CTSuccess && conn ){ _httpCXConn = conn; }
-	else {} //process errors
+	if (err->id == CTSuccess && conn) { _httpCXConn = conn; }
+	else {} //process errors	
 	return err->id;
-   }
+   };
 
-   //Use CXTransport CXURL C++ API to connect to our HTTPS target server
-   CXURL.connect(&httpTarget, _cxURLConnectionClosure);
+   //Use CXTransport CXReQL C++ API to connect to our RethinkDB service
+   CXURL.connect(&httpTarget, _cxURLconnectionClosure);
 ```
 
 ####  Make a network Request using a Cursor (CXCursor)
