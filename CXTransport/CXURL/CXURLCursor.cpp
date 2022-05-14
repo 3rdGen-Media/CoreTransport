@@ -15,8 +15,8 @@ char * CXURLCursor::ProcessResponseHeader(char * buffer, unsigned long bufferLen
 	_cursor.headerLength = endOfHeader - buffer;
 	//_headerLength = endOfHeader - buffer;
 
-
-	_cursor.contentLength = 1256;// 1641845;
+	//TO DO:  parse HTTP header for content length!!!
+	_cursor.contentLength = 0;// 1641845;
 
 	return endOfHeader;
 }

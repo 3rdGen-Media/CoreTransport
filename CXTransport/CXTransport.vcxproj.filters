@@ -46,14 +46,14 @@
     <ClInclude Include="CXReQL\CXReQLSession.h">
       <Filter>CXReQL</Filter>
     </ClInclude>
-    <ClInclude Include="CXReQL\CXReQLQuery.h">
-      <Filter>CXReQL</Filter>
-    </ClInclude>
     <ClInclude Include="CXURL\CXURLCursor.h">
       <Filter>CXURL</Filter>
     </ClInclude>
     <ClInclude Include="CXTransport\CXQueue.h">
       <Filter>CXTransport</Filter>
+    </ClInclude>
+    <ClInclude Include="CXReQL\CXReQLQuery.h">
+      <Filter>CXReQL</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

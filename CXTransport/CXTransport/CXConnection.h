@@ -35,17 +35,17 @@ static unsigned long					CX_RESPONSE_BUFF_SIZE  = 0;	//Response buffer size will
 	class CXTRANSPORT_API CXConnection// : public Microsoft::WRL::RuntimeClass<ABI::Windows::ApplicationModel::Core::IFrameworkView>
 	{
 		public:
-			CXConnection::CXConnection(CTConnection *conn, CTThreadQueue rxQueue, CTThreadQueue txQueue);
+			CXConnection(CTConnection *conn, CTThreadQueue rxQueue, CTThreadQueue txQueue);
 			~CXConnection(void);
 			CTThreadQueue queryQueue();
 			CTThreadQueue responseQueue();
 
 			//template<typename CXRequestClosure>
-			void addRequestCallbackForKey(std::function<void(CTError* error, std::shared_ptr<CXCursor> cxCursor)> const &callback, uint64_t requestToken) {_queries.insert(std::make_pair(requestToken, callback));}
+			void addRequestCallbackForKey(std::function<void(CTError* error, std::shared_ptr<CXCursor> cxCursor)> const callback, uint64_t requestToken) {_queries.insert(std::make_pair(requestToken, callback));}
 			void removeRequestCallbackForKey(uint64_t requestToken) {_queries.erase(requestToken);}
 			std::function<void(CTError* error, std::shared_ptr<CXCursor> cxCursor)> getRequestCallbackForKey(uint64_t requestToken) { return _queries.at(requestToken); }
 			
-			void addRequestCursorForKey(std::shared_ptr<CXCursor> &cursor, uint64_t requestToken) {_cursors.insert(std::make_pair(requestToken, cursor));}
+			void addRequestCursorForKey(std::shared_ptr<CXCursor> cursor, uint64_t requestToken) {_cursors.insert(std::make_pair(requestToken, cursor));}
 			void removeRequestCursorForKey(uint64_t requestToken) {_cursors.erase(requestToken);}
 			std::shared_ptr<CXCursor> getRequestCursorForKey(uint64_t requestToken) { return _cursors.size() > 0 ? _cursors.at(requestToken) : NULL; }
 			std::shared_ptr<CXCursor> createRequestCursor(uint64_t queryToken);
@@ -96,9 +96,12 @@ static unsigned long					CX_RESPONSE_BUFF_SIZE  = 0;	//Response buffer size will
 				virtual void ProcessProtocolHeader() { printf("CXConnection::ProcessProtocolHeader() Base Class Implementation should be overridden!\n"); }
 	};
 
-	typedef int(*CXConnectionClosure)(CTError *error, CXConnection *connection);
+	extern std::function< void(CTError* err, CXConnection* conn) > CXConnectionLambdaFunc;// = [&](CTError* err, CXConnection* conn) {};
+	using CXConnectionClosureFunc = decltype(CXConnectionLambdaFunc);
+
+	//typedef int(*CXConnectionClosure)(CTError *error, CXConnection *connection);
 	//typedef void(*CTConnectionCallback)(CTError * err, CTConnection * conn);
-	typedef void(*CXConnectFunc)(CTTarget *service, CXConnectionClosure *callback);
+
 }
 
 #endif

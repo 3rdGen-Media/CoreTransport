@@ -55,6 +55,7 @@ namespace CoreTransport
 	class CXREQL_API CXReQLQuery
 	{
 	public:
+		CXReQLQuery();
 		CXReQLQuery(ReqlTermType command);
 		CXReQLQuery(ReqlTermType command, char * responsePath);
 		CXReQLQuery(ReqlTermType command, Value* args, Value* options);
@@ -68,8 +69,28 @@ namespace CoreTransport
 		void setQueryArgs(Value * args);
 		//void setOptions(Value * args);
 
-		//Queries
+		ReqlQueryDocumentType* getQueryArray();
+		MemoryPoolAllocator<>* getAllocator();
+
+		//Document Manipulation Queries: Index Queries
 		CXReQLQuery& table(const char * name);
+		CXReQLQuery& get(const char* primaryKeyValue);	//primary key
+		CXReQLQuery& getAll(const char* secondaryKeyValue, const char* secondaryKeyIndex);
+		CXReQLQuery& getAll(Value* secondaryKeyValue, const char* secondaryKeyIndex);
+		CXReQLQuery& coerceTo(const char* dataTypeStr);
+
+		CXReQLQuery& insert(char* jsonObjStr);
+		CXReQLQuery& insert(Value* jsonObj);
+
+		//Math Queries
+		CXReQLQuery& count();
+		CXReQLQuery& gt(int value);
+
+		//Logic Queries
+		CXReQLQuery& bland(CXReQLQuery* chainQuery);
+
+		//changefeed queries
+		CXReQLQuery& changes();
 
 		//Send Query Methods
 		//uint64_t CXReQLRunQueryWithTokenOnQueue(CTConnection * conn, uint64_t queryToken);//, void * options)//, ReqlQueryClosure callback)
@@ -80,6 +101,62 @@ namespace CoreTransport
 		uint64_t RunQueryWithCursorOnQueue(std::shared_ptr<CXCursor> cxCursor, uint64_t queryToken);//, void * options)//, ReqlQueryClosure callback)
 		
 
+		template<typename CXReQLQueryClosure>
+		uint64_t Continue(std::shared_ptr<CXCursor> continueCursor, CXReQLQueryClosure callback)
+		{
+			uint64_t expectedQueryToken = continueCursor->_cursor.queryToken; //(conn->connection()->queryCount++);
+			CXReQL_printf("CXReQLQuery::Continue ExpectedQueryToken = %llu\n", expectedQueryToken);
+
+			//Value continueCommand(2);
+			//Value newQueryArray(kArrayType);
+
+			//ReqlQueryDocumentType* newQueryArray = new ReqlQueryDocumentType(_domValueAllocator, CX_REQL_QUERY_STATIC_BUFF_SIZE);
+			//newQueryArray->SetArray();
+			//newQueryArray->PushBack(runCommand, *_domValueAllocator).PushBack(*_queryArray, *_domValueAllocator);
+			//if (options)
+			//	newQueryArray->PushBack(*options, *_domValueAllocator);
+
+			//ReqlQueryDocumentType* oldQueryArray = _queryArray;
+			//_queryArray = newQueryArray;
+
+			_queryArray->PushBack(Value(2), *_domValueAllocator);
+
+			/*
+			if (!_filepath)
+			{
+				char filepath[1024] = "ReQL\0";
+
+				_itoa((int)expectedQueryToken, filepath + 4, 10);
+
+				strcat(filepath, ".txt");
+
+				_filepath = filepath;// "ReQLQuery.txt\0";//ct_file_name((char*)requestPath);
+				printf("CXReQLQUery::run filepath = %s\n", _filepath);
+			}
+			*/
+
+			//create a cursor (for the query response, but also it holds our query buffer)
+			//std::shared_ptr<CXCursor> cxCursor = conn->createRequestCursor(expectedQueryToken);
+			//std::shared_ptr<CXReQLCursor> cxReQLCursor(new CXReQLCursor(conn, _filepath));
+			continueCursor->connection()->addRequestCursorForKey(std::static_pointer_cast<CXCursor>(continueCursor), expectedQueryToken);
+			continueCursor->connection()->addRequestCallbackForKey(callback, expectedQueryToken);
+			//conn->addQueryCallbackForKey(callback, expectedQueryToken);
+
+
+			continueCursor->_cursor.headerLength = 0;
+			continueCursor->_cursor.contentLength = 0;
+
+			//return SendRequestWithCursorOnQueue(cxURLCursor, expectedQueryToken);
+			RunQueryWithCursorOnQueue(continueCursor, expectedQueryToken);
+
+			//CXReQLRunQueryWithTokenOnQueue(conn->connection(), expectedQueryToken);
+
+			//delete after so we don't hold up the async send with a deallocation
+			//delete oldQueryArray;
+
+			return expectedQueryToken;
+
+		}
 
 		template<typename CXReQLQueryClosure>
 		uint64_t run(CXConnection* conn, Value* options, CXReQLQueryClosure callback)
@@ -102,19 +179,25 @@ namespace CoreTransport
 			
 			if( !_filepath )
 			{
-				_filepath = "ReQLQuery.txt\0";//ct_file_name((char*)requestPath);
+				char filepath[1024] = "C:\\3rdGen\\CoreTransport\\bin\\x64\\ReQL\0";
+
+				_itoa((int)expectedQueryToken, filepath + strlen(filepath), 10);
+
+				strcat(filepath, ".txt");
+
+				_filepath = filepath;// "ReQLQuery.txt\0";//ct_file_name((char*)requestPath);
 				printf("CXReQLQUery::run filepath = %s\n", _filepath);
 			}
 
 			//create a cursor (for the query response, but also it holds our query buffer)
 			//std::shared_ptr<CXCursor> cxCursor = conn->createRequestCursor(expectedQueryToken);
-			std::shared_ptr<CXReQLCursor> cxReQLCursor( new CXReQLCursor(conn->connection(), _filepath) );
+			std::shared_ptr<CXReQLCursor> cxReQLCursor( new CXReQLCursor(conn, _filepath) );
 			conn->addRequestCursorForKey(std::static_pointer_cast<CXCursor>(cxReQLCursor), expectedQueryToken);
 			conn->addRequestCallbackForKey(callback, expectedQueryToken);
 			//conn->addQueryCallbackForKey(callback, expectedQueryToken);
 			
 			//return SendRequestWithCursorOnQueue(cxURLCursor, expectedQueryToken);
-			return RunQueryWithCursorOnQueue(cxReQLCursor, expectedQueryToken);
+			RunQueryWithCursorOnQueue(cxReQLCursor, expectedQueryToken);
 
 			//CXReQLRunQueryWithTokenOnQueue(conn->connection(), expectedQueryToken);
 
@@ -125,7 +208,7 @@ namespace CoreTransport
 		}
 
 
-		MemoryPoolAllocator<>* getAllocator() {return _domValueAllocator; }
+		//MemoryPoolAllocator<>* getAllocator() {return _domValueAllocator; }
 
 	protected:
 
@@ -139,6 +222,7 @@ namespace CoreTransport
 
 		char								_domValueMemoryPool[CX_REQL_QUERY_STATIC_BUFF_SIZE];
 		MemoryPoolAllocator<>*				_domValueAllocator;//(_queryBuffer, CX_REQL_QUERY_STATIC_BUFF_SIZE);
+		ReqlQueryDocumentType*				_queryObject;
 
 		Value *_args;
 		Value *_options;

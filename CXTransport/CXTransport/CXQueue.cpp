@@ -549,7 +549,7 @@ unsigned long __stdcall CX_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 							overlappedResponse->buf -= cursor->headerLength;
 						}
 					}
-					assert(cursor->contentLength > 0);
+					//assert(cursor->contentLength > 0);
 					if (cursor->contentLength <= overlappedResponse->buf - cursor->file.buffer)
 					{
 						extraBufferOffset = 0;

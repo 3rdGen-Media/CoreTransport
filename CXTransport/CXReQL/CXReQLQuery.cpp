@@ -3,6 +3,35 @@
 
 using namespace CoreTransport;
 
+CXReQLQuery::CXReQLQuery()
+{
+	_command = ReqlTermType(-1);
+	_args = NULL;
+	_options = NULL;
+
+	//Create a memory pool allocator for the RapidJSON top level DOM object
+	//Every CXReQLQuery Object gets allocated with a pool of static memory for this purpose (_domValueMemoryPool)
+	_domValueAllocator = new MemoryPoolAllocator<>(_domValueMemoryPool, CX_REQL_QUERY_STATIC_BUFF_SIZE, 0, 0);
+	//MemoryPoolAllocator<> parseAllocator(parseBuffer, sizeof(parseBuffer));
+	//MemoryPoolAllocator<> parseAllocator2(parseBuffer2, sizeof(parseBuffer));
+
+	_queryObject = new ReqlQueryDocumentType(_domValueAllocator, CX_REQL_QUERY_STATIC_BUFF_SIZE);
+	_queryObject->SetObject();
+
+	//Create a top Level RapidJSON DOM object for the ReQL Query
+	//_queryArray = new ReqlQueryDocumentType(_domValueAllocator, CX_REQL_QUERY_STATIC_BUFF_SIZE, _domValueAllocator);
+	_queryArray = new ReqlQueryDocumentType(_domValueAllocator, CX_REQL_QUERY_STATIC_BUFF_SIZE);
+	_queryArray->SetArray();
+	//d.Parse(json);
+	//Document d;
+
+	//TO DO:  handle REQL_EXPR
+	//_queryArray->PushBack(command, *_domValueAllocator);
+
+	_filepath = NULL;
+
+}
+
 CXReQLQuery::CXReQLQuery(ReqlTermType command)
 {
 	_command = command;
@@ -15,6 +44,9 @@ CXReQLQuery::CXReQLQuery(ReqlTermType command)
 	//MemoryPoolAllocator<> parseAllocator(parseBuffer, sizeof(parseBuffer));
 	//MemoryPoolAllocator<> parseAllocator2(parseBuffer2, sizeof(parseBuffer));
 	
+	_queryObject = new ReqlQueryDocumentType(_domValueAllocator, CX_REQL_QUERY_STATIC_BUFF_SIZE);
+	_queryObject->SetObject();
+
 	//Create a top Level RapidJSON DOM object for the ReQL Query
 	//_queryArray = new ReqlQueryDocumentType(_domValueAllocator, CX_REQL_QUERY_STATIC_BUFF_SIZE, _domValueAllocator);
 	_queryArray = new ReqlQueryDocumentType(_domValueAllocator , CX_REQL_QUERY_STATIC_BUFF_SIZE);
@@ -42,6 +74,9 @@ CXReQLQuery::CXReQLQuery(ReqlTermType command, char * responsePath)
 	//MemoryPoolAllocator<> parseAllocator(parseBuffer, sizeof(parseBuffer));
 	//MemoryPoolAllocator<> parseAllocator2(parseBuffer2, sizeof(parseBuffer));
 	
+	_queryObject = new ReqlQueryDocumentType(_domValueAllocator, CX_REQL_QUERY_STATIC_BUFF_SIZE);
+	_queryObject->SetObject();
+
 	//Create a top Level RapidJSON DOM object for the ReQL Query
 	//_queryArray = new ReqlQueryDocumentType(_domValueAllocator, CX_REQL_QUERY_STATIC_BUFF_SIZE, _domValueAllocator);
 	_queryArray = new ReqlQueryDocumentType(_domValueAllocator , CX_REQL_QUERY_STATIC_BUFF_SIZE);
@@ -93,6 +128,9 @@ CXReQLQuery::CXReQLQuery(ReqlTermType command, Value *args, Value *options)
 	//MemoryPoolAllocator<> parseAllocator(parseBuffer, sizeof(parseBuffer));
 	//MemoryPoolAllocator<> parseAllocator2(parseBuffer2, sizeof(parseBuffer));
 	
+	_queryObject = new ReqlQueryDocumentType(_domValueAllocator, CX_REQL_QUERY_STATIC_BUFF_SIZE);
+	_queryObject->SetObject();
+
 	//Create a top Level RapidJSON DOM object for the ReQL Query
 	//_queryArray = new ReqlQueryDocumentType(_domValueAllocator, CX_REQL_QUERY_STATIC_BUFF_SIZE, _domValueAllocator);
 	_queryArray = new ReqlQueryDocumentType(_domValueAllocator , CX_REQL_QUERY_STATIC_BUFF_SIZE);
@@ -109,6 +147,8 @@ CXReQLQuery::CXReQLQuery(ReqlTermType command, Value *args, Value *options)
 		assert(1==0);
 		_queryArray->PushBack(*options, *_domValueAllocator );
 	}
+
+	_filepath = NULL;
 	//d.ParseInsitu(parseBuffer);
 }
 
@@ -125,6 +165,9 @@ CXReQLQuery::CXReQLQuery(ReqlTermType command, Value *args, Value *options, char
 	//MemoryPoolAllocator<> parseAllocator(parseBuffer, sizeof(parseBuffer));
 	//MemoryPoolAllocator<> parseAllocator2(parseBuffer2, sizeof(parseBuffer));
 	
+	_queryObject = new ReqlQueryDocumentType(_domValueAllocator, CX_REQL_QUERY_STATIC_BUFF_SIZE);
+	_queryObject->SetObject();
+
 	//Create a top Level RapidJSON DOM object for the ReQL Query
 	//_queryArray = new ReqlQueryDocumentType(_domValueAllocator, CX_REQL_QUERY_STATIC_BUFF_SIZE, _domValueAllocator);
 	_queryArray = new ReqlQueryDocumentType(_domValueAllocator , CX_REQL_QUERY_STATIC_BUFF_SIZE);
@@ -154,26 +197,17 @@ CXReQLQuery::~CXReQLQuery()
 {
 
 	//delete rapidjson objects in reverse order
+	printf("CXReQLQuery::~CXReQLQuery\n");
+	//delete rapidjson objects in reverse order
 	delete _queryArray;
+	delete _queryObject;
 	delete _domValueAllocator;
+
 }
 
-	//A Custom String class to provide char* buffer to rapidjson::writer
-	class CXReQLString
-	{
-		public:
-		typedef char Ch;
-		CXReQLString(char ** buffer, unsigned long bufSize) : _buffer(buffer) { _bufferStart = *_buffer; _bufSize = bufSize; }
-		void Put(char c) { **_buffer=c;(*_buffer)++; }
-		void Clear() { memset(_bufferStart, 0, _bufSize); }
-		void Flush() { return; }
-		size_t Size() const { return *_buffer - _bufferStart; }
-		private:
-		char * _bufferStart;
-		char ** _buffer ;
-		unsigned long _bufSize;
-	};
+MemoryPoolAllocator<>* CXReQLQuery::getAllocator() { return _domValueAllocator; }
 
+ReqlQueryDocumentType* CXReQLQuery::getQueryArray() { return _queryArray; }
 
 CXReQLQuery& CXReQLQuery::table(const char * name)
 {
@@ -199,6 +233,256 @@ CXReQLQuery& CXReQLQuery::table(const char * name)
 	return *this;
 }
 
+CXReQLQuery& CXReQLQuery::get(const char* primaryKeyValue)
+{
+	//TO DO:  get needs to be able to handle intentional null input
+	
+	//Create table name json string
+	Value primaryKeyJsonStr;// = StringRef(dbName,8);
+	primaryKeyJsonStr = StringRef(primaryKeyValue);          // shortcut, same as above
+
+	//put the previous query and the table name json string in an array of arguments
+	Value getQueryArgs(kArrayType);
+	getQueryArgs.PushBack(*_queryArray, *_domValueAllocator).PushBack(primaryKeyJsonStr, *_domValueAllocator);
+
+	//REQL_TABLE Command (15)
+	Value getCommand(REQL_GET);
+	//Value newQueryArray(kArrayType);
+
+	//put the table command and its array of args in a new top level DOM object array
+	ReqlQueryDocumentType* newQueryArray = new ReqlQueryDocumentType(_domValueAllocator, CX_REQL_QUERY_STATIC_BUFF_SIZE);
+	newQueryArray->SetArray();
+	newQueryArray->PushBack(getCommand, *_domValueAllocator).PushBack(getQueryArgs, *_domValueAllocator);
+
+	delete _queryArray;			  //delete the old top level dom object
+	_queryArray = newQueryArray; //store pointer to new top level dom object
+	return *this;
+}
+
+CXReQLQuery& CXReQLQuery::gt(int value)
+{
+	//Create table name json string
+	//Value primaryKeyJsonStr;// = StringRef(dbName,8);
+	//primaryKeyJsonStr = StringRef(primaryKeyValue);          // shortcut, same as above
+
+	//put the previous query and the table name json string in an array of arguments
+	Value gtQueryArgs(kArrayType);
+	gtQueryArgs.PushBack(*_queryArray, *_domValueAllocator).PushBack(Value(value), *_domValueAllocator);
+
+	//REQL_TABLE Command (15)
+	Value gtCommand(REQL_GT);
+	//Value newQueryArray(kArrayType);
+
+	//put the table command and its array of args in a new top level DOM object array
+	ReqlQueryDocumentType* newQueryArray = new ReqlQueryDocumentType(_domValueAllocator, CX_REQL_QUERY_STATIC_BUFF_SIZE);
+	newQueryArray->SetArray();
+	newQueryArray->PushBack(gtCommand, *_domValueAllocator).PushBack(gtQueryArgs, *_domValueAllocator);
+
+	delete _queryArray;			  //delete the old top level dom object
+	_queryArray = newQueryArray; //store pointer to new top level dom object
+	return *this;
+}
+
+
+
+CXReQLQuery& CXReQLQuery::coerceTo(const char* dataTypeStr)
+{
+	//Create table name json string
+	Value dataTypeJsonStr;// = StringRef(dbName,8);
+	dataTypeJsonStr = StringRef(dataTypeStr);          // shortcut, same as above
+
+	//put the previous query and the table name json string in an array of arguments
+	Value coerceToQueryArgs(kArrayType);
+	coerceToQueryArgs.PushBack(*_queryArray, *_domValueAllocator).PushBack(dataTypeJsonStr, *_domValueAllocator);
+
+	//REQL_TABLE Command (15)
+	Value coerceToCommand(REQL_COERCE_TO);
+	//Value newQueryArray(kArrayType);
+
+	//put the table command and its array of args in a new top level DOM object array
+	ReqlQueryDocumentType* newQueryArray = new ReqlQueryDocumentType(_domValueAllocator, CX_REQL_QUERY_STATIC_BUFF_SIZE);
+	newQueryArray->SetArray();
+	newQueryArray->PushBack(coerceToCommand, *_domValueAllocator).PushBack(coerceToQueryArgs, *_domValueAllocator);
+
+	delete _queryArray;			  //delete the old top level dom object
+	_queryArray = newQueryArray; //store pointer to new top level dom object
+	return *this;
+
+}
+
+CXReQLQuery& CXReQLQuery::getAll(Value * secondaryKeyValue, const char* secondaryKeyIndex)
+{
+	//Create key value json string
+	//Value secondaryKeyValueJsonStr;// = StringRef(dbName,8);
+	//secondaryKeyValueJsonStr = StringRef(secondaryKeyValue);          // shortcut, same as above
+
+	//Create index name json string
+	Value secondaryKeyIndexJsonStr;// = StringRef(dbName,8);
+	secondaryKeyIndexJsonStr = StringRef(secondaryKeyIndex);          // shortcut, same as above
+
+
+	 //put the previous query and the table name json string in an array of arguments
+	Value getQueryArgs(kArrayType);
+	getQueryArgs.PushBack(*_queryArray, *_domValueAllocator).PushBack(*secondaryKeyValue, *_domValueAllocator);
+
+	Value getQueryIndexOptions(kObjectType);
+	getQueryIndexOptions.AddMember("index", secondaryKeyIndexJsonStr, *_domValueAllocator);
+
+	//REQL_TABLE Command (15)
+	Value getAllCommand(REQL_GET_ALL);
+	//Value newQueryArray(kArrayType);
+
+	//put the table command and its array of args in a new top level DOM object array
+	ReqlQueryDocumentType* newQueryArray = new ReqlQueryDocumentType(_domValueAllocator, CX_REQL_QUERY_STATIC_BUFF_SIZE);
+	newQueryArray->SetArray();
+	newQueryArray->PushBack(getAllCommand, *_domValueAllocator).PushBack(getQueryArgs, *_domValueAllocator).PushBack(getQueryIndexOptions, *_domValueAllocator);
+
+	delete _queryArray;			  //delete the old top level dom object
+	_queryArray = newQueryArray; //store pointer to new top level dom object
+	return *this;
+
+}
+
+CXReQLQuery& CXReQLQuery::getAll(const char* secondaryKeyValue, const char* secondaryKeyIndex)
+{
+	//Create key value json string
+	Value secondaryKeyValueJsonStr;// = StringRef(dbName,8);
+	secondaryKeyValueJsonStr = StringRef(secondaryKeyValue);          // shortcut, same as above
+
+	//Create index name json string
+	Value secondaryKeyIndexJsonStr;// = StringRef(dbName,8);
+	secondaryKeyIndexJsonStr = StringRef(secondaryKeyIndex);          // shortcut, same as above
+
+
+	 //put the previous query and the table name json string in an array of arguments
+	Value getQueryArgs(kArrayType);
+	getQueryArgs.PushBack(*_queryArray, *_domValueAllocator).PushBack(secondaryKeyValueJsonStr, *_domValueAllocator);
+
+	Value getQueryIndexOptions(kObjectType);
+	getQueryIndexOptions.AddMember("index", secondaryKeyIndexJsonStr, *_domValueAllocator);
+
+	//REQL_TABLE Command (15)
+	Value getAllCommand(REQL_GET_ALL);
+	//Value newQueryArray(kArrayType);
+
+	//put the table command and its array of args in a new top level DOM object array
+	ReqlQueryDocumentType* newQueryArray = new ReqlQueryDocumentType(_domValueAllocator, CX_REQL_QUERY_STATIC_BUFF_SIZE);
+	newQueryArray->SetArray();
+	newQueryArray->PushBack(getAllCommand, *_domValueAllocator).PushBack(getQueryArgs, *_domValueAllocator).PushBack(getQueryIndexOptions, *_domValueAllocator);
+
+	delete _queryArray;			  //delete the old top level dom object
+	_queryArray = newQueryArray; //store pointer to new top level dom object
+	return *this;
+
+}
+
+CXReQLQuery& CXReQLQuery::count()
+{
+	//put the previous query and the table name json string in an array of arguments
+	Value countQueryArgs(kArrayType);
+	countQueryArgs.PushBack(*_queryArray, *_domValueAllocator);// .PushBack(primaryKeyJsonStr, *_domValueAllocator);
+
+	//REQL_TABLE Command (15)
+	Value getCommand(REQL_COUNT);
+	//Value newQueryArray(kArrayType);
+
+	//put the table command and its array of args in a new top level DOM object array
+	ReqlQueryDocumentType* newQueryArray = new ReqlQueryDocumentType(_domValueAllocator, CX_REQL_QUERY_STATIC_BUFF_SIZE);
+	newQueryArray->SetArray();
+	newQueryArray->PushBack(getCommand, *_domValueAllocator).PushBack(countQueryArgs, *_domValueAllocator);
+
+	delete _queryArray;			  //delete the old top level dom object
+	_queryArray = newQueryArray; //store pointer to new top level dom object
+	return *this;
+
+}
+
+
+CXReQLQuery& CXReQLQuery::changes()
+{
+	//put the previous query and the table name json string in an array of arguments
+	Value changeQueryArgs(kArrayType);
+	changeQueryArgs.PushBack(*_queryArray, *_domValueAllocator);// .PushBack(primaryKeyJsonStr, *_domValueAllocator);
+
+	Value changesCommand(REQL_CHANGES);
+
+	//put the table command and its array of args in a new top level DOM object array
+	ReqlQueryDocumentType* newQueryArray = new ReqlQueryDocumentType(_domValueAllocator, CX_REQL_QUERY_STATIC_BUFF_SIZE);
+	newQueryArray->SetArray();
+	newQueryArray->PushBack(changesCommand, *_domValueAllocator).PushBack(changeQueryArgs, *_domValueAllocator);
+
+	delete _queryArray;			  //delete the old top level dom object
+	_queryArray = newQueryArray; //store pointer to new top level dom object
+	return *this;
+
+}
+
+
+CXReQLQuery& CXReQLQuery::bland(CXReQLQuery* chainQuery)
+{
+	//put the previous query and the table name json string in an array of arguments
+	Value andQueryArgs(kArrayType);
+	andQueryArgs.PushBack(*_queryArray, *_domValueAllocator).PushBack(*chainQuery->getQueryArray(), *_domValueAllocator);
+
+	//REQL_TABLE Command (15)
+	Value getCommand(REQL_AND);
+	//Value newQueryArray(kArrayType);
+
+	//put the table command and its array of args in a new top level DOM object array
+	ReqlQueryDocumentType* newQueryArray = new ReqlQueryDocumentType(_domValueAllocator, CX_REQL_QUERY_STATIC_BUFF_SIZE);
+	newQueryArray->SetArray();
+	newQueryArray->PushBack(getCommand, *_domValueAllocator).PushBack(andQueryArgs, *_domValueAllocator);
+
+	delete _queryArray;			  //delete the old top level dom object
+	_queryArray = newQueryArray; //store pointer to new top level dom object
+	return *this;
+
+}
+
+CXReQLQuery& CXReQLQuery::insert(Value* jsonObj)
+{
+	//put the previous query and the table name json string in an array of arguments
+	Value insertQueryArgs(kArrayType);
+	insertQueryArgs.PushBack(*_queryArray, *_domValueAllocator).PushBack(*jsonObj, *_domValueAllocator);
+	//REQL_TABLE Command (15)
+	Value insertCommand(REQL_INSERT);
+	//Value newQueryArray(kArrayType);
+
+	//put the table command and its array of args in a new top level DOM object array
+	ReqlQueryDocumentType* newQueryArray = new ReqlQueryDocumentType(_domValueAllocator, CX_REQL_QUERY_STATIC_BUFF_SIZE);
+	newQueryArray->SetArray();
+	newQueryArray->PushBack(insertCommand, *_domValueAllocator).PushBack(insertQueryArgs, *_domValueAllocator);
+
+	delete _queryArray;			  //delete the old top level dom object
+	_queryArray = newQueryArray; //store pointer to new top level dom object
+
+	return *this;
+
+}
+
+
+CXReQLQuery& CXReQLQuery::insert(char* jsonObjStr)
+{
+	_queryObject->SetObject();
+	_queryObject->Parse((char*)jsonObjStr);
+
+	//put the previous query and the table name json string in an array of arguments
+	Value insertQueryArgs(kArrayType);
+	insertQueryArgs.PushBack(*_queryArray, *_domValueAllocator).PushBack(*_queryObject, *_domValueAllocator);
+	//REQL_TABLE Command (15)
+	Value insertCommand(REQL_INSERT);
+	//Value newQueryArray(kArrayType);
+
+	//put the table command and its array of args in a new top level DOM object array
+	ReqlQueryDocumentType* newQueryArray = new ReqlQueryDocumentType(_domValueAllocator, CX_REQL_QUERY_STATIC_BUFF_SIZE);
+	newQueryArray->SetArray();
+	newQueryArray->PushBack(insertCommand, *_domValueAllocator).PushBack(insertQueryArgs, *_domValueAllocator);
+
+	delete _queryArray;			  //delete the old top level dom object
+	_queryArray = newQueryArray; //store pointer to new top level dom object
+
+	return *this;
+}
 
 
 /***
@@ -278,8 +562,8 @@ uint64_t CXReQLQuery::RunQueryWithCursorOnQueue(std::shared_ptr<CXCursor> cxCurs
 	
 	//Serialize to buffer
 	//printf("CXREQL_QUERY_BUF_SIZE = %d\n", CX_REQL_QUERY_STATIC_BUFF_SIZE);
-	CXReQLString parseDomToJsonString(&queryMsgBuffer, CX_REQL_QUERY_STATIC_BUFF_SIZE - sizeof(ReqlQueryMessageHeader));
-	rapidjson::Writer<CXReQLString> writer(parseDomToJsonString);
+	CXRapidJsonString parseDomToJsonString(&queryMsgBuffer, CX_REQL_QUERY_STATIC_BUFF_SIZE - sizeof(ReqlQueryMessageHeader));
+	rapidjson::Writer<CXRapidJsonString> writer(parseDomToJsonString);
 	_queryArray->Accept(writer);
 
 	//*queryMsgBuffer='\0';

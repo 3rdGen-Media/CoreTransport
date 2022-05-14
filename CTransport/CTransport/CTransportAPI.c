@@ -218,41 +218,49 @@ void* CTRecv(CTConnection* conn, void * msg, unsigned long * msgLength)
         printf("something went wrong\n");
         return decryptedMessagePtr;
     }
+
+	if (conn->target->ssl.method > CTSSL_NONE)
+	{
 #ifdef _WIN32
-	ret = CTSSLRead(conn->socket, conn->sslContext, msg, &remainingBufferSize);
-	if( ret != 0 )
-		ret = 0;
+		ret = CTSSLRead(conn->socket, conn->sslContext, msg, &remainingBufferSize);
+		if (ret != 0)
+			ret = 0;
+		else
+		{
+#ifdef CTRANSPORT_WOLFSSL
+			decryptedMessagePtr = (char*)msg;
+#elif defined(CTRANSPORT_USE_MBED_TLS)
+			decryptedMessagePtr = (char*)msg;
+#elif defined(_WIN32)
+			decryptedMessagePtr = (char*)msg + conn->sslContext->Sizes.cbHeader;
+#else
+			decryptedMessagePtr = msg;
+#endif
+		}
+	}
 	else
 	{
-#ifdef CTRANSPORT_WOLFSSL
-		decryptedMessagePtr = (char*)msg;
-#elif defined(CTRANSPORT_USE_MBED_TLS)
-		decryptedMessagePtr = (char*)msg;
-#elif defined(_WIN32)
-		decryptedMessagePtr = (char*)msg + conn->sslContext->Sizes.cbHeader;
-#else
-		decryptedMessagePtr = msg;
-#endif
-	}
-	/*
-	ret = (size_t)recv(conn->socket, (char*)msg, remainingBufferSize, 0 );
-	
-	if(ret == SOCKET_ERROR)
-    {
-        printf("**** ReqlRecv::Error %d reading data from server\n", WSAGetLastError());
-        //scRet = SEC_E_INTERNAL_ERROR;
-        return -1;
-    }
-    else if(ret== 0)
-    {
-        printf("**** ReqlRecv::Server unexpectedly disconnected\n");
-        //scRet = SEC_E_INTERNAL_ERROR;
-        return -1;
-    }
-    printf("ReqlRecv::%d bytes of handshake data received\n\n%.*s\n\n", ret, ret, (char*)msg);
-	*/
+		
+		ret = (size_t)recv(conn->socket, (char*)msg, 256, 0 );
 
-	*msgLength = remainingBufferSize;//(size_t)ret;
+		if(ret == SOCKET_ERROR)
+		{
+			printf("**** CTRecv::Error %d reading data from server\n", WSAGetLastError());
+			//scRet = SEC_E_INTERNAL_ERROR;
+			assert(1 == 0);
+			return -1;
+		}
+		else if(ret== 0)
+		{
+			printf("**** CTRecv::Server unexpectedly disconnected\n");
+			//scRet = SEC_E_INTERNAL_ERROR;
+			return -1;
+			assert(1 == 0);
+		}
+		printf("CTRecv::%d bytes of handshake data received\n\n%.*s\n\n", ret, ret, (char*)msg);
+		decryptedMessagePtr = (char*)msg;
+	}
+	*msgLength = ret;//(size_t)ret;
 	totalMsgLength += *msgLength;
 	remainingBufferSize -= *msgLength;
 #elif defined(__APPLE__)
@@ -313,17 +321,59 @@ int CTSend(CTConnection* conn, void * msg, unsigned long msgLength )
 		printf("ReqlSend::preparing to send: \n%.*s\n", msgLength, (char*)msg);
 		//ret = send(conn->socket, (const char*)msg_chunk, msg_chunk_size, 0 );
 		assert( conn );
-		ret = CTSSLWrite(conn->socket, conn->sslContext, msg_chunk, &msg_chunk_size);
-		if(ret == SOCKET_ERROR || ret == 0)
-        {
-			printf( "****ReqlSend::Error %d sending data to server\n",  WSAGetLastError() );
-            return ret;
-        }
-		//printf("%d bytes of handshake data sent\n", ret);
-		bytesProcessed = ret;
+		
+		if (conn->target->ssl.method != CTSSL_NONE)
+		{
+			ret = CTSSLWrite(conn->socket, conn->sslContext, msg_chunk, &msg_chunk_size);
+			if (ret == SOCKET_ERROR || ret == 0)
+			{
+				printf("****ReqlSend::Error %d sending data to server\n", WSAGetLastError());
+				return ret;
+			}
+			//printf("%d bytes of handshake data sent\n", ret);
+			bytesProcessed = ret;
 #elif defined(__APPLE__)
-        status = SSLWrite(conn->sslContext, msg_chunk, msg_chunk_size, &bytesProcessed);
+		status = SSLWrite(conn->sslContext, msg_chunk, msg_chunk_size, &bytesProcessed);
 #endif
+		}
+		else
+		{
+			ret = send(conn->socket, msg_chunk, msg_chunk_size, 0);
+			if (ret != msg_chunk_size)
+			{
+				//fprintf(stderr, "IO SEND ERROR: ");
+				switch (WSAGetLastError()) {
+					assert(1 == -0);
+#if EAGAIN != EWOULDBLOCK
+				case EAGAIN: // EAGAIN == EWOULDBLOCK on some systems, but not others
+#endif
+				case EWOULDBLOCK:
+					//fprintf(stderr, "would block\n");
+					//return WOLFSSL_CBIO_ERR_WANT_WRITE;
+				case ECONNRESET:
+					//fprintf(stderr, "connection reset\n");
+					//return WOLFSSL_CBIO_ERR_CONN_RST;
+				case EINTR:
+					//fprintf(stderr, "socket interrupted\n");
+					//return WOLFSSL_CBIO_ERR_ISR;
+				case EPIPE:
+					//fprintf(stderr, "socket EPIPE\n");
+					//return WOLFSSL_CBIO_ERR_CONN_CLOSE;
+				default:
+					//fprintf(stderr, "general error\n");
+					//return WOLFSSL_CBIO_ERR_GENERAL;
+					return ret;
+				}
+
+			}
+
+			if (ret == 0) {
+				printf("Connection closed\n");
+				return 0;
+			}
+			bytesProcessed = ret;
+		}
+
 		totalBytesProcessed += bytesProcessed;
         msg_chunk += bytesProcessed;
     }
@@ -641,6 +691,10 @@ uint64_t CTCursorSendOnQueue(CTCursor * cursor, char ** queryBufPtr, unsigned lo
 	//store stage input, store buffer ptr, etc before zeroing overlapped (or just consider only zeroing the overlapped portion)
 	CTOverlappedStage stage = cursor->overlappedResponse.stage;
 	char* queryBuf = *queryBufPtr;// cursor->overlappedResponse.stage;
+
+	if( cursor->conn->target->ssl.method == CTSSL_NONE)
+		stage = CT_OVERLAPPED_SEND; //we need to bypass encrypt bc sthis is the ssl handshake
+
 
 #ifdef CTRANSPORT_WOLFSSL
 
@@ -1287,16 +1341,13 @@ coroutine int CTSocketConnect(CTSocket socketfd, CTTarget * service)
 
 
 
-#define CT_REQL_NUM_NONCE_BYTES 20
-const char * clientKeyData = "Client Key";
-const char * serverKeyData = "Server Key";
-const char* authKey = "\"authentication\"";
-const char * successKey = "\"success\"";
+//#define CT_REQL_NUM_NONCE_BYTES 20
+//const char * clientKeyData = "Client Key";
+//const char * serverKeyData = "Server Key";
+//const char* authKey = "\"authentication\"";
+//const char * successKey = "\"success\"";
 
-    
-static const char *JSON_PROTOCOL_VERSION = "{\"protocol_version\":0,\0";
-static const char *JSON_AUTH_METHOD = "\"authentication_method\":\"SCRAM-SHA-256\",\0";
-int CTReQLSASLHandshake(CTConnection * r, CTTarget* service)
+int CTReQLHandshake(CTConnection * r, CTTarget* service)
 {
 	    OSStatus status;
 
@@ -1354,6 +1405,7 @@ int CTReQLSASLHandshake(CTConnection * r, CTTarget* service)
 	bool magicNumberSuccess = false;
 	bool sfmSuccess = false;
 
+	memset(SERVER_FIRST_MESSAGE_JSON, 0, 1024);
 
 	//Declare some variables to store the variable length of the buffers
 	//as we perform message exchange/SCRAM Auth
@@ -1376,7 +1428,7 @@ int CTReQLSASLHandshake(CTConnection * r, CTTarget* service)
 	authLength = 0;
 	saltLength = 0;
 
-	printf("ReqlSASLHandshake begin\n");
+	printf("CTReqlSASLHandshake begin\n");
     //  Generate a random client nonce for sasl scram sha 256 required by RethinkDB 2.3
     //  for populating the SCRAM client-first-message
     //  We must wrap SecRandomCopyBytes in a function and use it one byte at a time
@@ -1397,8 +1449,8 @@ int CTReQLSASLHandshake(CTConnection * r, CTTarget* service)
     //  Populate client-first-message in JSON wrapper expected by RethinkDB ReQL Service
     //static const char *JSON_PROTOCOL_VERSION = "{\"protocol_version\":0,\0";
     //static const char *JSON_AUTH_METHOD = "\"authentication_method\":\"SCRAM-SHA-256\",\0";
-    strcat( CLIENT_FIRST_MESSAGE_JSON, JSON_PROTOCOL_VERSION);//, strlen(JSON_PROTOCOL_VERSION));
-    strcat( CLIENT_FIRST_MESSAGE_JSON, JSON_AUTH_METHOD);//, strlen(JSON_PROTOCOL_VERSION));
+    strcat( CLIENT_FIRST_MESSAGE_JSON, REQL_JSON_PROTOCOL_VERSION);//, strlen(JSON_PROTOCOL_VERSION));
+    strcat( CLIENT_FIRST_MESSAGE_JSON, REQL_JSON_AUTH_METHOD);//, strlen(JSON_PROTOCOL_VERSION));
     sprintf(CLIENT_FIRST_MESSAGE_JSON + strlen(CLIENT_FIRST_MESSAGE_JSON), "\"authentication\":\"n,,%s\"}", SCRAM_AUTH_MESSAGE);
     //printf("CLIENT_FIRST_MESSAGE_JSON = \n\n%s\n\n", CLIENT_FIRST_MESSAGE_JSON);
     
@@ -1413,15 +1465,18 @@ int CTReQLSASLHandshake(CTConnection * r, CTTarget* service)
     //  Asynchronously send (ie non-blocking send) both magic number and client-first-message-json
     //  buffers in succession over the (non-blocking) socket TLS+TCP connection
     CTSend(r, (void*)REQL_MAGIC_NUMBER_BUF, 4);
-    CTSend(r, CLIENT_FIRST_MESSAGE_JSON, strlen(CLIENT_FIRST_MESSAGE_JSON)+1);  //Note:  Raw JSON messages sent to ReQL Server always needs the extra null character to determine EOF!!!
-                                                                                  //       However, Reql Query Messages must NOT contain the additional null character
+   
     //yield();
     
-    //  Synchronously Wait for magic number response and SCRAM server-first-message
+	//  Synchronously Wait for magic number response and SCRAM server-first-message
     //  --For now we just care about getting 'success: true' from the magic number response
     //  --The server-first-message contains salt, iteration count and a server nonce appended to our nonce for use in SCRAM HMAC SHA-256 Auth
     mnResponsePtr = (char*)CTRecv(r, MAGIC_NUMBER_RESPONSE_JSON, &magicNumberResponseLength);
-    sFirstMessagePtr = (char*)CTRecv(r, SERVER_FIRST_MESSAGE_JSON, &readLength);
+    
+	CTSend(r, CLIENT_FIRST_MESSAGE_JSON, strlen(CLIENT_FIRST_MESSAGE_JSON) + 1);  //Note:  Raw JSON messages sent to ReQL Server always needs the extra null character to determine EOF!!!
+																				 //       However, Reql Query Messages must NOT contain the additional null character
+	
+	sFirstMessagePtr = (char*)CTRecv(r, SERVER_FIRST_MESSAGE_JSON, &readLength);
     printf("MAGIC_NUMBER_RESPONSE_JSON = \n\n%s\n\n", mnResponsePtr);
 	printf("SERVER_FIRST_MESSAGE_JSON = \n\n%s\n\n", sFirstMessagePtr);
     
@@ -1432,9 +1487,9 @@ int CTReQLSASLHandshake(CTConnection * r, CTTarget* service)
     //bool magicNumberSuccess = false;
     //const char * successKey = "\"success\"";
     //char * successVal;
-    if( (successVal = strstr(mnResponsePtr, successKey)) != NULL )
+    if( (successVal = strstr(mnResponsePtr, REQL_SUCCESS_KEY)) != NULL )
     {
-        successVal += strlen(successKey) + 1;
+        successVal += strlen(REQL_SUCCESS_KEY) + 1;
         //if( *successVal == ':') successVal += 1;
         if( *successVal == '"') successVal+=1;
         if( strncmp( successVal, "true", MIN(4, strlen(successVal) ) ) == 0 )
@@ -1449,9 +1504,9 @@ int CTReQLSASLHandshake(CTConnection * r, CTTarget* service)
     //  Parse the server-first-message json response buffer to see if client-first-message exchange was successful
     //  Note:  Here we are counting on the fact that rdb server json does not send whitespace!!!
     //bool sfmSuccess = false;
-    if( (successVal = strstr(sFirstMessagePtr, successKey)) != NULL )
+    if( (successVal = strstr(sFirstMessagePtr, REQL_SUCCESS_KEY)) != NULL )
     {
-        successVal += strlen(successKey) + 1;
+        successVal += strlen(REQL_SUCCESS_KEY) + 1;
         //if( *successVal == ':') successVal += 1;
         if( *successVal == '"') successVal+=1;
         if( strncmp( successVal, "true", MIN(4, strlen(successVal) ) ) == 0 )
@@ -1465,11 +1520,11 @@ int CTReQLSASLHandshake(CTConnection * r, CTTarget* service)
     
     //  The nonce, salt, and iteration count (ie server-first-message) we need for SCRAM Auth are in the 'authentication' field
     //const char* authKey = "\"authentication\"";
-    authValue = strstr(sFirstMessagePtr, authKey);
+    authValue = strstr(sFirstMessagePtr, REQL_AUTH_KEY);
     //size_t authLength = 0;
     if( authValue )
     {
-        authValue += strlen(authKey) + 1;
+        authValue += strlen(REQL_AUTH_KEY) + 1;
         //if( *successVal == ':') successVal += 1;
         if( *authValue == '"')
         {
@@ -1530,8 +1585,8 @@ int CTReQLSASLHandshake(CTConnection * r, CTTarget* service)
     //  using keyed HMAC SHA 256 with the salted password as the secret key
     //      ClientKey       := HMAC(SaltedPassword, "Client Key")
     //      ServerKey       := HMAC(SaltedPassword, "Server Key")
-    ct_scram_hmac(saltedPassword, CC_SHA256_DIGEST_LENGTH, clientKeyData, strlen(clientKeyData), clientKey );
-    ct_scram_hmac(saltedPassword, CC_SHA256_DIGEST_LENGTH, serverKeyData, strlen(serverKeyData), serverKey );
+    ct_scram_hmac(saltedPassword, CC_SHA256_DIGEST_LENGTH, REQL_CLIENT_KEY, strlen(REQL_CLIENT_KEY), clientKey );
+    ct_scram_hmac(saltedPassword, CC_SHA256_DIGEST_LENGTH, REQL_SERVER_KEY, strlen(REQL_SERVER_KEY), serverKey );
     //printf("clientKey = %.*s\n", CC_SHA256_DIGEST_LENGTH, clientKey);
     //printf("serverKey = %.*s\n", CC_SHA256_DIGEST_LENGTH, serverKey);
     
@@ -1590,9 +1645,9 @@ int CTReQLSASLHandshake(CTConnection * r, CTTarget* service)
     
     //Validate Server Signature
     authLength = 0;
-    if( (authValue = strstr(sFinalMessagePtr, authKey)) != NULL )
+    if( (authValue = strstr(sFinalMessagePtr, REQL_AUTH_KEY)) != NULL )
     {
-        authValue += strlen(authKey) + 1;
+        authValue += strlen(REQL_AUTH_KEY) + 1;
         //if( *successVal == ':') successVal += 1;
         if( *authValue == '"')
         {
@@ -1629,6 +1684,241 @@ int CTReQLSASLHandshake(CTConnection * r, CTTarget* service)
     free( base64SS );
     
     return CTSuccess;
+}
+
+
+char* ReQLHandshakeHeaderLengthCallback(struct CTCursor* cursor, char* buffer, unsigned long length)
+{
+	printf("ReQLHandshakeHeaderLengthCallback...\n\n");
+
+	//the purpose of this function is to return the end of the header in the 
+	//connection's tcp stream to CoreTransport decrypt/recv thread
+	char* endOfHeader = buffer;// +sizeof(ReqlQueryMessageHeader);
+
+	//The client *must* set the cursor's contentLength property
+	//to aid CoreTransport in knowing when to stop reading from the socket
+
+	//if (cursor->contentLength == 0)
+	cursor->contentLength = length;// 5 + 88 + 5 + 4583 + 5 + 333 + 5 + 4;// length;// ((ReqlQueryMessageHeader*)buffer)->length;
+
+//The cursor headerLength is calculated as follows after this function returns
+	return endOfHeader;
+}
+
+
+void ReQLMagicNumberResponseCallback(CTError* err, CTCursor* cursor)
+{
+	printf("ReQLFirstMessageResponseCallback header:  \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
+
+	//TO DO:  parse any existing errors first
+	struct CTError error = { (CTErrorClass)0,0,0 };    //Reql API client functions will generally return ints as errors
+
+	//if ((ret = CTSSLHandshakeProcessFirstResponse(cursor, cursor->conn->socket, cursor->conn->sslContext)) != noErr)
+	if( error.id = CTReQLHandshakeProcessMagicNumberResponse(cursor->requestBuffer, strlen(cursor->requestBuffer)) != noErr )
+	{
+#ifdef CTRANSPORT_WOLFSSL
+		if (ret == SSL_ERROR_WANT_READ)
+		{
+			assert(1 == 0);
+			return CTSuccess;
+		}
+		else if (ret == SSL_ERROR_WANT_WRITE)
+		{
+			assert(1 == 0);
+			return CTSuccess;
+		}
+#endif
+		//ReqlSSLCertificateDestroy(&rootCertRef);
+		printf("CTReQLHandshakeProcessMagicNumberResponse failed with status:  %d\n", error.id);
+		error.id = CTSASLHandshakeError;
+		//CTCloseSSLSocket(cursor->conn->sslContext, cursor->conn->socket);
+		cursor->conn->target->callback(&error, cursor->conn);
+	}
+}
+
+
+void ReQLFinalMessageResponseCallback(CTError* err, CTCursor* cursor)
+{
+	printf("ReQLSecondMessageResponseCallback header:  \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
+	
+	//TO DO:  parse any existing errors first
+	struct CTError error = { (CTErrorClass)0,0,0 };    //Reql API client functions will generally return ints as errors
+
+	char* base64SSPtr = NULL;//
+	memcpy(&base64SSPtr, &(cursor->requestBuffer[65536 - sizeof(char*)]), sizeof(char*));
+	if ((error.id = CTReQLHandshakeProcessFinalMessageResponse(cursor->requestBuffer, strlen(cursor->requestBuffer), base64SSPtr)) != CTSuccess)
+	{
+#ifdef CTRANSPORT_WOLFSSL
+		if (error.id == SSL_ERROR_WANT_READ)
+		{
+			assert(1 == 0);
+			return CTSuccess;
+		}
+		else if (error.id == SSL_ERROR_WANT_WRITE)
+		{
+			assert(1 == 0);
+			return CTSuccess;
+		}
+#endif
+		//ReqlSSLCertificateDestroy(&rootCertRef);
+		printf("CTReQLHandshakeProcessFinalMessageResponse failed with status:  %d\n", error.id);
+		error.id = CTSASLHandshakeError;
+		//CTCloseSSLSocket(cursor->conn->sslContext, cursor->conn->socket);
+	}
+
+	cursor->conn->responseCount = 0;  //we incremented this for the handshake, it is critical to reset this for the client before returning the connection
+	cursor->conn->target->callback(&error, cursor->conn);
+}
+
+void ReQLFirstMessageResponseCallback(CTError* err, CTCursor* cursor)
+{
+	printf("ReQLFirstMessageResponseCallback header:  \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
+	
+	//TO DO:  parse any existing errors first
+	struct CTError error = { (CTErrorClass)0,0,0 };    //Reql API client functions will generally return ints as errors
+
+	//typedef union BytePtrUnion
+	//{
+
+	//}
+
+	char* base64SSPtr = NULL;// &(cursor->requestBuffer[65536 - sizeof(void*)]);
+	//if ((ret = CTSSLHandshakeProcessFirstResponse(cursor, cursor->conn->socket, cursor->conn->sslContext)) != noErr)
+	if (( base64SSPtr = CTReQLHandshakeProcessFirstMessageResponse(cursor->requestBuffer, strlen(cursor->requestBuffer), cursor->conn->service->password)) == NULL)
+	{
+#ifdef CTRANSPORT_WOLFSSL
+		if (ret == SSL_ERROR_WANT_READ)
+		{
+			assert(1 == 0);
+			return CTSuccess;
+		}
+		else if (ret == SSL_ERROR_WANT_WRITE)
+		{
+			assert(1 == 0);
+			return CTSuccess;
+		}
+#endif
+		//ReqlSSLCertificateDestroy(&rootCertRef);
+		printf("CTReQLHandshakeProcessFirstMessageResponse failed\n");
+		error.id = CTSASLHandshakeError;
+		//CTCloseSSLSocket(cursor->conn->sslContext, cursor->conn->socket);
+		cursor->conn->target->callback(&error, cursor->conn);
+		return;
+	}
+
+	//copy the base64 address to storage for use by next async handshake message
+	memcpy(&(cursor->requestBuffer[65536 - sizeof(char*)]), &base64SSPtr, sizeof(char*));
+
+	cursor->headerLengthCallback = ReQLHandshakeHeaderLengthCallback; //we'll use same headerLenghtCallback for all ReQLHandshake messages in the sequence
+	cursor->responseCallback = ReQLFinalMessageResponseCallback;	   //the response itself will be specific to processing the actual message at each stage
+
+	cursor->overlappedResponse.buf = cursor->requestBuffer;
+	cursor->overlappedResponse.len = strlen(cursor->requestBuffer) + 1;
+	cursor->overlappedResponse.stage = CT_OVERLAPPED_SCHEDULE; //we need to bypass encrypt bc sthis is the ssl handshake
+	//assert(->->overlappedResponse.buf);
+	CTCursorSendOnQueue(cursor, (char**)&(cursor->overlappedResponse.buf), cursor->overlappedResponse.len);
+}
+
+//CTRANSPORT_ALIGN(8) char MAGIC_NUMBER_RESPONSE_JSON[256];
+//CTRANSPORT_ALIGN(8) char SERVER_FIRST_MESSAGE_JSON[256];
+//CTRANSPORT_ALIGN(8) char SERVER_FINAL_MESSAGE_JSON[256];
+
+int CTReQLAsyncHandshake(CTConnection* conn, CTTarget* service, CTConnectionClosure callback)
+{
+	OSStatus status;
+
+	//SCRAM Message Exchange Buffer Declarations
+	//  AuthMessage := client-first-message-bare + "," + server-first-message + "," + client-final-message-without-proof
+
+	//All buffers provided to ReqlSend must be in-place writeable
+	CTRANSPORT_ALIGN(8) char clientNonce[CT_REQL_NUM_NONCE_BYTES];                //a buffer to hold randomly generated UTF8 characters
+	CTRANSPORT_ALIGN(8) char REQL_MAGIC_NUMBER_BUF[4] = { '\xc3', '\xbd', '\xc2', '\x34' };
+	CTRANSPORT_ALIGN(8) char CLIENT_FIRST_MESSAGE_JSON[256] = "\0";
+	//CTRANSPORT_ALIGN(8) char SCRAM_AUTH_MESSAGE[1024] = "\0";
+
+	//char* base64SS = NULL;
+	unsigned long AuthMessageLength = 0;/// = 0;
+
+	CTCursor* handshakeCursor = CTGetNextPoolCursor();
+	CTCursor* firstMsgCursor = CTGetNextPoolCursor();
+	memset(handshakeCursor, 0, sizeof(CTCursor));
+	memset(firstMsgCursor, 0, sizeof(CTCursor));
+
+	char* SCRAM_AUTH_MESSAGE = firstMsgCursor->requestBuffer + 256;
+	SCRAM_AUTH_MESSAGE[0] = '\0';
+	printf("CTReQLAsyncHandshake begin\n\n");
+	//  Generate a random client nonce for sasl scram sha 256 required by RethinkDB 2.3
+	//  for populating the SCRAM client-first-message
+	//  We must wrap SecRandomCopyBytes in a function and use it one byte at a time
+	//  to ensure we get a valid UTF8 String (so this is pretty slow)
+	if ((status = ct_scram_gen_rand_bytes(clientNonce, CT_REQL_NUM_NONCE_BYTES)) != noErr)
+	{
+		printf("ca_scram_gen_rand_bytes failed with status:  %d\n", status);
+		struct CTError ctError = { (CTErrorClass)CTDriverErrorClass, CTSCRAMEncryptionError, NULL };    //Reql API client functions will generally return ints as errors
+		callback(&ctError, conn);
+		return CTSCRAMEncryptionError;
+	}
+
+	conn->service->callback = callback;
+
+	//  Populate SCRAM client-first-message (ie client-first-message containing username and random nonce)
+	//  We choose to forgo creating a dedicated buffer for the client-first-message and populate
+	//  directly into the SCRAM AuthMessage Accumulation buffer
+	sprintf(SCRAM_AUTH_MESSAGE, "n=%s,r=%.*s", service->user, (int)CT_REQL_NUM_NONCE_BYTES, clientNonce);
+	AuthMessageLength += (unsigned long)strlen(SCRAM_AUTH_MESSAGE);
+	//printf("CLIENT_FIRST_MESSAGE = \n\n%s\n\n", SCRAM_AUTH_MESSAGE);
+
+	//  Populate client-first-message in JSON wrapper expected by RethinkDB ReQL Service
+	//static const char *JSON_PROTOCOL_VERSION = "{\"protocol_version\":0,\0";
+	//static const char *JSON_AUTH_METHOD = "\"authentication_method\":\"SCRAM-SHA-256\",\0";
+	strcat(CLIENT_FIRST_MESSAGE_JSON, REQL_JSON_PROTOCOL_VERSION);//, strlen(JSON_PROTOCOL_VERSION));
+	strcat(CLIENT_FIRST_MESSAGE_JSON, REQL_JSON_AUTH_METHOD);//, strlen(JSON_PROTOCOL_VERSION));
+	sprintf(CLIENT_FIRST_MESSAGE_JSON + strlen(CLIENT_FIRST_MESSAGE_JSON), "\"authentication\":\"n,,%s\"}", SCRAM_AUTH_MESSAGE);
+	printf("CLIENT_FIRST_MESSAGE_JSON = \n\n%s\n\n", CLIENT_FIRST_MESSAGE_JSON);
+
+	//  The client-first-message is already in the AuthMessage buffer
+	//  So we don't need to explicitly copy it
+	//  But we do need to add a comma after the client-first-message
+	//  and a null char to prepare for appending the next SCRAM messages
+	SCRAM_AUTH_MESSAGE[AuthMessageLength] = ',';
+	AuthMessageLength += 1;
+	SCRAM_AUTH_MESSAGE[AuthMessageLength] = '\0';
+
+	//memset(MAGIC_NUMBER_RESPONSE_JSON, 0, 256);
+	//memset(SERVER_FIRST_MESSAGE_JSON, 0, 256);
+	//memset(SERVER_FINAL_MESSAGE_JSON, 0, 256);
+
+
+	//send the TLS Handshake first message in an async non-blocking fashion
+	handshakeCursor->headerLengthCallback = ReQLHandshakeHeaderLengthCallback; //we'll use same headerLenghtCallback for all ReQLHandshake messages in the sequence
+	handshakeCursor->responseCallback = ReQLMagicNumberResponseCallback;	   //the response itself will be specific to processing the actual message at each stage
+
+	firstMsgCursor->headerLengthCallback = ReQLHandshakeHeaderLengthCallback; //we'll use same headerLenghtCallback for all ReQLHandshake messages in the sequence
+	firstMsgCursor->responseCallback = ReQLFirstMessageResponseCallback;	   //the response itself will be specific to processing the actual message at each stage
+
+																			   //copy the magic number to the handshake cursor request buffer
+	memcpy(handshakeCursor->requestBuffer, REQL_MAGIC_NUMBER_BUF, 4);
+	memcpy(firstMsgCursor->requestBuffer, CLIENT_FIRST_MESSAGE_JSON, strlen(CLIENT_FIRST_MESSAGE_JSON) + 1);
+
+	handshakeCursor->file.buffer = handshakeCursor->requestBuffer;
+	handshakeCursor->overlappedResponse.buf = (char*)(handshakeCursor->file.buffer);
+	handshakeCursor->overlappedResponse.len = 4;
+
+	firstMsgCursor->file.buffer = firstMsgCursor->requestBuffer;
+	firstMsgCursor->overlappedResponse.buf = (char*)(firstMsgCursor->file.buffer);
+	firstMsgCursor->overlappedResponse.len = strlen(CLIENT_FIRST_MESSAGE_JSON) + 1;
+
+	handshakeCursor->conn = conn; //assume conn is permanent memory from core transport connection pool
+	handshakeCursor->overlappedResponse.stage = CT_OVERLAPPED_SCHEDULE; //we need to bypass encrypt bc sthis is the ssl handshake
+	assert(handshakeCursor->overlappedResponse.buf);
+	CTCursorSendOnQueue(handshakeCursor, (char**)&(handshakeCursor->overlappedResponse.buf), handshakeCursor->overlappedResponse.len);
+
+	firstMsgCursor->conn = conn; //assume conn is permanent memory from core transport connection pool
+	firstMsgCursor->overlappedResponse.stage = CT_OVERLAPPED_SCHEDULE; //we need to bypass encrypt bc sthis is the ssl handshake
+	assert(firstMsgCursor->overlappedResponse.buf);
+	CTCursorSendOnQueue(firstMsgCursor, (char**)&(firstMsgCursor->overlappedResponse.buf), firstMsgCursor->overlappedResponse.len);
+	
+	return CTSuccess;
 }
 
 coroutine int CTSSLRoutineSendFirstMessage(CTConnection* conn, char* hostname, char* caPath)
@@ -2175,7 +2465,7 @@ coroutine int CTConnectRoutine(CTTarget * service, CTConnectionClosure callback)
 	printf("Before CTSSLRoutine Host = %s\n", conn.socketContext.host);
 	printf("Before CTSSLRoutine Host = %s\n", service->host);
 
-    if( (status = CTSSLRoutine(&conn, conn.socketContext.host, service->ssl.ca)) != 0 )
+    if( service->ssl.method > 0 && (status = CTSSLRoutine(&conn, conn.socketContext.host, service->ssl.ca)) != 0 )
     {
         printf("CTSSLRoutine failed with error: %d\n", (int)status );
         error.id = CTSSLHandshakeError;
@@ -2628,32 +2918,39 @@ coroutine int CTTargetResolveHost(CTTarget* target, CTConnectionClosure callback
 		if (status != 0)
 		{
 			printf("DnsExtractRecordsFromMessage_UTF8 failed with error code: %d\n", status);
-			assert(1 == 0);
-		}
+			//assert(1 == 0);
 
-
-		if (pRecord == NULL) assert(1 == 0);
-
-		//pRecord = pRecord[0];
-		DNS_RECORD* pRecordA = (DNS_RECORD*)pRecord;
-
-		while (pRecordA && pRecordA->wType == wType)
-		{
-			//local a = IN_ADDR();
-			//a.S_addr = record.Data.A.IpAddress
-
-			//TO DO:  we are only handling A records and only the first one
 			populate_sockaddr(AF_INET, (int)(target->port), target->host, &(target->host_addr), &addrlen);
-			target->host_addr.sin_addr.s_addr = pRecordA->Data.A.IpAddress;
-			assert(INADDR_NONE != target->host_addr.sin_addr.s_addr);
-			break;
 
-			pRecordA = pRecordA->pNext;
 		}
 
-		//--Free the resources
-		if (pRecord)
-			DnsRecordListFree(pRecord, DnsFreeRecordList);
+		else
+		{
+			if (pRecord == NULL) assert(1 == 0);
+
+			//pRecord = pRecord[0];
+			DNS_RECORD* pRecordA = (DNS_RECORD*)pRecord;
+
+			while (pRecordA )
+			{
+				//local a = IN_ADDR();
+				//a.S_addr = record.Data.A.IpAddress
+
+				if (pRecordA->wType == wType)
+				{
+					//TO DO:  we are only handling A records and only the first one
+					populate_sockaddr(AF_INET, (int)(target->port), target->host, &(target->host_addr), &addrlen);
+					target->host_addr.sin_addr.s_addr = pRecordA->Data.A.IpAddress;
+					assert(INADDR_NONE != target->host_addr.sin_addr.s_addr);
+					break;
+				}
+				pRecordA = pRecordA->pNext;
+			}
+
+			//--Free the resources
+			if (pRecord)
+				DnsRecordListFree(pRecord, DnsFreeRecordList);
+		}
 
 #endif    
 		//Perform the socket connection

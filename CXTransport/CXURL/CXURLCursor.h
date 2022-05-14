@@ -9,8 +9,8 @@ namespace CoreTransport
 	{
 		public:
 			//CXCursor();
-			CXURLCursor(CTConnection * conn) : CXCursor(conn) {}
-			CXURLCursor(CTConnection * conn, const char * filepath) : CXCursor(conn, filepath) {}
+			CXURLCursor(CXConnection * conn) : CXCursor(conn) {}
+			CXURLCursor(CXConnection * conn, const char * filepath) : CXCursor(conn, filepath) {}
 			~CXURLCursor(void){}
 			char * ProcessResponseHeader(char * buffer, unsigned long bufferLength);
 

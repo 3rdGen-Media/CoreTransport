@@ -59,12 +59,23 @@ namespace CoreTransport
 			//       before deleted status
 
 			void doNothing() { return; }
-			void connect(CTTarget * target, CXConnectionClosure callback);
+
+			template<typename CXConnectionClosure>
+			void connect(CTTarget* target, CXConnectionClosure callback)
+			{
+				CXURLSession* sharedSession = sharedSession->getInstance();
+				sharedSession->connect(target, callback);
+				//return CXReQLInterfaceSession.connect;
+			}
+
 
 			//CXURLQuery& dbQuery(const char * name);
 
 			std::shared_ptr<CXURLRequest> GET(const char * requestPath, const char * responseFilePath) { std::shared_ptr<CXURLRequest> request(new CXURLRequest(URL_GET, requestPath, NULL, NULL, 0, responseFilePath )); return request; }
 			std::shared_ptr<CXURLRequest> GET(const char * requestPath) { std::shared_ptr<CXURLRequest> request(new CXURLRequest(URL_GET, requestPath, NULL, NULL, 0 )); return request; }
+
+			std::shared_ptr<CXURLRequest> POST(const char* requestPath, const char* responseFilePath) { std::shared_ptr<CXURLRequest> request(new CXURLRequest(URL_POST, requestPath, NULL, NULL, 0, responseFilePath)); return request; }
+			std::shared_ptr<CXURLRequest> POST(const char* requestPath) { std::shared_ptr<CXURLRequest> request(new CXURLRequest(URL_POST, requestPath, NULL, NULL, 0)); return request; }
 
 	};
 

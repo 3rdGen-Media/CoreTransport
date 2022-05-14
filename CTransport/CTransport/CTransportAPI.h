@@ -110,7 +110,8 @@ CTRANSPORT_API CTRANSPORT_INLINE CTCursor* CTGetNextPoolCursor();
 CTRANSPORT_API CTRANSPORT_INLINE int CTConnect(  CTTarget * service, CTConnectionClosure callback);
 CTRANSPORT_API CTRANSPORT_INLINE coroutine int CTSSLRoutine(CTConnection* conn, char* hostname, char* caPath);
 CTRANSPORT_API CTRANSPORT_INLINE coroutine int CTTargetResolveHost(CTTarget* target, CTConnectionClosure callback);
-CTRANSPORT_API CTRANSPORT_INLINE int CTReQLSASLHandshake( CTConnection * r, CTTarget * service);
+CTRANSPORT_API CTRANSPORT_INLINE int CTReQLHandshake( CTConnection * r, CTTarget * service);
+CTRANSPORT_API CTRANSPORT_INLINE int CTReQLAsyncHandshake(CTConnection* conn, CTTarget* service, CTConnectionClosure callback);
 CTRANSPORT_API CTRANSPORT_INLINE int CTCloseConnection( CTConnection * conn );
 CTRANSPORT_API CTRANSPORT_INLINE int CTCloseSSLSocket(CTSSLContextRef sslContextRef, CTSocket socketfd);
 

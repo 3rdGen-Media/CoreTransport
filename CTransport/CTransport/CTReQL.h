@@ -15,8 +15,20 @@
 #define REQL_PAGE_SIZE PAGE_SIZE
 #endif
 
+//TO DO:  move the static const char defines into implementation file
 //static const unsigned char REQL_V1_0_MAGIC_NUMBER[4] = {0xc3, 0xbd, 0xc2, 0x34};
 static const char * REQL_V1_0_MAGIC_NUMBER = "\xc3\xbd\xc2\x34";//{0xc3, 0xbd, 0xc2, 0x34};
+
+static const char* REQL_JSON_PROTOCOL_VERSION = "{\"protocol_version\":0,\0";
+static const char* REQL_JSON_AUTH_METHOD = "\"authentication_method\":\"SCRAM-SHA-256\",\0";
+
+static const char* REQL_SUCCESS_KEY = "\"success\"";
+static const char* REQL_AUTH_KEY = "\"authentication\"";
+
+#define CT_REQL_NUM_NONCE_BYTES 20
+static const char * REQL_CLIENT_KEY = "Client Key";
+static const char * REQL_SERVER_KEY = "Server Key";
+
 
 static const uintptr_t REQL_EVT_TIMEOUT = UINTPTR_MAX;
 static const uint32_t  REQL_MAX_TIMEOUT = UINT_MAX;
@@ -24,6 +36,8 @@ static const uint32_t  REQL_MAX_TIMEOUT = UINT_MAX;
 static const char * REQL_CHANGE_TYPE_INITIAL = "initial";
 static const char * REQL_CHANGE_TYPE_CHANGE = "change";
 static const char * REQL_CHANGE_TYPE_REMOVE = "remove";
+
+
 
 #pragma mark -- Reql Object Type Enums
 
@@ -88,6 +102,7 @@ typedef enum ReqlTermType
     REQL_LIMIT              = TERM__TERM_TYPE__LIMIT,           //71
     REQL_ASC                = TERM__TERM_TYPE__ASC,             //73
     REQL_DESC               = TERM__TERM_TYPE__DESC,            //74
+    REQL_GET_ALL            = TERM__TERM_TYPE__GET_ALL,         //78
     REQL_SET_INSERT         = TERM__TERM_TYPE__SET_INSERT,      //88
     REQL_DEFAULT            = TERM__TERM_TYPE__DEFAULT,         //92
     REQL_MATCH              = TERM__TERM_TYPE__MATCH,           //97
@@ -204,8 +219,6 @@ typedef CTOverlappedResponse ReqlOverlappedResponse;
 //#endif
 
 
-
-
 //Cursor API
 CTRANSPORT_API CTRANSPORT_INLINE uint64_t ReqlCursorContinue(ReqlCursor *cursor, void* options);
 CTRANSPORT_API CTRANSPORT_INLINE uint64_t ReqlCursorStop(ReqlCursor *cursor, void* options);
@@ -217,6 +230,8 @@ CTRANSPORT_API CTRANSPORT_INLINE uint64_t ReqlStopQuery        ( ReqlConnection 
 CTRANSPORT_API CTRANSPORT_INLINE uint64_t ReqlStopQueryCtx     ( ReqlQueryContext* ctx, ReqlConnection * conn, uint64_t queryToken, void * options );
 
 
-
+CTRANSPORT_API CTRANSPORT_INLINE int   CTReQLHandshakeProcessMagicNumberResponse (char* mnBuffer, size_t mnBufferLen);
+CTRANSPORT_API CTRANSPORT_INLINE void* CTReQLHandshakeProcessFirstMessageResponse(char* sFirstMessagePtr, size_t sFirstMessageLen, char* password);
+CTRANSPORT_API CTRANSPORT_INLINE int CTReQLHandshakeProcessFinalMessageResponse(char* sFinalMessagePtr, size_t sFinalMessageLen, char* base64SS);
 
 #endif

@@ -103,6 +103,13 @@ void CXURLRequest::setValueForHTTPHeaderField(char * value, char * field)
 	_headers.insert(std::make_pair(value, field));
 }
 
+void CXURLRequest::setContentValue(char* value, unsigned long contentLength)//, char* field)
+{
+	_body = value;
+	_contentLength = contentLength;
+}
+
+
 uint64_t CXURLRequest::SendRequestWithCursorOnQueue(std::shared_ptr<CXCursor> cxCursor, uint64_t requestToken)//, void * options)//, ReqlQueryClosure callback)
 {
 
@@ -124,6 +131,12 @@ uint64_t CXURLRequest::SendRequestWithCursorOnQueue(std::shared_ptr<CXCursor> cx
 		requestBuffer+=4;
 
 	}
+	else if (_command == URL_POST)
+	{
+		memcpy(requestBuffer, "POST ", 5);
+		requestBuffer += 5;
+	}
+
 	if( _requestPath )
 	{
 		memcpy( requestBuffer, _requestPath, strlen( _requestPath ));
@@ -182,9 +195,34 @@ uint64_t CXURLRequest::SendRequestWithCursorOnQueue(std::shared_ptr<CXCursor> cx
 	requestBuffer+= strlen("\r\n");
 	*/
 
+	if (_body) //set content length header
+	{
+		memcpy(requestBuffer, "Content-Length: ", strlen("Content-Length: "));
+		requestBuffer += strlen("Content-Length: ");
+
+		char contentLengthStr[6];
+		_itoa((int)_contentLength, contentLengthStr, 10);
+
+		memcpy(requestBuffer, contentLengthStr, strlen(contentLengthStr));
+		requestBuffer += strlen(contentLengthStr);
+
+		memcpy(requestBuffer, "\r\n", strlen("\r\n"));
+		requestBuffer += strlen("\r\n");
+
+	}
+
+
+
 	//now add the final return carriage to the HTTP header
 	memcpy( requestBuffer, "\r\n\0", strlen("\r\n\0"));
 	requestBuffer+= strlen("\r\n\0");
+
+	if (_body) //now add the body
+	{
+		memcpy(requestBuffer, _body, _contentLength);
+		requestBuffer += _contentLength;
+
+	}
 
 	//calulcate the request length
 	requestLength = requestBuffer-baseBuffer;//queryMsgBuffer - queryBuffer - sizeof(ReqlQueryMessageHeader);// (int32_t)strlen(queryMsgBuffer);// jsonQueryStr.length();

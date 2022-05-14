@@ -54,7 +54,7 @@ extern "C" {
 //align functions are diffent on windows vs iOS, Linux, etc.
 #ifndef CTRANSPORT_ALIGN//(X)
 #ifdef _WIN32
-#define CTRANSPORT_ALIGN(X) (align(X))
+#define CTRANSPORT_ALIGN(X) __declspec(align(X))//(align(X))
 #else
 #define CTRANSPORT_ALIGN(X) __attribute__ ((aligned(X)))
 #endif

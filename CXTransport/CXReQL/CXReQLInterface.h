@@ -59,12 +59,42 @@ namespace CoreTransport
 			//       before deleted status
 
 			void doNothing() { return; }
-			void connect(ReqlService * service, CXConnectionClosure callback);
 
-			CXReQLQuery& dbQuery(const char * name);
+			template<typename CXConnectionClosure>
+			void connect(ReqlService* service, CXConnectionClosure callback)
+			{
+				CXReQLSession* sharedSession = sharedSession->getInstance();
+				sharedSession->connect(service, callback);
+				//return CXReQLInterfaceSession.connect;
+			}
+
+			//REQL_DB
+			CXReQLQuery& dbQuery(const char* name);
+			//std::shared_ptr<VTReQLQuery> dbQuery(const char * name);
+
+			//REQL_DO
+			//VTReQLQuery& doQuery(VTReQLQuery& args);
+			CXReQLQuery& doQuery(Value* args);
+
+			//REQL_FUNC
+			CXReQLQuery& funcQuery(Value* args);
+
+			//REQL_BRANCH
+			CXReQLQuery& branchQuery(Value* args);
+
+			//REQL_EQ
+			CXReQLQuery& eq(unsigned int varIndex, int* value);
+			CXReQLQuery& eq(unsigned int varIndex, const char* bracketField, int* value);
+			CXReQLQuery& eq(Value* eqObj, const char* value, const char * value2);
+
+			//REQL_COUNT
+			CXReQLQuery& count(unsigned int varIndex);
+
 	};
 
 	//doNothing(); Value dbNameJsonStr; dbNameJsonStr = StringRef(name); std::shared_ptr<CXReQLQuery> query(new CXReQLQuery(REQL_DB, &dbNameJsonStr, NULL)); (*query)
+
+	/*
 #define db(name) doNothing();\
 std::shared_ptr<CXReQLQuery> query(new CXReQLQuery(REQL_DB));\
 Value dbNameJsonStr;\
@@ -76,6 +106,32 @@ query->setQueryArgs(&dbQueryArgs);\
 
 static CXReQLInterface * cxReQL;
 #define CXReQL (*(cxReQL->getInstance()))
+*/
+
+
+static CXReQLInterface* cxReQL;
+static inline CXReQLInterface& CXReQLSharedInterface() { return *(cxReQL->getInstance()); }
+
+#define CXReQL CXReQLSharedInterface()
+	//#define connect(service, callback) asyncConnect(service, callback))
+	//#define connect(service, callback, options) asyncConnect(service, callback))
+	//#define db(name) dbQuery(name)
+
+
+#define db(name) doNothing();\
+std::shared_ptr<CXReQLQuery> query(new CXReQLQuery(REQL_DB));\
+Value dbNameJsonStr; \
+dbNameJsonStr = StringRef(name); \
+Value dbQueryArgs(kArrayType); \
+dbQueryArgs.PushBack(dbNameJsonStr, *query->getAllocator()); \
+query->setQueryArgs(&dbQueryArgs); \
+(*query)
+
+
+#define do(args) doNothing();std::shared_ptr<CXReQLQuery> query(new CXReQLQuery(REQL_DO, args, NULL));(*query)
+
+
+
 
 
 }

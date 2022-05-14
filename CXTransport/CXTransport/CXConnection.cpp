@@ -2,6 +2,8 @@
 
 using namespace CoreTransport;
 
+std::function< void(CTError* err, CXConnection* conn) > CXConnectionLambdaFunc = [&](CTError* err, CXConnection* conn) {};
+
 CXConnection::CXConnection(CTConnection *conn, CTThreadQueue rxQueue, CTThreadQueue txQueue)
 {
 	//copy the from CTConnection CTC memory to CXConnection managed memory (because it will go out of scope)
@@ -57,12 +59,15 @@ void CXConnection::distributeResponseWithCursorForToken(uint64_t requestToken)
 		std::shared_ptr<CXCursor> cxCursor = getRequestCursorForKey(requestToken);
 		auto callback = getRequestCallbackForKey(requestToken);
 
+		removeRequestCallbackForKey(requestToken);
+		removeRequestCursorForKey(requestToken);
+
 		if( callback )
 		{
-			//TO DO:  The header and or body needs to be parsed for the error to be populated
-			//appropriately based on the various connection protocols
+			cxCursor->callback = callback;
 			callback( NULL, cxCursor);
-			removeRequestCallbackForKey(requestToken);
+			//removeRequestCallbackForKey(requestToken);  this used to be here, but if we want to be able to delete the connection from the callback...
+
 		}
 		else
 		{
@@ -73,7 +78,8 @@ void CXConnection::distributeResponseWithCursorForToken(uint64_t requestToken)
 		//We are done with the cursor
 		//Do the manual cleanup we need to do
 		//and let the rest get cleaned up when the sharedptr to the CXCursor goes out of scope
-		removeRequestCursorForKey(requestToken);
+		//removeRequestCursorForKey(requestToken); //and this used to be here,  but if we want to be able to delete the connection from the callback...
+
 }
 
 
@@ -98,7 +104,7 @@ static void PrintText(DWORD length, PBYTE buffer) // handle unprintable charater
 
 std::shared_ptr<CXCursor> CXConnection::createRequestCursor(uint64_t queryToken)
 {
-	std::shared_ptr<CXCursor> cxCursor( new CXCursor(&_conn) );
+	std::shared_ptr<CXCursor> cxCursor( new CXCursor(this) );
 	addRequestCursorForKey(cxCursor, queryToken);
 	return cxCursor;
 }

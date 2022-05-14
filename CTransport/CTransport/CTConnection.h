@@ -28,6 +28,7 @@ extern "C" {
 typedef struct CTRANSPORT_PACK_ATTRIBUTE CTSSL
 {
     char * ca;
+	CTSSLMethod method;
 }CTSSL;
 
 #pragma mark -- CTDNS Struct
@@ -180,6 +181,7 @@ typedef struct CTTarget      //72 bytes, 8 byte data alignment
 	//RethinkDB SASL SCRAM SHA-256 Handshake Credentials
 	char* user;                    //8 bytes
 	char* password;                //8 bytes
+	//char nonce[32];
 
 	//We place a socket on target to allow for transient async DNS and async connections
 	CTSocket	socket;
@@ -204,6 +206,7 @@ typedef struct CTTarget      //72 bytes, 8 byte data alignment
 
 	void* ctx;
 	unsigned short port;
+
 
 	//explicit padding
 	unsigned char padding[2];

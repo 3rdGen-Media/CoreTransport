@@ -14,7 +14,7 @@ CTRANSPORT_API CTRANSPORT_INLINE unsigned long ct_system_allocation_granularity(
 #ifdef _WIN32
 	SYSTEM_INFO  systemInfo;
 	GetSystemInfo(&systemInfo);     // Initialize the structure.
-	printf (TEXT("This computer has allocation granularity %d.\n"), systemInfo.dwAllocationGranularity);
+	//printf (TEXT("This computer has allocation granularity %d.\n"), systemInfo.dwAllocationGranularity);
 	return (unsigned long)systemInfo.dwAllocationGranularity/2;
 #endif
 }

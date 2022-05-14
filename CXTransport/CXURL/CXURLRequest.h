@@ -44,8 +44,8 @@ namespace CoreTransport
 	{
 	public:
 
-		CXURLRequest::CXURLRequest(URLRequestType command, const char * requestPath, std::map<char*, char*> *headers, char * body, unsigned long contentLength);		//CXURLRequest(ReqlTermType command, Value* args, Value* options);
-		CXURLRequest::CXURLRequest(URLRequestType command, const char * requestPath, std::map<char*, char*> *headers, char * body, unsigned long contentLength, const char * responsePath);		//CXURLRequest(ReqlTermType command, Value* args, Value* options);
+		CXURLRequest(URLRequestType command, const char * requestPath, std::map<char*, char*> *headers, char * body, unsigned long contentLength);		//CXURLRequest(ReqlTermType command, Value* args, Value* options);
+		CXURLRequest(URLRequestType command, const char * requestPath, std::map<char*, char*> *headers, char * body, unsigned long contentLength, const char * responsePath);		//CXURLRequest(ReqlTermType command, Value* args, Value* options);
 
 		~CXURLRequest(void);
 
@@ -65,6 +65,7 @@ namespace CoreTransport
 		//MemoryPoolAllocator<>* getAllocator() {return _domValueAllocator; }
 
 		void setValueForHTTPHeaderField(char * value, char * field);
+		void setContentValue(char* value, unsigned long contentLength);
 
 		template<typename CXRequestClosure>
 		uint64_t send(CXConnection * conn, CXRequestClosure callback)
@@ -73,7 +74,7 @@ namespace CoreTransport
 			
 			//create a CXURL cursor (for the response, but also it holds our request buffer)
 			//std::shared_ptr<CXURLCursor> cxURLCursor = conn->createRequestCursor(expectedQueryToken);
-			std::shared_ptr<CXURLCursor> cxURLCursor( new CXURLCursor(conn->connection(), _filepath) );
+			std::shared_ptr<CXURLCursor> cxURLCursor( new CXURLCursor(conn, _filepath) );
 			conn->addRequestCursorForKey(std::static_pointer_cast<CXCursor>(cxURLCursor), expectedQueryToken);
 			conn->addRequestCallbackForKey(callback, expectedQueryToken);
 			return SendRequestWithCursorOnQueue(cxURLCursor, expectedQueryToken);

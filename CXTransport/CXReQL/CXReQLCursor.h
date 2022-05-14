@@ -8,9 +8,11 @@ namespace CoreTransport
 	class CXREQL_API CXReQLCursor : public CXCursor
 	{
 		public:
-			CXReQLCursor(CTConnection * conn) : CXCursor(conn) {}
-			CXReQLCursor(CTConnection * conn, const char * filepath) : CXCursor(conn, filepath) {}
+			CXReQLCursor(CXConnection * conn) : CXCursor(conn) {}
+			CXReQLCursor(CXConnection * conn, const char * filepath) : CXCursor(conn, filepath) {}
 			~CXReQLCursor(void){}
+
+			uint64_t Continue();
 			char * ProcessResponseHeader(char * buffer, unsigned long bufferLength);
 
 		private:
