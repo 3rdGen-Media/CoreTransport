@@ -11,7 +11,7 @@ CoreTransport is a no-compromise cross-platform pure C library (with wrapper API
 | Platform provided SSL encryption/decryption with fallback option to 3rd party lib when no platform option available | SCHANNEL, WolfSSL | SecureTransport, MBEDTLS | In Progress |
 | Conditional chaining of requests/queries from the same and other connections | ✔️ | ✔️ | In Progress |
 | Streaming downloads for consumption by an accelerated graphics pipeline or real-time hardware pipeline | ✔️ | ✔️ | In Progress |
-| Tunneling via proxy connections for VPN support (HTTP, SOCKS5) | ✔️ | To Do | To Do |
+| Tunneling via proxy connections (HTTP, SOCKS5) | ✔️ | To Do | To Do |
 	
 *CoreTransport is the modular Network Transport Layer that operates in parallel with 3rdGen's Accelerated Graphics Layer, Core Render.  Together, CoreTransport and CoreRender's C libraries embody the foundational layer of 3rdGen's proprietary simulation engine and cross-platform application framework, Cobalt Rhenium.* 
 
