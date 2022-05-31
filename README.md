@@ -4,14 +4,14 @@ CoreTransport is a no-compromise cross-platform pure C library (with wrapper API
 
 | Motivating Feature | Win32 | Darwin | FreeBSD |
 | ------------------ | ----- | ------ | ------- |
-| Structured concurrency to promote concurrent asynchronous non-blocking socket connections from a single thread | :heavy_check_mark: | :heavy_check_mark: | In Progress |
-| Dedicated Tx/Rx thread queues for socket operations implemented as closest-to-kernel option for fewest context switches | :heavy_check_mark: | :heavy_check_mark: | In Progress |
-| Memory management that supports in-place processing and response caching where applicable | :heavy_check_mark: | :heavy_check_mark: | In Progress |
-| Use closures to delegate response buffers back to the caller when possible | :heavy_check_mark: | :heavy_check_mark: |In Progress |
-| Support conditional chaining of requests/queries from the same and other connections | :heavy_check_mark: | :heavy_check_mark: | In Progress |
-| Support streaming downloads for consumption by an accelerated graphics pipeline or real-time hardware pipeline | :heavy_check_mark: | :heavy_check_mark: | In Progress |
-| Use platform provided SSL encryption/decryption with fallback option to 3rd party lib when no platform option available | :heavy_check_mark: | :heavy_check_mark: | In Progress |
-| Tunneling via proxy connections for VPN support | :heavy_check_mark: | :heavy_check_mark: | In Progress |
+| Structured concurrency to promote concurrent asynchronous non-blocking socket connections from a single thread | IOCP | Coroutines | Coroutines |
+| Dedicated Tx/Rx thread queues for socket operations implemented as closest-to-kernel option for fewest context switches | IOCP | kqueue | kqueue |
+| Closures to delegate response buffers back to the caller when possible | C++ Lambdas | Clang Blocks | Clang Blocks |
+| Memory management that supports in-place processing and response caching where applicable | Memory Pools + Mapped Files | Memory Pools + Mapped Files | Memory Pools + Mapped Files |
+| Platform provided SSL encryption/decryption with fallback option to 3rd party lib when no platform option available | SCHANNEL, WolfSSL | SecureTransport, MBEDTLS | In Progress |
+| Conditional chaining of requests/queries from the same and other connections | ✔️ | ✔️ | In Progress |
+| Streaming downloads for consumption by an accelerated graphics pipeline or real-time hardware pipeline | ✔️ | ✔️ | In Progress |
+| Tunneling via proxy connections for VPN support (HTTP, SOCKS5) | ✔️ | To Do | To Do |
 	
 *CoreTransport is the modular Network Transport Layer that operates in parallel with 3rdGen's Accelerated Graphics Layer, Core Render.  Together, CoreTransport and CoreRender's C libraries embody the foundational layer of 3rdGen's proprietary simulation engine and cross-platform application framework, Cobalt Rhenium.* 
 
