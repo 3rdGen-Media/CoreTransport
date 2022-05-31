@@ -2,15 +2,17 @@
 
 CoreTransport is a no-compromise cross-platform pure C library (with wrapper APIs in various languages) for establishing and consuming from persistent TCP socket client connections secured with SSL/TLS.  CoreTransport aims to implement the following non-standard features for all supported platforms:
 
-* Structured concurrency to promote concurrent asynchronous non-blocking socket connections from a single thread
-* Dedicated Tx/Rx thread queues for each socket connection implemented as closest-to-kernel option for fewest context switches
-* Memory management that supports in-place processing and response caching where applicable
-* Use closures to delegate response buffers back to the caller when possible
-* Support conditional chaining of requests/queries from the same and other connections
-* Support streaming downloads for consumption by an accelerated graphics pipeline or real-time hardware pipeline
-* Use platform provided SSL encryption/decryption with fallback option to 3rd party lib when no platform option available
-* Tunneling via proxy connections for VPN support 
-
+| Motivating Feature | Win32 | Darwin | FreeBSD |
+| ------------------ | ----- | ------ | ------- |
+| Structured concurrency to promote concurrent asynchronous non-blocking socket connections from a single thread | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| Dedicated Tx/Rx thread queues for socket operations implemented as closest-to-kernel option for fewest context switches | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| Memory management that supports in-place processing and response caching where applicable | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| Use closures to delegate response buffers back to the caller when possible | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| Support conditional chaining of requests/queries from the same and other connections | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| Support streaming downloads for consumption by an accelerated graphics pipeline or real-time hardware pipeline | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| Use platform provided SSL encryption/decryption with fallback option to 3rd party lib when no platform option available | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| Tunneling via proxy connections for VPN support | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+	
 *CoreTransport is the modular Network Transport Layer that operates in parallel with 3rdGen's Accelerated Graphics Layer, Core Render.  Together, CoreTransport and CoreRender's C libraries embody the foundational layer of 3rdGen's proprietary simulation engine and cross-platform application framework, Cobalt Rhenium.* 
 
 ## Usage
