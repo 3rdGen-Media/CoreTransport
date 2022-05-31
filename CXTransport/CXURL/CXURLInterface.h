@@ -71,9 +71,19 @@ namespace CoreTransport
 
 			//CXURLQuery& dbQuery(const char * name);
 
+			//HTTP PROXY
+			std::shared_ptr<CXURLRequest> OPTIONS(const char* requestPath, const char* responseFilePath) { std::shared_ptr<CXURLRequest> request(new CXURLRequest(URL_OPTIONS, requestPath, NULL, NULL, 0, responseFilePath)); return request; }
+			std::shared_ptr<CXURLRequest> OPTIONS(const char* requestPath) { std::shared_ptr<CXURLRequest> request(new CXURLRequest(URL_OPTIONS, requestPath, NULL, NULL, 0)); return request; }
+
+			//HTTP PROXY + TLS UPGRADE
+			std::shared_ptr<CXURLRequest> CONNECT(const char* requestPath, const char* responseFilePath) { std::shared_ptr<CXURLRequest> request(new CXURLRequest(URL_CONNECT, requestPath, NULL, NULL, 0, responseFilePath)); return request; }
+			std::shared_ptr<CXURLRequest> CONNECT(const char* requestPath) { std::shared_ptr<CXURLRequest> request(new CXURLRequest(URL_CONNECT, requestPath, NULL, NULL, 0)); return request; }
+
+			//GET
 			std::shared_ptr<CXURLRequest> GET(const char * requestPath, const char * responseFilePath) { std::shared_ptr<CXURLRequest> request(new CXURLRequest(URL_GET, requestPath, NULL, NULL, 0, responseFilePath )); return request; }
 			std::shared_ptr<CXURLRequest> GET(const char * requestPath) { std::shared_ptr<CXURLRequest> request(new CXURLRequest(URL_GET, requestPath, NULL, NULL, 0 )); return request; }
 
+			//POST
 			std::shared_ptr<CXURLRequest> POST(const char* requestPath, const char* responseFilePath) { std::shared_ptr<CXURLRequest> request(new CXURLRequest(URL_POST, requestPath, NULL, NULL, 0, responseFilePath)); return request; }
 			std::shared_ptr<CXURLRequest> POST(const char* requestPath) { std::shared_ptr<CXURLRequest> request(new CXURLRequest(URL_POST, requestPath, NULL, NULL, 0)); return request; }
 

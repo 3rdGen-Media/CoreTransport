@@ -37,7 +37,7 @@
 namespace CoreTransport
 {
 
-	#define CXURL_printf(f_, ...) printf((f_), __VA_ARGS__)
+	#define CXURL_fprintf(stderr, f_, ...) fprintf(stderr, (f_), __VA_ARGS__)
 	//typedef void(*CXURLRequestClosure) (ReqlError * error, CXReQLCursor * cursor);
 
 	class CXURL_API CXURLRequest
@@ -70,7 +70,7 @@ namespace CoreTransport
 		template<typename CXRequestClosure>
 		uint64_t send(CXConnection * conn, CXRequestClosure callback)
 		{ 
-			uint64_t expectedQueryToken = conn->connection()->requestCount++;
+			uint64_t expectedQueryToken = conn->connection()->requestCount;
 			
 			//create a CXURL cursor (for the response, but also it holds our request buffer)
 			//std::shared_ptr<CXURLCursor> cxURLCursor = conn->createRequestCursor(expectedQueryToken);

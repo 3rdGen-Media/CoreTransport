@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 //#include <args.h>
-static void Reql_printf(char *format, ...)
+static void Reql_fprintf(stderr, char *format, ...)
 {
 	char REQL_PRINT_BUFFER[4096];
 
@@ -23,7 +23,7 @@ static void Reql_printf(char *format, ...)
 #if defined(_WIN32)//WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
 	vsprintf_s(REQL_PRINT_BUFFER, 1, format, args);
 #else
-	vprintf(format, args);
+	vprintf( stderr, format, args);
 #endif
 	va_end(args);
 
@@ -36,9 +36,9 @@ static void Reql_printf(char *format, ...)
 	va_list args;
 	va_start(args, format);
 	
-	vprintf(format, args);
+	vprintf( stderr, format, args);
 	//TCHAR szBuffer[512]; // get rid of this hard-coded buffer
-	//nBuf = _vsnprintf(REQL_PRINT_BUFFER, 4095, format, args);
+	//nBuf = _vsnfprintf(stderr, REQL_PRINT_BUFFER, 4095, format, args);
 	//OutputDebugStringA(REQL_PRINT_BUFFER);
 	va_end(args);
 	
@@ -49,7 +49,7 @@ static void Reql_printf(char *format, ...)
 static void ReqlMBEDTLSDebug(void *ctx, int level, const char *file, int line, const char *str)
 {
 	((void)level);
-	Reql_printf("%s:%04d: %s", file, line, str);
+	Reql_fprintf(stderr, "%s:%04d: %s", file, line, str);
 }
 
 #elif defined(_WIN32)
@@ -97,7 +97,7 @@ ALG_ID			 rgbSupportedAlgs[3] = { CALG_ECDH_EPHEM, CALG_RSA_SIGN, CALG_SHA_384};
 //ALG_ID			 rgbSupportedAlgs[15] = {0x660e, 0x6610, 0x6801, 0x6603, 0x6601, 0x8003, 0x8004, 0x800c, 0x800d, 0x800e, 0x2400, 0xaa02, 0xae06, 0x2200, 0x2203};
 ALG_ID           allAlgs[47] = { CALG_MD2, CALG_MD4, CALG_MD5, CALG_SHA, CALG_SHA1, CALG_MAC, CALG_RSA_SIGN, CALG_DSS_SIGN, CALG_NO_SIGN, CALG_RSA_KEYX, CALG_DES, CALG_3DES_112, CALG_3DES, CALG_DESX, CALG_RC2, CALG_RC4, CALG_SEAL, CALG_DH_SF, CALG_DH_EPHEM, CALG_AGREEDKEY_ANY, CALG_KEA_KEYX, CALG_HUGHES_MD5, \
 CALG_SKIPJACK, CALG_TEK, CALG_CYLINK_MEK, CALG_SSL3_SHAMD5, CALG_SSL3_MASTER, CALG_SCHANNEL_MASTER_HASH, CALG_SCHANNEL_MAC_KEY, CALG_SCHANNEL_ENC_KEY, CALG_PCT1_MASTER, CALG_SSL2_MASTER, CALG_TLS1_MASTER, CALG_RC5, CALG_HMAC, CALG_TLS1PRF, CALG_HASH_REPLACE_OWF, CALG_AES_128, CALG_AES_192, CALG_AES_256,\
-CALG_AES, CALG_SHA_256, CALG_SHA_384, CALG_SHA_384, CALG_ECDH, /*CALG_ECDH_EPHEM,*/ CALG_ECMQV, CALG_ECDSA};//, CALG_NULLCIPHER };
+CALG_AES, CALG_SHA_256, CALG_SHA_384, CALG_SHA_512, CALG_ECDH, /*CALG_ECDH_EPHEM,*/ CALG_ECMQV, CALG_ECDSA};//, CALG_NULLCIPHER };
 
 //Proxy Definitions?
 //BOOL    fUseProxy       = FALSE;
@@ -137,7 +137,7 @@ PSecurityFunctionTable LoadSecurityLibrary( void ) // load SSPI.DLL, set up a sp
    
 		// Allocate a TLS index. 
 	   if ((dwTlsSecurityInterface = TlsAlloc()) == TLS_OUT_OF_INDEXES) 
-			printf("\nTlsAlloc failed\n"); 
+			fprintf(stderr, "\nTlsAlloc failed\n"); 
 	}
 	*/
     //  Find out which security DLL to use, depending on
@@ -157,23 +157,23 @@ PSecurityFunctionTable LoadSecurityLibrary( void ) // load SSPI.DLL, set up a sp
         strcpy((char*)lpszDLL, DLL_NAME); // DLL_NAME TEXT("Secur32.dll")
     }
     else
-        { printf( "System not recognized\n" ); return FALSE; }
+        { fprintf(stderr,  "System not recognized\n" ); return FALSE; }
 
 
     //  Load Global handle to Security DLL (if not already loaded)
 	if( !g_hSecurity )
 	{
 	    g_hSecurity = LoadLibrary((char*)lpszDLL);
-		if(g_hSecurity== NULL) { printf( "Error 0x%x loading %s.\n", GetLastError(), lpszDLL ); return FALSE; }
+		if(g_hSecurity== NULL) { fprintf(stderr,  "Error 0x%x loading %s.\n", GetLastError(), lpszDLL ); return FALSE; }
 	}
 
 	//Load InitSecurityInterfaceA function from DLL
     pInitSecurityInterface = (INIT_SECURITY_INTERFACE)GetProcAddress( g_hSecurity, TEXT("InitSecurityInterfaceA") );
-    if(pInitSecurityInterface == NULL) { printf( "Error 0x%x reading InitSecurityInterface entry point.\n", GetLastError() ); return FALSE; }
+    if(pInitSecurityInterface == NULL) { fprintf(stderr,  "Error 0x%x reading InitSecurityInterface entry point.\n", GetLastError() ); return FALSE; }
 
 	//Call InitSecurityInterfaceA to get a pointer to the security function table
 	g_pSSPI = pInitSecurityInterface(); // call InitSecurityInterfaceA(void);
-    if(g_pSSPI == NULL) { printf("Error 0x%x reading security interface.\n", GetLastError()); return FALSE; }
+    if(g_pSSPI == NULL) { fprintf(stderr, "Error 0x%x reading security interface.\n", GetLastError()); return FALSE; }
 
 
 	
@@ -181,7 +181,7 @@ PSecurityFunctionTable LoadSecurityLibrary( void ) // load SSPI.DLL, set up a sp
 	if( !g_hCrypto )
 	{
 	    g_hCrypto = LoadLibrary(TEXT("crypt32.dll"));
-		if(g_hCrypto== NULL) { printf( "Error 0x%x loading %s.\n", GetLastError(), TEXT("crypt32.dll")); return FALSE; }
+		if(g_hCrypto== NULL) { fprintf(stderr,  "Error 0x%x loading %s.\n", GetLastError(), TEXT("crypt32.dll")); return FALSE; }
 	}
 	*/
 	InitSecurityInterfaceA();
@@ -189,9 +189,9 @@ PSecurityFunctionTable LoadSecurityLibrary( void ) // load SSPI.DLL, set up a sp
 	// Initialize the TLS index for this thread. 
 	//lpvData = (LPVOID) LocalAlloc(LPTR, 256); 
 	//if (! TlsSetValue(dwTlsSecurityLibrary, hSecurity))
-    //  printf("\nTlsSetValue dwTlsSecurityLibrary error"); 
+    //  fprintf(stderr, "\nTlsSetValue dwTlsSecurityLibrary error"); 
  	//if (! TlsSetValue(dwTlsSecurityInterface, pSSPI))
-    //  printf("\nTlsSetValue dwTlsSecurityInterface error"); 
+    //  fprintf(stderr, "\nTlsSetValue dwTlsSecurityInterface error"); 
 
 	//the first thread that loads will store as the global security interface
 	//if( !g_pSSPI )
@@ -216,7 +216,7 @@ void UnloadSecurityLibrary(void)
 #define MY_ENCODING_TYPE  (PKCS_7_ASN_ENCODING | X509_ASN_ENCODING)f
 
 
-//#pragma mark -- SCHANNEL Utility Functions
+////#pragma mark -- SCHANNEL Utility Functions
 
 
 /*****************************************************************************/
@@ -244,7 +244,7 @@ static void DisplayWinVerifyTrustError(DWORD Status)
 	case CERT_E_WRONG_USAGE:            pszName = "CERT_E_WRONG_USAGE";             break;
 	default:                            pszName = "(unknown)";                      break;
 	}
-	printf("Error 0x%x (%s) returned by CertVerifyCertificateChainPolicy!\n", Status, pszName);
+	fprintf(stderr, "Error 0x%x (%s) returned by CertVerifyCertificateChainPolicy!\n", Status, pszName);
 }
 
 
@@ -300,7 +300,7 @@ static void DisplayWinSockError(DWORD ErrCode)
 	case     11003:  pszName = "WSANO_RECOVERY    "; break;
 	case     11004:  pszName = "WSANO_DATA        "; break;
 	}
-	printf("Error 0x%x (%s)\n", ErrCode, pszName);
+	fprintf(stderr, "Error 0x%x (%s)\n", ErrCode, pszName);
 }
 
 /*****************************************************************************/
@@ -358,7 +358,7 @@ static void DisplaySECError(DWORD ErrCode)
 		break;
 
 	}
-	printf("Error 0x%x %s \n", ErrCode, pszName);
+	fprintf(stderr, "Error 0x%x %s \n", ErrCode, pszName);
 }
 
 
@@ -378,11 +378,11 @@ void DisplayCertChain(PCCERT_CONTEXT pServerCert, BOOL fLocal)
 
 	//fCertNameToStrA pCertNameToStrA = NULL;
 	//pCertNameToStrA = (fCertNameToStrA)GetProcAddress( g_hCrypto, TEXT("CertNameToStrA") );
-	//if(pCertNameToStrA == NULL) { printf( "Error 0x%x reading pCertNameToStrA entry point.\n", GetLastError() ); return FALSE; }
+	//if(pCertNameToStrA == NULL) { fprintf(stderr,  "Error 0x%x reading pCertNameToStrA entry point.\n", GetLastError() ); return FALSE; }
 
 	//memset(szName, 0,csz);
 
-	printf("\n");
+	fprintf(stderr, "\n");
 
 	//-------------------------------------------------------------------
 	// Get and display the name of subject of the certificate.
@@ -395,11 +395,11 @@ void DisplayCertChain(PCCERT_CONTEXT pServerCert, BOOL fLocal)
 		szName,
 		128))
 	{
-		printf("\nCertificate for %s found.\n", szName);
+		fprintf(stderr, "\nCertificate for %s found.\n", szName);
 	}
 	else
 	{
-		printf("\nCertGetName failed.\n");
+		fprintf(stderr, "\nCertGetName failed.\n");
 	}
 
 	if (CertGetNameString(
@@ -410,11 +410,11 @@ void DisplayCertChain(PCCERT_CONTEXT pServerCert, BOOL fLocal)
 		szName,
 		128))
 	{
-		printf("\nCertificate for %s found.\n", szName);
+		fprintf(stderr, "\nCertificate for %s found.\n", szName);
 	}
 	else
 	{
-		printf("\nCertGetName failed.\n");
+		fprintf(stderr, "\nCertGetName failed.\n");
 	}
 
 
@@ -424,10 +424,10 @@ void DisplayCertChain(PCCERT_CONTEXT pServerCert, BOOL fLocal)
 												&(pServerCert->pCertInfo->Subject),
 												CERT_X500_NAME_STR,
 												szName, csz ) )
-	{ printf("**** Error 0x%x building subject name\n", GetLastError()); }
+	{ fprintf(stderr, "**** Error 0x%x building subject name\n", GetLastError()); }
 
-	if(fLocal) printf("Client subject: %s\n", szName);
-	else printf("Server subject: %s\n", szName);
+	if(fLocal) fprintf(stderr, "Client subject: %s\n", szName);
+	else fprintf(stderr, "Server subject: %s\n", szName);
 
 
 
@@ -435,22 +435,22 @@ void DisplayCertChain(PCCERT_CONTEXT pServerCert, BOOL fLocal)
 												&(pServerCert)->pCertInfo->Issuer,
 												CERT_X500_NAME_STR | CERT_NAME_STR_NO_PLUS_FLAG,
 												(LPSTR)szName, sizeof(szName) ) )
-	{ printf("**** Error 0x%x building issuer name\n", GetLastError()); }
+	{ fprintf(stderr, "**** Error 0x%x building issuer name\n", GetLastError()); }
 
-	if(fLocal) printf("Client issuer: %s\n", szName);
-	else printf("Server issuer: %s\n\n", szName);
+	if(fLocal) fprintf(stderr, "Client issuer: %s\n", szName);
+	else fprintf(stderr, "Server issuer: %s\n\n", szName);
 	*/
 
 	// display certificate chain
 	pCurrentCert = pServerCert;
 	while (pCurrentCert != NULL)
 	{
-		printf("Displaying cert chain...\n");
+		fprintf(stderr, "Displaying cert chain...\n");
 		dwVerificationFlags = 0;
 		pIssuerCert = CertGetIssuerCertificateFromStore((pServerCert)->hCertStore, pCurrentCert, NULL, &dwVerificationFlags);
 		if (pIssuerCert == NULL)
 		{
-			printf("CertGetIssuerCertificateFromStore failed\n");
+			fprintf(stderr, "CertGetIssuerCertificateFromStore failed\n");
 			if (pCurrentCert != pServerCert) CertFreeCertificateContext(pCurrentCert);
 			break;
 		}
@@ -460,20 +460,20 @@ void DisplayCertChain(PCCERT_CONTEXT pServerCert, BOOL fLocal)
 			CERT_X500_NAME_STR | CERT_NAME_STR_NO_PLUS_FLAG,
 			szName, sizeof(szName)))
 		{
-			printf("**** Error 0x%x building subject name\n", GetLastError());
+			fprintf(stderr, "**** Error 0x%x building subject name\n", GetLastError());
 		}
 
-		printf("CA subject: %s\n", szName);
+		fprintf(stderr, "CA subject: %s\n", szName);
 
 		if (!CertNameToStrA(pIssuerCert->dwCertEncodingType,
 			&(pIssuerCert->pCertInfo->Issuer),
 			CERT_X500_NAME_STR | CERT_NAME_STR_NO_PLUS_FLAG,
 			szName, sizeof(szName)))
 		{
-			printf("**** Error 0x%x building issuer name\n", GetLastError());
+			fprintf(stderr, "**** Error 0x%x building issuer name\n", GetLastError());
 		}
 
-		printf("CA issuer: %s\n\n", szName);
+		fprintf(stderr, "CA issuer: %s\n\n", szName);
 
 		if (pCurrentCert != pServerCert) CertFreeCertificateContext(pCurrentCert);
 		pCurrentCert = pIssuerCert;
@@ -493,102 +493,152 @@ static void DisplayConnectionInfo(CtxtHandle *phContext)
 	pSSPI = (PSecurityFunctionTable)TlsGetValue(dwTlsSecurityInterface);
 	if ((pSSPI == 0) && (GetLastError() != ERROR_SUCCESS))
 	{
-	  printf("\nReqlSSLDecryptMessage::TlsGetValue dwTlsSecurityInterface error.  Using global Security Interface...\n");
+	  fprintf(stderr, "\nReqlSSLDecryptMessage::TlsGetValue dwTlsSecurityInterface error.  Using global Security Interface...\n");
 	  pSSPI = g_pSSPI;
 	}
 	*/
 	Status = QueryContextAttributes(phContext, SECPKG_ATTR_CONNECTION_INFO, (PVOID)&ConnectionInfo);
-	if (Status != SEC_E_OK) { printf("Error 0x%x querying connection info\n", Status); return; }
+	if (Status != SEC_E_OK) { fprintf(stderr, "Error 0x%x querying connection info\n", Status); return; }
 
-	printf("\n");
+	fprintf(stderr, "\n");
 
 	switch (ConnectionInfo.dwProtocol)
 	{
 	case SP_PROT_TLS1_CLIENT:
-		printf("Protocol: TLS1\n");
+		fprintf(stderr, "Protocol: TLS1.0\n");
 		break;
 
+	case SP_PROT_TLS1_1_CLIENT:
+		fprintf(stderr, "Protocol: TLS1.1\n");
+		break;
+
+	case SP_PROT_TLS1_2_CLIENT:
+		fprintf(stderr, "Protocol: TLS1.2\n");
+		break;
+
+
 	case SP_PROT_SSL3_CLIENT:
-		printf("Protocol: SSL3\n");
+		fprintf(stderr, "Protocol: SSL3\n");
 		break;
 
 	case SP_PROT_PCT1_CLIENT:
-		printf("Protocol: PCT\n");
+		fprintf(stderr, "Protocol: PCT\n");
 		break;
 
 	case SP_PROT_SSL2_CLIENT:
-		printf("Protocol: SSL2\n");
+		fprintf(stderr, "Protocol: SSL2\n");
 		break;
 
 	default:
-		printf("Protocol: 0x%x\n", ConnectionInfo.dwProtocol);
+		fprintf(stderr, "Protocol: 0x%x\n", ConnectionInfo.dwProtocol);
 	}
 
 	switch (ConnectionInfo.aiCipher)
 	{
+	case CALG_RSA_KEYX:
+	case CALG_RSA_SIGN:
+		fprintf(stderr, "Cipher: RSA\n");
+		break;
+
 	case CALG_RC4:
-		printf("Cipher: RC4\n");
+		fprintf(stderr, "Cipher: RC4\n");
 		break;
 
 	case CALG_3DES:
-		printf("Cipher: Triple DES\n");
+		fprintf(stderr, "Cipher: Triple DES\n");
 		break;
 
 	case CALG_RC2:
-		printf("Cipher: RC2\n");
+		fprintf(stderr, "Cipher: RC2\n");
 		break;
 
 	case CALG_DES:
 	case CALG_CYLINK_MEK:
-		printf("Cipher: DES\n");
+		fprintf(stderr, "Cipher: DES\n");
 		break;
 
 	case CALG_SKIPJACK:
-		printf("Cipher: Skipjack\n");
+		fprintf(stderr, "Cipher: Skipjack\n");
+		break;
+
+	case CALG_AES:
+		fprintf(stderr, "Cipher: AES\n");
+		break;
+	case CALG_AES_128:
+		fprintf(stderr, "Cipher: AES_128\n");
+		break;
+	case CALG_AES_192:
+		fprintf(stderr, "Cipher: AES_192\n");
+		break;
+	case CALG_AES_256:
+		fprintf(stderr, "Cipher: AES_256\n");
 		break;
 
 	default:
-		printf("Cipher: 0x%x\n", ConnectionInfo.aiCipher);
+		fprintf(stderr, "Cipher: 0x%x\n", ConnectionInfo.aiCipher);
 	}
 
-	printf("Cipher strength: %d\n", ConnectionInfo.dwCipherStrength);
+	fprintf(stderr, "Cipher strength: %d\n", ConnectionInfo.dwCipherStrength);
 
 	switch (ConnectionInfo.aiHash)
 	{
 	case CALG_MD5:
-		printf("Hash: MD5\n");
+		fprintf(stderr, "Hash: MD5\n");
 		break;
 
 	case CALG_SHA:
-		printf("Hash: SHA\n");
+		fprintf(stderr, "Hash: SHA\n");
+		break;
+
+	case CALG_SHA_256:
+		fprintf(stderr, "Hash: SHA_256\n");
+		break;
+	case CALG_SHA_384:
+		fprintf(stderr, "Hash: SHA_384\n");
+		break;
+	case CALG_SHA_512:
+		fprintf(stderr, "Hash: SHA_512\n");
 		break;
 
 	default:
-		printf("Hash: 0x%x\n", ConnectionInfo.aiHash);
+		fprintf(stderr, "Hash: 0x%x\n", ConnectionInfo.aiHash);
 	}
 
-	printf("Hash strength: %d\n", ConnectionInfo.dwHashStrength);
+	fprintf(stderr, "Hash strength: %d\n", ConnectionInfo.dwHashStrength);
 
 	switch (ConnectionInfo.aiExch)
 	{
 	case CALG_RSA_KEYX:
 	case CALG_RSA_SIGN:
-		printf("Key exchange: RSA\n");
+		fprintf(stderr, "Key exchange: RSA\n");
 		break;
 
 	case CALG_KEA_KEYX:
-		printf("Key exchange: KEA\n");
+		fprintf(stderr, "Key exchange: KEA\n");
 		break;
 
-	case CALG_DH_EPHEM:
-		printf("Key exchange: DH Ephemeral\n");
+	case CALG_AES:
+		fprintf(stderr, "Key exchange: AES\n");
+		break;
+	case CALG_AES_128:
+		fprintf(stderr, "Key exchange: AES_128\n");
+		break;
+	case CALG_AES_192:
+		fprintf(stderr, "Key exchange: AES_192\n");
+		break;
+	case CALG_AES_256:
+		fprintf(stderr, "Key exchange: AES_256\n");
+		break;
+
+	case CALG_ECDH_EPHEM:
+		fprintf(stderr, "Key exchange: ECDH_EPHEM\n");
 		break;
 
 	default:
-		printf("Key exchange: 0x%x\n", ConnectionInfo.aiExch);
+		fprintf(stderr, "Key exchange: 0x%x\n", ConnectionInfo.aiExch);
 	}
 
-	printf("Key exchange strength: %d\n", ConnectionInfo.dwExchStrength);
+	fprintf(stderr, "Key exchange strength: %d\n", ConnectionInfo.dwExchStrength);
 }
 
 
@@ -645,7 +695,7 @@ void PrintHexDump(
 		}
 
 		rgbLine[cbLine++] = 0;
-		printf("%s\n", rgbLine);
+		fprintf(stderr, "%s\n", rgbLine);
 	}
 }
 
@@ -654,17 +704,17 @@ static void PrintText(DWORD length, PBYTE buffer) // handle unprintable charater
 {
 	int i; //
 
-	printf("\n"); // "length = %d bytes \n", length);
+	fprintf(stderr, "\n"); // "length = %d bytes \n", length);
 	for (i = 0; i < (int)length; i++)
 	{
 		if (buffer[i] == 10 || buffer[i] == 13)
-			printf("%c", (char)buffer[i]);
+			fprintf(stderr, "%c", (char)buffer[i]);
 		else if (buffer[i] < 32 || buffer[i] > 126 || buffer[i] == '%')
-			continue;//printf("%c", '.');
+			continue;//fprintf(stderr, "%c", '.');
 		else
-			printf("%c", (char)buffer[i]);
+			fprintf(stderr, "%c", (char)buffer[i]);
 	}
-	printf("\n\n");
+	fprintf(stderr, "\n\n");
 }
 
 
@@ -730,101 +780,101 @@ void listSCHANNELCipherSuites(void)
 static void printProtocolsForDWORD(DWORD protocols)
 {
 	if( protocols & SP_PROT_PCT1_SERVER )
-		printf("\nSP_PROT_PCT1_SERVER");
+		fprintf(stderr, "\nSP_PROT_PCT1_SERVER");
 		if( protocols & SP_PROT_PCT1_CLIENT )
-		printf("\nSP_PROT_PCT1_CLIENT");
+		fprintf(stderr, "\nSP_PROT_PCT1_CLIENT");
 	if( protocols & SP_PROT_PCT1 )
-		printf("\nSP_PROT_PCT1");
+		fprintf(stderr, "\nSP_PROT_PCT1");
 	if( protocols & SP_PROT_SSL2_SERVER)
-		printf("\nSP_PROT_SSL2_SERVER");
+		fprintf(stderr, "\nSP_PROT_SSL2_SERVER");
 	if( protocols & SP_PROT_SSL2_CLIENT )
-		printf("\nSP_PROT_SSL2_CLIENT");
+		fprintf(stderr, "\nSP_PROT_SSL2_CLIENT");
 	if( protocols & SP_PROT_SSL2 )
-		printf("\nSP_PROT_SSL2");
+		fprintf(stderr, "\nSP_PROT_SSL2");
 	if( protocols & SP_PROT_SSL3_CLIENT )
-		printf("\nSP_PROT_SSL3_CLIENT");
+		fprintf(stderr, "\nSP_PROT_SSL3_CLIENT");
 	if( protocols & SP_PROT_SSL3_SERVER )
-		printf("\nSP_PROT_SSL3_SERVER");
+		fprintf(stderr, "\nSP_PROT_SSL3_SERVER");
 	if( protocols & SP_PROT_SSL3)
-		printf("\nSP_PROT_SSL3");
+		fprintf(stderr, "\nSP_PROT_SSL3");
 	if( protocols & SP_PROT_TLS1_SERVER)
-		printf("\nSP_PROT_TLS1_SERVER");
+		fprintf(stderr, "\nSP_PROT_TLS1_SERVER");
 	if( protocols & SP_PROT_TLS1_CLIENT )
-		printf("\nSP_PROT_TLS1_SERVER");
+		fprintf(stderr, "\nSP_PROT_TLS1_SERVER");
 	if( protocols & SP_PROT_TLS1 )
-		printf("\nSP_PROT_TLS1");
+		fprintf(stderr, "\nSP_PROT_TLS1");
 	if( protocols & SP_PROT_SSL3TLS1_CLIENTS)
-		printf("\nSP_PROT_SSL3TLS1_CLIENTS");
+		fprintf(stderr, "\nSP_PROT_SSL3TLS1_CLIENTS");
 	if( protocols & SP_PROT_SSL3TLS1_SERVERS )
-		printf("\nSP_PROT_SSL3TLS1_SERVERS");
+		fprintf(stderr, "\nSP_PROT_SSL3TLS1_SERVERS");
 	if( protocols & SP_PROT_SSL3TLS1 )
-		printf("\nSP_PROT_SSL3TLS1");
+		fprintf(stderr, "\nSP_PROT_SSL3TLS1");
 	if( protocols & SP_PROT_UNI_SERVER)
-		printf("\nSP_PROT_UNI_SERVER");
+		fprintf(stderr, "\nSP_PROT_UNI_SERVER");
 	if( protocols & SP_PROT_UNI_CLIENT )
-		printf("\nSP_PROT_UNI_CLIENT");
+		fprintf(stderr, "\nSP_PROT_UNI_CLIENT");
 	if( protocols & SP_PROT_UNI )
-		printf("\nSP_PROT_UNI");
+		fprintf(stderr, "\nSP_PROT_UNI");
 	if( protocols & SP_PROT_ALL)
-		printf("\nSP_PROT_ALL");
+		fprintf(stderr, "\nSP_PROT_ALL");
 	if( protocols & SP_PROT_NONE )
-		printf("\nSP_PROT_NONE");
+		fprintf(stderr, "\nSP_PROT_NONE");
 	if( protocols & SP_PROT_CLIENTS)
-		printf("\nSP_PROT_CLIENTS");
+		fprintf(stderr, "\nSP_PROT_CLIENTS");
 	if( protocols & SP_PROT_SERVERS)
-		printf("\nSP_PROT_SERVERS");
+		fprintf(stderr, "\nSP_PROT_SERVERS");
 	if( protocols & SP_PROT_TLS1_0_SERVER)
-		printf("\nSP_PROT_TLS1_0_SERVER");
+		fprintf(stderr, "\nSP_PROT_TLS1_0_SERVER");
 	if( protocols & SP_PROT_TLS1_0_CLIENT )
-		printf("\nSP_PROT_TLS1_0_CLIENT");
+		fprintf(stderr, "\nSP_PROT_TLS1_0_CLIENT");
 	if( protocols & SP_PROT_TLS1_0 )
-		printf("\nSP_PROT_TLS1_0");
+		fprintf(stderr, "\nSP_PROT_TLS1_0");
 
 	if( protocols & SP_PROT_TLS1_1_SERVER)
-		printf("\nSP_PROT_TLS1_1_SERVER");
+		fprintf(stderr, "\nSP_PROT_TLS1_1_SERVER");
 	if( protocols & SP_PROT_TLS1_1_CLIENT )
-		printf("\nSP_PROT_TLS1_1_CLIENT");
+		fprintf(stderr, "\nSP_PROT_TLS1_1_CLIENT");
 	if( protocols & SP_PROT_TLS1_1 )
-		printf("\nSP_PROT_TLS1_1");
+		fprintf(stderr, "\nSP_PROT_TLS1_1");
 
 	if( protocols & SP_PROT_TLS1_2_SERVER)
-		printf("\nSP_PROT_TLS1_2_SERVER");
+		fprintf(stderr, "\nSP_PROT_TLS1_2_SERVER");
 	if( protocols & SP_PROT_TLS1_2_CLIENT )
-		printf("\nSP_PROT_TLS1_2_CLIENT");
+		fprintf(stderr, "\nSP_PROT_TLS1_2_CLIENT");
 	if( protocols & SP_PROT_TLS1_2 )
-		printf("\nSP_PROT_TLS1_2");
+		fprintf(stderr, "\nSP_PROT_TLS1_2");
 
 
 	if( protocols & SP_PROT_TLS1_1PLUS_SERVER)
-		printf("\nSP_PROT_TLS1_1PLUS_SERVER");
+		fprintf(stderr, "\nSP_PROT_TLS1_1PLUS_SERVER");
 	if( protocols & SP_PROT_TLS1_1PLUS_CLIENT )
-		printf("\nSP_PROT_TLS1_1PLUS_CLIENT");
+		fprintf(stderr, "\nSP_PROT_TLS1_1PLUS_CLIENT");
 	if( protocols & SP_PROT_TLS1_1PLUS )
-		printf("\nSP_PROT_TLS1_1PLUS");
+		fprintf(stderr, "\nSP_PROT_TLS1_1PLUS");
 
 
 	if( protocols & SP_PROT_TLS1_X_SERVER)
-		printf("\nSP_PROT_TLS1_X_SERVER");
+		fprintf(stderr, "\nSP_PROT_TLS1_X_SERVER");
 	if( protocols & SP_PROT_TLS1_X_CLIENT )
-		printf("\nSP_PROT_TLS1_X_CLIENT");
+		fprintf(stderr, "\nSP_PROT_TLS1_X_CLIENT");
 	if( protocols & SP_PROT_TLS1_X)
-		printf("\nSP_PROT_TLS1_X");
+		fprintf(stderr, "\nSP_PROT_TLS1_X");
 
 
 
 	if( protocols & SP_PROT_SSL3TLS1_X_CLIENTS)
-		printf("\nSP_PROT_SSL3TLS1_X_CLIENTS");
+		fprintf(stderr, "\nSP_PROT_SSL3TLS1_X_CLIENTS");
 	if( protocols & SP_PROT_SSL3TLS1_X_SERVERS )
-		printf("\nSP_PROT_SSL3TLS1_X_SERVERS");
+		fprintf(stderr, "\nSP_PROT_SSL3TLS1_X_SERVERS");
 	if( protocols & SP_PROT_SSL3TLS1_X)
-		printf("\nSP_PROT_SSL3TLS1_X");
+		fprintf(stderr, "\nSP_PROT_SSL3TLS1_X");
 
 	if( protocols & SP_PROT_X_CLIENTS)
-		printf("\nSP_PROT_X_CLIENTS");
+		fprintf(stderr, "\nSP_PROT_X_CLIENTS");
 	if( protocols & SP_PROT_X_SERVERS )
-		printf("\nSP_PROT_X_SERVERS");
+		fprintf(stderr, "\nSP_PROT_X_SERVERS");
 
-	printf("\n");
+	fprintf(stderr, "\n");
 }
 
 
@@ -843,7 +893,7 @@ BOOL CTCredentialHandleCreate( CTSSLContextRef * sslContextRef )
     pSSPI = (PSecurityFunctionTable)TlsGetValue(dwTlsSecurityInterface); 
     if ((pSSPI == 0) && (GetLastError() != ERROR_SUCCESS))
 	{
-      printf("\nReqlSSLDecryptMessage::TlsGetValue dwTlsSecurityInterface error.  Using global Security Interface...\n");
+      fprintf(stderr, "\nReqlSSLDecryptMessage::TlsGetValue dwTlsSecurityInterface error.  Using global Security Interface...\n");
 	  pSSPI = g_pSSPI;
 	}
 	*/
@@ -894,12 +944,12 @@ BOOL CTCredentialHandleCreate( CTSSLContextRef * sslContextRef )
 	//allocate memory backing Credential pointer to pass to ACH
 	//caCertRef = (ReqlSecCertificateRef)malloc( sizeof(CredHandle) );
 
-	//printf("sizeof(ReqlSSLContextRef) = %d\n", sizeof(ReqlSSLContextRef)); 
-	//printf("sizeof(ReqlSSLContext) = %d\n", sizeof(ReqlSSLContext)); 
-	//printf("sizeof(CredHandle) = %d\n", sizeof(CredHandle)); 
-	//printf("sizeof(CtxtHandle) = %d\n", sizeof(CtxtHandle));
-	//printf("sizeof(SecBuffer) = %d\n", sizeof(SecBuffer)); 
-	//printf("sizeof(SecPkgContext_StreamSizes) = %d\n", sizeof(SecPkgContext_StreamSizes)); 
+	//fprintf(stderr, "sizeof(ReqlSSLContextRef) = %d\n", sizeof(ReqlSSLContextRef)); 
+	//fprintf(stderr, "sizeof(ReqlSSLContext) = %d\n", sizeof(ReqlSSLContext)); 
+	//fprintf(stderr, "sizeof(CredHandle) = %d\n", sizeof(CredHandle)); 
+	//fprintf(stderr, "sizeof(CtxtHandle) = %d\n", sizeof(CtxtHandle));
+	//fprintf(stderr, "sizeof(SecBuffer) = %d\n", sizeof(SecBuffer)); 
+	//fprintf(stderr, "sizeof(SecPkgContext_StreamSizes) = %d\n", sizeof(SecPkgContext_StreamSizes)); 
 
     // Create an SSPI credential.
 	//assert(g_pSSPI);
@@ -918,7 +968,7 @@ BOOL CTCredentialHandleCreate( CTSSLContextRef * sslContextRef )
 
 	//caCertRef = &hCreds;
     if(Status != SEC_E_OK) {
-		printf("**** Error 0x%x (%ld) (returned by AcquireCredentialsHandle\n", Status, Status);
+		fprintf(stderr, "**** Error 0x%x (%ld) (returned by AcquireCredentialsHandle\n", Status, Status);
 		//free(caCertRef);
 		//caCertRef = NULL;
 		return FALSE;
@@ -947,14 +997,14 @@ static void GetNewClientCredentials(CredHandle *phCreds, CtxtHandle *phContext)
 	pSSPI = (PSecurityFunctionTable)TlsGetValue(dwTlsSecurityInterface);
 	if ((pSSPI == 0) && (GetLastError() != ERROR_SUCCESS))
 	{
-		printf("\nReqlSSLDecryptMessage::TlsGetValue dwTlsSecurityInterface error.  Using global Security Interface...\n");
+		fprintf(stderr, "\nReqlSSLDecryptMessage::TlsGetValue dwTlsSecurityInterface error.  Using global Security Interface...\n");
 		pSSPI = g_pSSPI;
 	}
 
 
 	// Read list of trusted issuers from schannel.
 	Status = pSSPI->QueryContextAttributes(phContext, SECPKG_ATTR_ISSUER_LIST_EX, (PVOID)&IssuerListInfo);
-	if (Status != SEC_E_OK) { printf("Error 0x%x querying issuer list info\n", Status); return; }
+	if (Status != SEC_E_OK) { fprintf(stderr, "Error 0x%x querying issuer list info\n", Status); return; }
 
 	// Enumerate the client certificates.
 	ZeroMemory(&FindByIssuerPara, sizeof(CERT_CHAIN_FIND_BY_ISSUER_PARA));
@@ -975,9 +1025,9 @@ static void GetNewClientCredentials(CredHandle *phCreds, CtxtHandle *phContext)
 			CERT_CHAIN_FIND_BY_ISSUER,
 			&FindByIssuerPara,
 			pChainContext);
-		if (pChainContext == NULL) { printf("Error 0x%x finding cert chain\n", GetLastError()); break; }
+		if (pChainContext == NULL) { fprintf(stderr, "Error 0x%x finding cert chain\n", GetLastError()); break; }
 
-		printf("\ncertificate chain found\n");
+		fprintf(stderr, "\ncertificate chain found\n");
 
 		// Get pointer to leaf certificate context.
 		pCertContext = pChainContext->rgpChain[0]->rgpElement[0]->pCertContext;
@@ -997,9 +1047,9 @@ static void GetNewClientCredentials(CredHandle *phCreds, CtxtHandle *phContext)
 			&hCreds,                // (out) Cred Handle
 			NULL);            // (out) Lifetime (optional)
 
-		if (Status != SEC_E_OK) { printf("**** Error 0x%x returned by AcquireCredentialsHandle\n", Status); continue; }
+		if (Status != SEC_E_OK) { fprintf(stderr, "**** Error 0x%x returned by AcquireCredentialsHandle\n", Status); continue; }
 
-		printf("\nnew schannel credential created\n");
+		fprintf(stderr, "\nnew schannel credential created\n");
 
 		pSSPI->FreeCredentialsHandle(phCreds); // Destroy the old credentials.
 
@@ -1036,29 +1086,29 @@ DWORD VerifyServerCertificate(PCCERT_CONTEXT pServerCert, char* pszServerName, D
 	//memset(&PolicyStatus, 0 , sizeof(CERT_CHAIN_POLICY_STATUS));
 	//memset(&ChainPara, 0 , sizeof(CERT_CHAIN_PARA));
 
-	printf("VerifyServerCertificate::Hello\n");
+	fprintf(stderr, "VerifyServerCertificate::Hello\n");
 	if (pServerCert == NULL)
 	{
-		Status = SEC_E_WRONG_PRINCIPAL;   printf("VerifyServerCertificate::SEC_E_INSUFFICIENT_MEMORY 1\n"); goto cleanup;
+		Status = SEC_E_WRONG_PRINCIPAL;   fprintf(stderr, "VerifyServerCertificate::SEC_E_INSUFFICIENT_MEMORY 1\n"); goto cleanup;
 	}
 
 	// Convert server name to unicode.
 	if (pszServerName == NULL || strlen(pszServerName) == 0)
 	{
-		Status = SEC_E_WRONG_PRINCIPAL; printf("VerifyServerCertificate::SEC_E_INSUFFICIENT_MEMORY 2\n");  goto cleanup;
+		Status = SEC_E_WRONG_PRINCIPAL; fprintf(stderr, "VerifyServerCertificate::SEC_E_INSUFFICIENT_MEMORY 2\n");  goto cleanup;
 	}
 
 	cchServerName = MultiByteToWideChar(CP_ACP, 0, pszServerName, -1, NULL, 0);
 	pwszServerName = (PWSTR)LocalAlloc(LMEM_FIXED, cchServerName * sizeof(WCHAR));
 	if (pwszServerName == NULL)
 	{
-		Status = SEC_E_INSUFFICIENT_MEMORY; printf("VerifyServerCertificate::SEC_E_INSUFFICIENT_MEMORY\n"); goto cleanup;
+		Status = SEC_E_INSUFFICIENT_MEMORY; fprintf(stderr, "VerifyServerCertificate::SEC_E_INSUFFICIENT_MEMORY\n"); goto cleanup;
 	}
 
 	cchServerName = MultiByteToWideChar(CP_ACP, 0, pszServerName, -1, pwszServerName, cchServerName);
 	if (cchServerName == 0)
 	{
-		Status = SEC_E_WRONG_PRINCIPAL; printf("VerifyServerCertificate::SEC_E_WRONG_PRINCIPAL\n"); goto cleanup;
+		Status = SEC_E_WRONG_PRINCIPAL; fprintf(stderr, "VerifyServerCertificate::SEC_E_WRONG_PRINCIPAL\n"); goto cleanup;
 	}
 
 
@@ -1069,7 +1119,7 @@ DWORD VerifyServerCertificate(PCCERT_CONTEXT pServerCert, char* pszServerName, D
 	ChainPara.RequestedUsage.Usage.cUsageIdentifier = cUsages;
 	ChainPara.RequestedUsage.Usage.rgpszUsageIdentifier = rgszUsages;
 
-	printf("Before CertGetCertificateChain\n");
+	fprintf(stderr, "Before CertGetCertificateChain\n");
 	if (!CertGetCertificateChain(NULL,
 		pServerCert,
 		NULL,
@@ -1080,10 +1130,10 @@ DWORD VerifyServerCertificate(PCCERT_CONTEXT pServerCert, char* pszServerName, D
 		&pChainContext))
 	{
 		Status = GetLastError();
-		printf("Error 0x%x returned by CertGetCertificateChain!\n", Status);
+		fprintf(stderr, "Error 0x%x returned by CertGetCertificateChain!\n", Status);
 		goto cleanup;
 	}
-	printf("After CertGetCertificateChain\n");
+	fprintf(stderr, "After CertGetCertificateChain\n");
 
 
 	// Validate certificate chain.
@@ -1106,18 +1156,18 @@ DWORD VerifyServerCertificate(PCCERT_CONTEXT pServerCert, char* pszServerName, D
 		&PolicyStatus))
 	{
 		Status = GetLastError();
-		printf("Error 0x%x returned by CertVerifyCertificateChainPolicy!\n", Status);
+		fprintf(stderr, "Error 0x%x returned by CertVerifyCertificateChainPolicy!\n", Status);
 		goto cleanup;
 	}
 
 	if (PolicyStatus.dwError)
 	{
-		printf("VerifyServerCertificate::Policy Status Error\n");
+		fprintf(stderr, "VerifyServerCertificate::Policy Status Error\n");
 		Status = PolicyStatus.dwError;
 		DisplayWinVerifyTrustError(Status);
 		goto cleanup;
 	}
-	printf("VerifyServerCertificate::OK\n");
+	fprintf(stderr, "VerifyServerCertificate::OK\n");
 	Status = SEC_E_OK;
 
 
@@ -1168,15 +1218,15 @@ void CTSSLInit(void)
 		(const unsigned char *)pers,
 		strlen(pers) ) ) != 0 )
 	{
-		Reql_printf("ReqlSSLInit::mbedtls_ctr_drbg_seed failed with return %d\n", ret);
+		Reql_fprintf(stderr, "ReqlSSLInit::mbedtls_ctr_drbg_seed failed with return %d\n", ret);
 		return;
 	}
 */
 #elif defined(_WIN32)
 	//Load
     //if( !LoadSecurityLibrary() )
-	//{ printf("Error initializing the security library\n"); }//goto cleanup; } //
-	//printf("----- SSPI Initialized\n");
+	//{ fprintf(stderr, "Error initializing the security library\n"); }//goto cleanup; } //
+	//fprintf(stderr, "----- SSPI Initialized\n");
 #endif
 
 }
@@ -1239,7 +1289,7 @@ void CTSSLContextDestroy(CTSSLContextRef sslContextRef)
 		pSSPI = (PSecurityFunctionTable)TlsGetValue(dwTlsSecurityInterface);
 		if ((pSSPI == 0) && (GetLastError() != ERROR_SUCCESS))
 		{
-		  printf("\nReqlSSLDecryptMessage::TlsGetValue dwTlsSecurityInterface error.  Using global Security Interface...\n");
+		  fprintf(stderr, "\nReqlSSLDecryptMessage::TlsGetValue dwTlsSecurityInterface error.  Using global Security Interface...\n");
 		  pSSPI = g_pSSPI;
 		}
 		*/
@@ -1281,13 +1331,13 @@ CTSecCertificateRef CTSSLCertificate( const char * caCertPath )
 	//ret = mbedtls_x509_crt_parse_file(caCert, caCertPath);
 	//if (ret < 0)
 	//{
-	//	Reql_printf("ReqlSSLCertificate::mbedtls_x509_crt_parse_file failed and returned %d (pathsize = %d)\n)", ret, (int)strlen(caCertPath));
+	//	Reql_fprintf(stderr, "ReqlSSLCertificate::mbedtls_x509_crt_parse_file failed and returned %d (pathsize = %d)\n)", ret, (int)strlen(caCertPath));
 
 		//then try loading as a cert buffer
 		ret = mbedtls_x509_crt_parse(caCert, (const unsigned char*)caCertPath, strlen(caCertPath)+1);
 		if (ret < 0)
 		{
-			Reql_printf("ReqlSSLCertificate::mbedtls_x509_crt_parse failed and returned %d (buffer size = %d)\n)", ret, (int)strlen(caCertPath)+1);
+			Reql_fprintf(stderr, "ReqlSSLCertificate::mbedtls_x509_crt_parse failed and returned %d (buffer size = %d)\n)", ret, (int)strlen(caCertPath)+1);
 			free(caCert);
 			return NULL;
 		}
@@ -1306,12 +1356,12 @@ CTSecCertificateRef CTSSLCertificate( const char * caCertPath )
     filebuffer = (char*)cr_file_map_to_buffer(&(filebuffer), filesize, PROT_READ,  MAP_SHARED | MAP_NORESERVE, fileDescriptor, 0);
     
     if (madvise(filebuffer, (size_t)filesize, MADV_SEQUENTIAL | MADV_WILLNEED ) == -1) {
-        printf("\nread madvise failed\n");
+        fprintf(stderr, "\nread madvise failed\n");
     }
     
     //7.3 close file after mapping, we don't need the fd anymore (remember to unmap the filebuffer when finished with it)
     cr_file_close(fileDescriptor);
-    //printf("\nFile Size =  %llu bytes\n", filesize);
+    //fprintf(stderr, "\nFile Size =  %llu bytes\n", filesize);
     
     //7.4  Create a CFData object from the mmapped file buffer
     CFDataRef caData = CFDataCreateWithBytesNoCopy( kCFAllocatorDefault, (UInt8*)filebuffer, filesize, kCFAllocatorNull);
@@ -1358,7 +1408,7 @@ static OSStatus ReqlSaveCertToKeychain( SecCertificateRef cert )
     {
         if( status != errSecItemNotFound )
         {
-            printf("SecItemCopyMatching failed with error: %d\n", status);
+            fprintf(stderr, "SecItemCopyMatching failed with error: %d\n", status);
             return status;
         }
     }
@@ -1370,12 +1420,12 @@ static OSStatus ReqlSaveCertToKeychain( SecCertificateRef cert )
         //Delete SecurityCertificateRef matching query from keychain
         if( (status = SecItemDelete( certCreateQuery )) != errSecSuccess )
         {
-            printf("SecItemDelete failed with error:  %d\n", status);
+            fprintf(stderr, "SecItemDelete failed with error:  %d\n", status);
             return status;
         }
         else
         {
-            printf("SecItemDelete:  Success\n");
+            fprintf(stderr, "SecItemDelete:  Success\n");
         }
         
         //release, we are about to use this pointer for an allocated copy again
@@ -1390,12 +1440,12 @@ static OSStatus ReqlSaveCertToKeychain( SecCertificateRef cert )
         if( status == errSecDuplicateItem)
         {
             //by design we should not arrive here unless our calls to delete above failed
-            printf("SecItemAdd:  Duplicate KeyChain Item\n");
+            fprintf(stderr, "SecItemAdd:  Duplicate KeyChain Item\n");
             return -1;
         }
         else
         {
-            printf("SecItemAdd failed with error:  %d", status);
+            fprintf(stderr, "SecItemAdd failed with error:  %d", status);
             return -1;
         }
     }
@@ -1425,7 +1475,7 @@ int mbedWriteToSocket(void *ctx, const unsigned char *buf, size_t len) {
 
 
 	assert(fd >= 0);
-	printf("fd = %d", fd);
+	fprintf(stderr, "fd = %d", fd);
 	if (fd < 0)
 		return(MBEDTLS_ERR_NET_INVALID_CONTEXT);
 
@@ -1477,7 +1527,7 @@ static int mbedReadFromSocket(void *ctx, unsigned char *buf, size_t len)
 	
 	int sockfd = (CTSocket)ctx;//((mbedtls_net_context *)ctx)->fd;
 
-	printf("**** mbedReadFromSocket::bytesRequested = %d\n", (int)bytesRequested);
+	fprintf(stderr, "**** mbedReadFromSocket::bytesRequested = %d\n", (int)bytesRequested);
 
 	assert(sockfd >= 0);
 	if (sockfd < 0)
@@ -1491,7 +1541,7 @@ static int mbedReadFromSocket(void *ctx, unsigned char *buf, size_t len)
 	{
 		if( WSAGetLastError() != WSA_IO_PENDING )
 		{
-			printf( "****mbedReadFromSocket::WSARecv failed with error %d \n",  WSAGetLastError() );	
+			fprintf(stderr,  "****mbedReadFromSocket::WSARecv failed with error %d \n",  WSAGetLastError() );	
 		} 
 		
 		//forward the winsock system error to the client
@@ -1500,7 +1550,7 @@ static int mbedReadFromSocket(void *ctx, unsigned char *buf, size_t len)
 
 	if( status == 0 )
 	{
-		printf("**** mbedReadFromSocket::WSARecv return numBytesRecv = %d\n", (int)numBytesRecv);
+		fprintf(stderr, "**** mbedReadFromSocket::WSARecv return numBytesRecv = %d\n", (int)numBytesRecv);
 		return numBytesRecv;
 	}
 #else
@@ -1519,13 +1569,13 @@ static int mbedReadFromSocket(void *ctx, unsigned char *buf, size_t len)
 	}
 	else */if (0 == status) {
 		//*dataLength = 0;
-				printf("**** mbedReadFromSocket::Status = 0 (%d)\n", WSAGetLastError());
+				fprintf(stderr, "**** mbedReadFromSocket::Status = 0 (%d)\n", WSAGetLastError());
 
 		return WSAEDISCON;// errSSLClosedGraceful;
 	}
 	else if (status  == SOCKET_ERROR)
 	{
-		printf("**** mbedReadFromSocket::Error %d reading data from server\n", WSAGetLastError());
+		fprintf(stderr, "**** mbedReadFromSocket::Error %d reading data from server\n", WSAGetLastError());
 		if (WSAGetLastError() == WSAEWOULDBLOCK)
 			return MBEDTLS_ERR_SSL_WANT_READ;
 
@@ -1543,13 +1593,13 @@ static int mbedReadFromSocket(void *ctx, unsigned char *buf, size_t len)
 		return(MBEDTLS_ERR_NET_RECV_FAILED);
 	}
 
-	printf("**** mbedReadFromSocket::return numBytesRecv = %d\n", (int)status);
+	fprintf(stderr, "**** mbedReadFromSocket::return numBytesRecv = %d\n", (int)status);
 	return (int)status;
 }
 
 /*
 void onError(TCPSocket *s, int error) {
-	printf("MBED: Socket Error: %d\r\n", error);
+	fprintf(stderr, "MBED: Socket Error: %d\r\n", error);
 	s->close();
 	_error = true;
 }
@@ -1558,10 +1608,10 @@ void onError(TCPSocket *s, int error) {
 #elif defined(__APPLE__)
 OSStatus readFromSocket(SSLConnectionRef connection, void *data, size_t *dataLength) {
 
-	//printf("readFromSocket\n");
+	//fprintf(stderr, "readFromSocket\n");
 	//mach_port_t machTID = pthread_mach_thread_np(pthread_self());
-	//printf("readFromSocket current thread: %x", machTID);
-	//printf("readFromSocket (%d bytes): \n\n%.*s\n", *dataLength, *dataLength, (char*)data );
+	//fprintf(stderr, "readFromSocket current thread: %x", machTID);
+	//fprintf(stderr, "readFromSocket (%d bytes): \n\n%.*s\n", *dataLength, *dataLength, (char*)data );
 
 	int sockfd = (int)connection;
 	//kevent kev;
@@ -1579,7 +1629,7 @@ OSStatus readFromSocket(SSLConnectionRef connection, void *data, size_t *dataLen
 	aiocb.aio_nbytes = *dataLength;
 	aiocb.aio_lio_opcode = LIO_READ;
 	if (aio_read(&aiocb) == -1) {
-		printf(" Error at aio_read(): %s\n",strerror(errno));
+		fprintf(stderr, " Error at aio_read(): %s\n",strerror(errno));
 		return errSSLClosedAbort;
 
 	}
@@ -1592,16 +1642,16 @@ OSStatus readFromSocket(SSLConnectionRef connection, void *data, size_t *dataLen
 	err = aio_error(&aiocb);
 	status = aio_return(&aiocb);
 	if (err != 0) {
-		printf(" Error at aio_error() : %s\n", strerror (err));
+		fprintf(stderr, " Error at aio_error() : %s\n", strerror (err));
 		return errSSLClosedAbort;
 
 	}
 	if (status != 1024) {
-		printf(" Error at aio_return()\n");
+		fprintf(stderr, " Error at aio_return()\n");
 		return errSSLClosedAbort;
 	}
 	// check it //
-	printf("aio_buf = \n\n%.*s\n", status, buf);
+	fprintf(stderr, "aio_buf = \n\n%.*s\n", status, buf);
 	*/
 	if (status > 0) {
 		*dataLength = status;
@@ -1631,21 +1681,21 @@ OSStatus readFromSocket(SSLConnectionRef connection, void *data, size_t *dataLen
 }
 
 OSStatus writeToSocket(SSLConnectionRef connection, const void *data, size_t *dataLength) {
-	//printf("writeToSocket\n");
+	//fprintf(stderr, "writeToSocket\n");
 
 	if (!data || *dataLength < 1)
 		return 0;
 
 
-	//printf("writeToSocket (%d bytes): \n\n%.*s\n", *dataLength, *dataLength, (char*)data );
+	//fprintf(stderr, "writeToSocket (%d bytes): \n\n%.*s\n", *dataLength, *dataLength, (char*)data );
 
 	int sockfd = (int)connection;
 	size_t bytesToWrite = *dataLength;
 	ssize_t status = write(sockfd, data, bytesToWrite);
-	//printf("bytes written  = %ld\n", status);
+	//fprintf(stderr, "bytes written  = %ld\n", status);
 	if (status < 1)
 	{
-		printf("errno = %d\n", errno);
+		fprintf(stderr, "errno = %d\n", errno);
 		return errno;
 	}
 	if (status > 0) {
@@ -1681,7 +1731,7 @@ int CTWolfSSLRecv(WOLFSSL* ssl, char* buff, int sz, void* ctx)
 	int recvd;
 	unsigned long remainingBytes;
 	unsigned long recvdBytes;
-	//printf("CTWolfSSLRecv Callback: attempting to recv %d bytes on socket (%d)...\n", sz, sockfd);
+	//fprintf(stderr, "CTWolfSSLRecv Callback: attempting to recv %d bytes on socket (%d)...\n", sz, sockfd);
 
 	WSABUF wsaBuf = { sz, buff };
 	DWORD flags = 0;
@@ -1698,7 +1748,7 @@ int CTWolfSSLRecv(WOLFSSL* ssl, char* buff, int sz, void* ctx)
 		}
 		else //copy bytes from CoreTransport to WolfSSL for decryption
 		{
-			//printf("CTWolfSSLRecv Callback: received %d bytes from CoreTransport\n", sz);
+			//fprintf(stderr, "CTWolfSSLRecv Callback: received %d bytes from CoreTransport\n", sz);
 			memcpy(buff, transient->buffer + transient->totalBytesProcessed, sz);
 			transient->totalBytesProcessed += sz;
 			transient->bytesToDecrypt -= sz;
@@ -1712,10 +1762,10 @@ int CTWolfSSLRecv(WOLFSSL* ssl, char* buff, int sz, void* ctx)
 		//DWORD numBytes;
 		//BOOL ok = GetOverlappedResult((HANDLE)sockfd, &ol, &numBytes, TRUE);
 		//if (ok)
-		//	printf("WSARecv succeeded\n");
+		//	fprintf(stderr, "WSARecv succeeded\n");
 
 		//error encountered. Be responsible and report it in wolfSSL terms
-		fprintf(stderr, "IO RECEIVE ERROR: ");
+		ffprintf(stderr, stderr, "IO RECEIVE ERROR: ");
 
 		int ret = WSAGetLastError();
 #ifdef _WIN32
@@ -1728,46 +1778,46 @@ int CTWolfSSLRecv(WOLFSSL* ssl, char* buff, int sz, void* ctx)
 #endif
 		case EWOULDBLOCK:
 			if (!wolfSSL_dtls(ssl) || wolfSSL_get_using_nonblock(ssl)) {
-				fprintf(stderr, "would block\n");
+				ffprintf(stderr, stderr, "would block\n");
 				return WOLFSSL_CBIO_ERR_WANT_READ;
 			}
 			else {
-				fprintf(stderr, "socket timeout\n");
+				ffprintf(stderr, stderr, "socket timeout\n");
 				return WOLFSSL_CBIO_ERR_TIMEOUT;
 			}
 		case WSAEWOULDBLOCK:
 			assert(1 == 0);
 		case ECONNRESET:
-			fprintf(stderr, "connection reset\n");
+			ffprintf(stderr, stderr, "connection reset\n");
 			return WOLFSSL_CBIO_ERR_CONN_RST;
 		case EINTR:
-			fprintf(stderr, "socket interrupted\n");
+			ffprintf(stderr, stderr, "socket interrupted\n");
 			return WOLFSSL_CBIO_ERR_ISR;
 		case ECONNREFUSED:
-			fprintf(stderr, "connection refused\n");
+			ffprintf(stderr, stderr, "connection refused\n");
 			return WOLFSSL_CBIO_ERR_WANT_READ;
 		case ECONNABORTED:
-			fprintf(stderr, "connection aborted\n");
+			ffprintf(stderr, stderr, "connection aborted\n");
 			return WOLFSSL_CBIO_ERR_CONN_CLOSE;
 		default:
-			fprintf(stderr, "general error\n");
+			ffprintf(stderr, stderr, "general error\n");
 			return WOLFSSL_CBIO_ERR_GENERAL;
 		}
 	}
 	else if (recvd == 0) {
-		printf("Connection closed\n");
+		fprintf(stderr, "Connection closed\n");
 		return WOLFSSL_CBIO_ERR_CONN_CLOSE;
 	}
 
 	// successful receive
-	printf("CTWolfSSLRecv: received %d bytes from %d\n", sz, transient->socketfd);
+	fprintf(stderr, "CTWolfSSLRecv: received %d bytes from %d\n", sz, transient->socketfd);
 	return recvd;
 }
 
 
 char* WolfSSLFirstMessageHeaderLengthCallback(struct CTCursor* cursor, char* buffer, unsigned long length)
 {
-	printf("WolfSSLFirstMessageHeaderLengthCallback headerLengthCallback...\n\n");
+	fprintf(stderr, "WolfSSLFirstMessageHeaderLengthCallback headerLengthCallback...\n\n");
 
 	//the purpose of this function is to return the end of the header in the 
 	//connection's tcp stream to CoreTransport decrypt/recv thread
@@ -1785,7 +1835,7 @@ char* WolfSSLFirstMessageHeaderLengthCallback(struct CTCursor* cursor, char* buf
 
 void WolfSSLFirstMessageResponseCallback(CTError * err, CTCursor * cursor)
 {
-	printf("WolfSSLFirstMessageResponseCallback header:  \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
+	fprintf(stderr, "WolfSSLFirstMessageResponseCallback header:  \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
 
 	/*
 	int ret = 0;
@@ -1803,7 +1853,7 @@ void WolfSSLFirstMessageResponseCallback(CTError * err, CTCursor * cursor)
 		}
 
 		//ReqlSSLCertificateDestroy(&rootCertRef);
-		printf("CTSSLHandshake failed with status:  %d\n", ret);
+		fprintf(stderr, "CTSSLHandshake failed with status:  %d\n", ret);
 		err->id = CTSSLHandshakeError;
 		CTCloseSSLSocket(cursor->conn->sslContext, cursor->conn->socket);
 		cursor->conn->target->callback(err, cursor->conn);
@@ -1820,42 +1870,42 @@ int CTWolfSSLSend(WOLFSSL* ssl, char* buff, int sz, void* ctx)
 	CTSSLEncryptTransient* transient = (CTSSLEncryptTransient*)ctx;
 	int sent;
 
-	//printf("CTWolfSSLSend: attempting to send %d bytes...\n", sz);
+	//fprintf(stderr, "CTWolfSSLSend: attempting to send %d bytes...\n", sz);
 
 	//Send a buffer of bytes encrypted by WOLFSSL as a result of CoreTransport calling wolfssl_write
 	
 	if (sockfd > 0)//wolf_handshake_complete)
 	{
-		//printf("CTWolfSSLSend: sent %d encrypted message bytes on CoreTransport provided socket %d\n", sz, sockfd);
+		//fprintf(stderr, "CTWolfSSLSend: sent %d encrypted message bytes on CoreTransport provided socket %d\n", sz, sockfd);
 		sent = send(sockfd, buff, sz, 0);
 		if (sent != sz)
 		{
-			//fprintf(stderr, "IO SEND ERROR: ");
+			//ffprintf(stderr, stderr, "IO SEND ERROR: ");
 			switch (WSAGetLastError()) {
 #if EAGAIN != EWOULDBLOCK
 			case EAGAIN: // EAGAIN == EWOULDBLOCK on some systems, but not others
 #endif
 			case EWOULDBLOCK:
-				//fprintf(stderr, "would block\n");
+				//ffprintf(stderr, stderr, "would block\n");
 				return WOLFSSL_CBIO_ERR_WANT_WRITE;
 			case ECONNRESET:
-				//fprintf(stderr, "connection reset\n");
+				//ffprintf(stderr, stderr, "connection reset\n");
 				return WOLFSSL_CBIO_ERR_CONN_RST;
 			case EINTR:
-				//fprintf(stderr, "socket interrupted\n");
+				//ffprintf(stderr, stderr, "socket interrupted\n");
 				return WOLFSSL_CBIO_ERR_ISR;
 			case EPIPE:
-				//fprintf(stderr, "socket EPIPE\n");
+				//ffprintf(stderr, stderr, "socket EPIPE\n");
 				return WOLFSSL_CBIO_ERR_CONN_CLOSE;
 			default:
-				//fprintf(stderr, "general error\n");
+				//ffprintf(stderr, stderr, "general error\n");
 				return WOLFSSL_CBIO_ERR_GENERAL;
 			}
 
 		}
 
 		if (sent == 0) {
-			printf("Connection closed\n");
+			fprintf(stderr, "Connection closed\n");
 			return 0;
 		}
 
@@ -1881,38 +1931,38 @@ int CTWolfSSLSend(WOLFSSL* ssl, char* buff, int sz, void* ctx)
 		// error encountered. Be responsible and report it in wolfSSL terms 
 
 		
-		//fprintf(stderr, "IO SEND ERROR: ");
+		//ffprintf(stderr, stderr, "IO SEND ERROR: ");
 		switch (errno) {
 #if EAGAIN != EWOULDBLOCK
 		case EAGAIN: // EAGAIN == EWOULDBLOCK on some systems, but not others
 #endif
 		case EWOULDBLOCK:
-			//fprintf(stderr, "would block\n");
+			//ffprintf(stderr, stderr, "would block\n");
 			return WOLFSSL_CBIO_ERR_WANT_WRITE;
 		case ECONNRESET:
-			//fprintf(stderr, "connection reset\n");
+			//ffprintf(stderr, stderr, "connection reset\n");
 			return WOLFSSL_CBIO_ERR_CONN_RST;
 		case EINTR:
-			//fprintf(stderr, "socket interrupted\n");
+			//ffprintf(stderr, stderr, "socket interrupted\n");
 			return WOLFSSL_CBIO_ERR_ISR;
 		case EPIPE:
-			//fprintf(stderr, "socket EPIPE\n");
+			//ffprintf(stderr, stderr, "socket EPIPE\n");
 			return WOLFSSL_CBIO_ERR_CONN_CLOSE;
 		default:
-			//fprintf(stderr, "general error\n");
+			//ffprintf(stderr, stderr, "general error\n");
 			return WOLFSSL_CBIO_ERR_GENERAL;
 		}
 		
 	}
 	else if (sent == 0) {
-		printf("Connection closed\n");
+		fprintf(stderr, "Connection closed\n");
 		return 0;
 	}
 	*/
 
 	assert(1 == 0);
 	/* successful send */
-	//printf("CTWolfSSLSend: sent %d handshake bytes on WolfSSL provided socket %d\n", sz, transient->wolf_socket_fd);
+	//fprintf(stderr, "CTWolfSSLSend: sent %d handshake bytes on WolfSSL provided socket %d\n", sz, transient->wolf_socket_fd);
 	return sent;
 }
 
@@ -1931,7 +1981,7 @@ CTSSLStatus CTSSLDecryptMessage2(CTSSLContextRef sslContextRef, void* msg, unsig
 	//to determine when to do decryption without allowing wolfssl to read from socket after the handshake has finished
 	CTSSLDecryptTransient transient = { 0, *msgLength, 0, msg};
 
-	//printf("CTSSLDecryptMessage2::CoreTransport supplying (%lu) bytes to WolfSSL for decryption...\n", *msgLength);
+	//fprintf(stderr, "CTSSLDecryptMessage2::CoreTransport supplying (%lu) bytes to WolfSSL for decryption...\n", *msgLength);
 	
 	//Let WolfSSL Decrypt as many bytes from our encrypted input buffer ass possible in a single pass to wolfSSL_read
 	wolfSSL_SetIOReadCtx(sslContextRef->ctx, &transient);
@@ -1940,7 +1990,7 @@ CTSSLStatus CTSSLDecryptMessage2(CTSSLContextRef sslContextRef, void* msg, unsig
 	{		
 		err = wolfSSL_get_error(sslContextRef->ctx, 0);
 		wolfSSL_ERR_error_string(err, buffer);
-		//printf(stderr, "CTSSLDecryptMessage2: wolfSSL failed to read (%d): \n\n%s\n\n", wolfSSL_get_error(sslContextRef->ctx, 0), buffer);
+		//fprintf(stderr, stderr, "CTSSLDecryptMessage2: wolfSSL failed to read (%d): \n\n%s\n\n", wolfSSL_get_error(sslContextRef->ctx, 0), buffer);
 
 		//HANDLE INCOMPLETE MESSAGE: the buffer didn't have as many bytes as WolfSSL needed for decryption
 		if (err == WOLFSSL_ERROR_WANT_READ )
@@ -1987,7 +2037,7 @@ CTSSLStatus CTSSLDecryptMessage(CTSSLContextRef sslContextRef, void*msg, unsigne
 	pSSPI = (PSecurityFunctionTable)TlsGetValue(dwTlsSecurityInterface);
 	if ((pSSPI == 0) && (GetLastError() != ERROR_SUCCESS))
 	{
-	  printf("\nReqlSSLDecryptMessage::TlsGetValue dwTlsSecurityInterface error.  Using global Security Interface...\n");
+	  fprintf(stderr, "\nReqlSSLDecryptMessage::TlsGetValue dwTlsSecurityInterface error.  Using global Security Interface...\n");
 	  pSSPI = g_pSSPI;
 	}
 	*/
@@ -2034,7 +2084,7 @@ CTSSLStatus CTSSLDecryptMessage(CTSSLContextRef sslContextRef, void*msg, unsigne
 			//*msgLength = pExtraBuffer->cbBuffer;
 			*msgLength = 0;
 		//}
-		printf("**** DecryptMessage ");
+		fprintf(stderr, "**** DecryptMessage ");
 		DisplaySECError((DWORD)scRet);
 		return scRet;
 	}
@@ -2048,11 +2098,11 @@ CTSSLStatus CTSSLDecryptMessage(CTSSLContextRef sslContextRef, void*msg, unsigne
 		//totalDecryptedBytes += (size_t)length;
 		if (length) // check if last two chars are CR LF
 		{
-			buff = (PBYTE)pDataBuffer->pvBuffer; // printf( "n-2= %d, n-1= %d \n", buff[length-2], buff[length-1] );
+			buff = (PBYTE)pDataBuffer->pvBuffer; // fprintf(stderr,  "n-2= %d, n-1= %d \n", buff[length-2], buff[length-1] );
 			*msgLength += length;
-			printf("Decrypted data: %d bytes", length); PrintText(length, buff);
-			//if(fVerbose) { PrintHexDump(length, buff); printf("\n"); }
-			//if( buff[length-2] == 13 && buff[length-1] == 10 ) return CTSSLSuccess; // printf("Found CRLF\n");
+			fprintf(stderr, "Decrypted data: %d bytes", length); PrintText(length, buff);
+			//if(fVerbose) { PrintHexDump(length, buff); fprintf(stderr, "\n"); }
+			//if( buff[length-2] == 13 && buff[length-1] == 10 ) return CTSSLSuccess; // fprintf(stderr, "Found CRLF\n");
 			//return ReqlSSLSuccess;
 		}
 	}
@@ -2060,9 +2110,9 @@ CTSSLStatus CTSSLDecryptMessage(CTSSLContextRef sslContextRef, void*msg, unsigne
 	// Move any "extra" data to the input buffer.
 	if (pExtraBuffer)
 	{
-		printf("\nReqlSSLDecryptMessage::Handling Extra Buffer Data (%d bytes)!!!\n", pExtraBuffer->cbBuffer);
+		fprintf(stderr, "\nReqlSSLDecryptMessage::Handling Extra Buffer Data (%d bytes)!!!\n", pExtraBuffer->cbBuffer);
 		MoveMemory((char*)msg, pExtraBuffer->pvBuffer, pExtraBuffer->cbBuffer);
-		cbIoBuffer = pExtraBuffer->cbBuffer; // printf("cbIoBuffer= %d  \n", cbIoBuffer);
+		cbIoBuffer = pExtraBuffer->cbBuffer; // fprintf(stderr, "cbIoBuffer= %d  \n", cbIoBuffer);
 		scRet = CTSSLDecryptMessage(sslContextRef, msg, &(cbIoBuffer));
 
 			if (scRet != SEC_E_OK &&
@@ -2073,7 +2123,7 @@ CTSSLStatus CTSSLDecryptMessage(CTSSLContextRef sslContextRef, void*msg, unsigne
 			//if( scRet == SEC_E_INCOMPLETE_MESSAGE)
 			//	*msgLength = pExtraBuffer->cbBuffer;
 			
-			printf("**** DecryptMessage 2");
+			fprintf(stderr, "**** DecryptMessage 2");
 			DisplaySECError((DWORD)scRet);
 			return scRet;
 		}
@@ -2138,7 +2188,7 @@ CTSSLStatus CTSSLDecryptMessage2(CTSSLContextRef sslContextRef, void*msg, unsign
 #ifdef _DEBUGS
 	if (scRet != SEC_E_OK && scRet != SEC_I_RENEGOTIATE && scRet != SEC_I_CONTEXT_EXPIRED)
 	{
-		printf("**** DecryptMessage ");
+		fprintf(stderr, "**** DecryptMessage ");
 		DisplaySECError((DWORD)scRet);
 		//return scRet;
 	}
@@ -2179,7 +2229,7 @@ CTSSLStatus CTSSLDecryptMessage2(CTSSLContextRef sslContextRef, void*msg, unsign
 	if (scRet == SEC_E_INCOMPLETE_MESSAGE && Buffers[0].BufferType == SECBUFFER_MISSING)
 	{
 		//*extraBytes = Buffers[0].cbBuffer;
-		printf("CTSSLDecryptMessage2::SEC_E_INCOMPLETE_MESSAGE remaining bytes need to be read: %lu\n", Buffers[0].cbBuffer);
+		fprintf(stderr, "CTSSLDecryptMessage2::SEC_E_INCOMPLETE_MESSAGE remaining bytes need to be read: %lu\n", Buffers[0].cbBuffer);
 	}
 
 	//*extraBytes = (*extraBytes) * !hasMissing + Buffers[0].cbBuffer * hasMissing;
@@ -2207,7 +2257,7 @@ CTSSLStatus ReqlSSLDecryptMessageInSitu(CTSSLContextRef sslContextRef, void**msg
 	pSSPI = (PSecurityFunctionTable)TlsGetValue(dwTlsSecurityInterface);
 	if ((pSSPI == 0) && (GetLastError() != ERROR_SUCCESS))
 	{
-	  printf("\nReqlSSLDecryptMessage::TlsGetValue dwTlsSecurityInterface error.  Using global Security Interface...\n");
+	  fprintf(stderr, "\nReqlSSLDecryptMessage::TlsGetValue dwTlsSecurityInterface error.  Using global Security Interface...\n");
 	  pSSPI = g_pSSPI;
 	}
 	*/
@@ -2234,7 +2284,7 @@ CTSSLStatus ReqlSSLDecryptMessageInSitu(CTSSLContextRef sslContextRef, void**msg
 		scRet != SEC_I_RENEGOTIATE &&
 		scRet != SEC_I_CONTEXT_EXPIRED)
 	{
-		printf("**** DecryptMessage ");
+		fprintf(stderr, "**** DecryptMessage ");
 		DisplaySECError((DWORD)scRet);
 		return scRet;
 	}
@@ -2255,11 +2305,11 @@ CTSSLStatus ReqlSSLDecryptMessageInSitu(CTSSLContextRef sslContextRef, void**msg
 		//totalDecryptedBytes += (size_t)length;
 		if (length) // check if last two chars are CR LF
 		{
-			buff = (PBYTE)pDataBuffer->pvBuffer; // printf( "n-2= %d, n-1= %d \n", buff[length-2], buff[length-1] );
+			buff = (PBYTE)pDataBuffer->pvBuffer; // fprintf(stderr,  "n-2= %d, n-1= %d \n", buff[length-2], buff[length-1] );
 			*msgLength = length;
-			printf("Decrypted data: %d bytes", length); PrintText(length, buff);
-			//if(fVerbose) { PrintHexDump(length, buff); printf("\n"); }
-			if( buff[length-2] == 13 && buff[length-1] == 10 ) return CTSSLSuccess; // printf("Found CRLF\n");
+			fprintf(stderr, "Decrypted data: %d bytes", length); PrintText(length, buff);
+			//if(fVerbose) { PrintHexDump(length, buff); fprintf(stderr, "\n"); }
+			if( buff[length-2] == 13 && buff[length-1] == 10 ) return CTSSLSuccess; // fprintf(stderr, "Found CRLF\n");
 			//return ReqlSSLSuccess;
 		}
 	}
@@ -2267,11 +2317,11 @@ CTSSLStatus ReqlSSLDecryptMessageInSitu(CTSSLContextRef sslContextRef, void**msg
 	// Move any "extra" data to the input buffer.
 	if (pExtraBuffer)
 	{
-		printf("\nReqlSSLDecryptMessage::Handling Extra Buffer Data!!!\n");
+		fprintf(stderr, "\nReqlSSLDecryptMessage::Handling Extra Buffer Data!!!\n");
 		//Question:  Where does the pbBuffer memory live?  In the sslContext?
 		//			 And, secondly, why does copying it back to the front of the msg buffer work?
 		MoveMemory(*msg, pExtraBuffer->pvBuffer, pExtraBuffer->cbBuffer);
-		//cbIoBuffer = pExtraBuffer->cbBuffer; // printf("cbIoBuffer= %d  \n", cbIoBuffer);
+		//cbIoBuffer = pExtraBuffer->cbBuffer; // fprintf(stderr, "cbIoBuffer= %d  \n", cbIoBuffer);
 		return CTSSLDecryptMessage(sslContextRef, msg, &(pExtraBuffer->cbBuffer));
 	}
 	*msg = buff;
@@ -2305,8 +2355,8 @@ CTSSLStatus CTSSLEncryptMessage(CTSSLContextRef sslContextRef, void*msg, unsigne
 	//memset(pbMessage, 0, msgLength + bufSize );
 	//pbMessage = (PBYTE)((char*)msg + sslContextRef->Sizes.cbHeader); // Offset by "header size"
 	cbMessage = (DWORD)*msgLength;//(DWORD)strlen((char*)pbMessage);
-	//printf("Sending %d bytes of plaintext:\n", cbMessage); PrintText(cbMessage, (PBYTE)msg);
-	//if(fVerbose) { PrintHexDump(cbMessage, (PBYTE)msg); printf("\n"); }
+	//fprintf(stderr, "Sending %d bytes of plaintext:\n", cbMessage); PrintText(cbMessage, (PBYTE)msg);
+	//if(fVerbose) { PrintHexDump(cbMessage, (PBYTE)msg); fprintf(stderr, "\n"); }
 
 	//memcpy( pbMessage, msg, sslContextRef->Sizes.cbHeader);
 	//memcpy( pbMessage + sslContextRef->Sizes.cbHeader, msg, msgLength);
@@ -2341,7 +2391,7 @@ CTSSLStatus CTSSLEncryptMessage(CTSSLContextRef sslContextRef, void*msg, unsigne
 
 	scRet = EncryptMessage(&(sslContextRef->hCtxt), 0, &Message, 0); // must contain four SecBuffer structures.
 	*msgLength = Buffers[1].cbBuffer;
-	if (FAILED(scRet)) { printf("**** Error 0x%x returned by EncryptMessage\n", scRet); }
+	if (FAILED(scRet)) { fprintf(stderr, "**** Error 0x%x returned by EncryptMessage\n", scRet); }
 	return scRet;
 }
 
@@ -2354,7 +2404,7 @@ CTSSLStatus CTSSLEncryptMessage(CTSSLContextRef sslContextRef, void*msg, unsigne
 
 char* SSLSecondMessageHeaderLengthCallback(struct CTCursor* cursor, char* buffer, unsigned long length)
 {
-	printf("SSLSecondMessageHeaderLengthCallback headerLengthCallback...\n\n");
+	fprintf(stderr, "SSLSecondMessageHeaderLengthCallback headerLengthCallback...\n\n");
 
 	//the purpose of this function is to return the end of the header in the 
 	//connection's tcp stream to CoreTransport decrypt/recv thread
@@ -2371,7 +2421,7 @@ char* SSLSecondMessageHeaderLengthCallback(struct CTCursor* cursor, char* buffer
 
 void SSLSecondMessageResponseCallback(CTError* err, CTCursor* cursor)
 {
-	printf("SSLSecondMessageResponseCallback header:  \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
+	fprintf(stderr, "SSLSecondMessageResponseCallback header:  \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
 
 	int ret = 0;
 	if ((ret = CTSSLHandshakeProcessSecondResponse(cursor, cursor->conn->socket, cursor->conn->sslContext)) != noErr)
@@ -2389,21 +2439,22 @@ void SSLSecondMessageResponseCallback(CTError* err, CTCursor* cursor)
 			return CTSuccess;
 		}
 #endif
-		printf("SSLSecondMessageResponseCallback::CTSSLHandshakeProcessSecondResponse failed with status:  %d\n", ret);
+		fprintf(stderr, "SSLSecondMessageResponseCallback::CTSSLHandshakeProcessSecondResponse failed with status:  %d\n", ret);
 		err->id = CTSSLHandshakeError;
 		CTCloseSSLSocket(cursor->conn->sslContext, cursor->conn->socket);
 	}
 
 
-	if ((ret = CTVerifyServerCertificate(cursor->conn->sslContext, cursor->conn->target->host)) != noErr)
+	if ((ret = CTVerifyServerCertificate(cursor->conn->sslContext, cursor->conn->target->url.host)) != noErr)
 	{
 		//ReqlSSLCertificateDestroy(&rootCertRef);
-		printf("CTVerifyServerCertificate with status:  %d\n", ret);
+		fprintf(stderr, "CTVerifyServerCertificate with status:  %d\n", ret);
 		CTCloseSSLSocket(cursor->conn->sslContext, cursor->conn->socket);
 		return CTSSLHandshakeError;
 	}
 
 	cursor->conn->responseCount = 0;  //we incremented this for the handshake, it iscritical to reset this for the client before returning the connection
+	cursor->conn->queryCount = 0;
 	cursor->conn->target->callback(err, cursor->conn);
 }
 
@@ -2415,14 +2466,14 @@ void SSLSecondMessageQueryCallback(CTError* err, CTCursor* cursor)
 	char buffer[80];
 	CTClientError scRet;
 
-	printf("SSLSecondMessageQueryCallback header:  \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
+	fprintf(stderr, "SSLSecondMessageQueryCallback header:  \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
 
 #ifdef CTRANSPORT_WOLFSSL
 
 	CTSSLDecryptTransient dTransient = { 0, cursor->headerLength + cursor->contentLength, 0, cursor->file.buffer };
 	CTSSLEncryptTransient* eTransient = NULL;// { cursor->conn->socket, 0, NULL, 0 };
 
-	printf("SSLSecondMessageQueryCallback::CoreTransport supplying (%lu) handshake bytes to WolfSSL...\n", cursor->headerLength + cursor->contentLength);
+	fprintf(stderr, "SSLSecondMessageQueryCallback::CoreTransport supplying (%lu) handshake bytes to WolfSSL...\n", cursor->headerLength + cursor->contentLength);
 
 	//we are finished sending the first response, reset the send context for the second client message after the recv
 
@@ -2435,7 +2486,7 @@ void SSLSecondMessageQueryCallback(CTError* err, CTCursor* cursor)
 
 		wolfErr = wolfSSL_get_error(cursor->conn->sslContext->ctx, 0);
 		wolfSSL_ERR_error_string(wolfErr, buffer);
-		//fprintf(stderr, "SSLSecondMessageQueryCallback: wolfSSL_connect failed to send/read handshake data (%d): \n\n%s\n\n", wolfSSL_get_error(cursor->conn->sslContext->ctx, 0), buffer);
+		//ffprintf(stderr, stderr, "SSLSecondMessageQueryCallback: wolfSSL_connect failed to send/read handshake data (%d): \n\n%s\n\n", wolfSSL_get_error(cursor->conn->sslContext->ctx, 0), buffer);
 
 		//HANDLE INCOMPLETE MESSAGE: the buffer didn't have as many bytes as WolfSSL needed for decryption
 		if (wolfErr == WOLFSSL_ERROR_WANT_READ)
@@ -2477,7 +2528,7 @@ void SSLSecondMessageQueryCallback(CTError* err, CTCursor* cursor)
 		err = wolfSSL_get_error(sslContextRef->ctx, ret);
 		if (err != SSL_ERROR_WANT_READ && err != SSL_ERROR_WANT_WRITE)
 		{
-			fprintf(stderr, "ERROR: wolfSSL handshake failed!\n");
+			ffprintf(stderr, stderr, "ERROR: wolfSSL handshake failed!\n");
 		}
 		return err;
 		*/
@@ -2486,7 +2537,7 @@ void SSLSecondMessageQueryCallback(CTError* err, CTCursor* cursor)
 #elif defined(_WIN32)
 
 	BOOL    fVerbose = FALSE; // FALSE; // TRUE;
-	//if (fVerbose) { PrintHexDump(cbData, (PBYTE)(overlappedRequest->buf)); printf("\n"); }
+	//if (fVerbose) { PrintHexDump(cbData, (PBYTE)(overlappedRequest->buf)); fprintf(stderr, "\n"); }
 
 	//always free the handshake buffer
 	FreeContextBuffer((PVOID)cursor->overlappedResponse.buf);// overlappedRequest->buf);
@@ -2512,7 +2563,7 @@ void SSLSecondMessageQueryCallback(CTError* err, CTCursor* cursor)
 /*
 char* SSLFirstMessageHeaderLengthCallback(struct CTCursor* cursor, char* buffer, unsigned long length)
 {
-	printf("SSLFirstMessageResponseCallback headerLengthCallback...\n\n");
+	fprintf(stderr, "SSLFirstMessageResponseCallback headerLengthCallback...\n\n");
 
 	//the purpose of this function is to return the end of the header in the 
 	//connection's tcp stream to CoreTransport decrypt/recv thread
@@ -2528,12 +2579,12 @@ char* SSLFirstMessageHeaderLengthCallback(struct CTCursor* cursor, char* buffer,
 
 void SSLFirstMessageResponseCallback(CTError* err, CTCursor* cursor)
 {
-	printf("SSLFirstMessageResponseCallback header:  \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
+	fprintf(stderr, "SSLFirstMessageResponseCallback header:  \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
 	int ret = 0;
 	if ((ret = CTSSLHandshakeProcessFirstResponse(cursor, cursor->conn->socket, cursor->conn->sslContext)) != noErr)
 	{
 		//ReqlSSLCertificateDestroy(&rootCertRef);
-		printf("CTSSLHandshake with status:  %d\n", ret);
+		fprintf(stderr, "CTSSLHandshake with status:  %d\n", ret);
 		err->id = CTSSLHandshakeError;
 		CTCloseSSLSocket(cursor->conn->sslContext, cursor->conn->socket);
 		cursor->conn->target->callback(err, cursor->conn);
@@ -2566,15 +2617,15 @@ void CTSSLHandshakeSendFirstMessage(CTSocket socketfd, CTSSLContextRef sslContex
 		DWORD cbData = send(socketfd, (char*)firstMessageBuffer, firstMessageLen, 0);
 		if (cbData == SOCKET_ERROR || cbData == 0)
 		{
-			printf("**** Error %d sending data to server (1)\n", WSAGetLastError());
+			fprintf(stderr, "**** Error %d sending data to server (1)\n", WSAGetLastError());
 			FreeContextBuffer(firstMessageBuffer);
 			DeleteSecurityContext(&(sslContextRef->hCtxt));
 
 			free(sslContextRef);
 			return NULL;//SEC_E_INTERNAL_ERROR;
 		}
-		printf("%d bytes of handshake data sent\n", cbData);
-		if (fVerbose) { PrintHexDump(cbData, (PBYTE)(firstMessageBuffer)); printf("\n"); }
+		fprintf(stderr, "%d bytes of handshake data sent\n", cbData);
+		if (fVerbose) { PrintHexDump(cbData, (PBYTE)(firstMessageBuffer)); fprintf(stderr, "\n"); }
 		FreeContextBuffer(firstMessageBuffer); // Free output buffer.
 		firstMessageBuffer = NULL;
 	//}
@@ -2600,14 +2651,14 @@ CTSSLContextRef CTSSLContextCreate(CTSocket *socketfd, CTSecCertificateRef * cer
 	wolfSSL_Debugging_ON();
 	/* Create and initialize WOLFSSL_CTX */
 	if ((sslContextRef->conf = wolfSSL_CTX_new(wolfTLSv1_2_client_method())) == NULL) {
-		fprintf(stderr, "ERROR: failed to create WOLFSSL_CTX\n");
+		ffprintf(stderr, stderr, "ERROR: failed to create WOLFSSL_CTX\n");
 		assert(sslContextRef->conf);
 	}
 
 	//Load client certificates into WOLFSSL_CTX
 	if (certRef && strlen(certRef) > 0 && wolfSSL_CTX_load_verify_locations(sslContextRef->conf, certRef, NULL) != WOLFSSL_SUCCESS)
 	{
-		fprintf(stderr, "ERROR: failed to load %s, please check the file.\n", certRef);
+		ffprintf(stderr, stderr, "ERROR: failed to load %s, please check the file.\n", certRef);
 		assert(1 == 0);
 	}
 
@@ -2619,7 +2670,7 @@ CTSSLContextRef CTSSLContextCreate(CTSocket *socketfd, CTSecCertificateRef * cer
 
 	// Create a WOLFSSL object
 	if ((sslContextRef->ctx = wolfSSL_new(sslContextRef->conf)) == NULL) {
-		fprintf(stderr, "ERROR: failed to create WOLFSSL object\n");
+		ffprintf(stderr, stderr, "ERROR: failed to create WOLFSSL object\n");
 		assert(sslContextRef->ctx);
 	}
 
@@ -2629,7 +2680,7 @@ CTSSLContextRef CTSSLContextCreate(CTSocket *socketfd, CTSecCertificateRef * cer
 	/* make wolfSSL object nonblocking */
 	wolfSSL_set_using_nonblock(sslContextRef->ctx, 1);
 	/*
-	printf("creating new WOLFSSL BIO type to write and read with\n");
+	fprintf(stderr, "creating new WOLFSSL BIO type to write and read with\n");
 	if( (sslContextRef->bio = wolfSSL_BIO_new(wolfSSL_BIO_f_ssl())) == NULL)
 	{
 		assert(sslContextRef->bio);
@@ -2672,7 +2723,7 @@ CTSSLContextRef CTSSLContextCreate(CTSocket *socketfd, CTSecCertificateRef * cer
 		(const unsigned char *)pers,
 		strlen(pers))) != 0)
 	{
-		Reql_printf("ReqlSSLContextCreate::mbedtls_ctr_drbg_seed failed and returned %d\n\n", ret);
+		Reql_fprintf(stderr, "ReqlSSLContextCreate::mbedtls_ctr_drbg_seed failed and returned %d\n\n", ret);
 		free(sslContextRef);
 		return NULL;
 	}
@@ -2683,7 +2734,7 @@ CTSSLContextRef CTSSLContextCreate(CTSocket *socketfd, CTSecCertificateRef * cer
 		MBEDTLS_SSL_TRANSPORT_STREAM,
 		MBEDTLS_SSL_PRESET_DEFAULT)) != 0)
 	{
-		Reql_printf("ReqlSSLContextCreate::mbedtls_ssl_config_defaults failed and returned %d\n\n", ret);
+		Reql_fprintf(stderr, "ReqlSSLContextCreate::mbedtls_ssl_config_defaults failed and returned %d\n\n", ret);
 		free(sslContextRef);
 		return NULL;
 	}
@@ -2699,7 +2750,7 @@ CTSSLContextRef CTSSLContextCreate(CTSocket *socketfd, CTSecCertificateRef * cer
 
 	if ((ret = mbedtls_ssl_setup(&(sslContextRef->ctx), &(sslContextRef->conf))) != 0)
 	{
-		Reql_printf("ReqlSSLContextCreate::mbedtls_ssl_setup failed and returned %d\n\n", ret);
+		Reql_fprintf(stderr, "ReqlSSLContextCreate::mbedtls_ssl_setup failed and returned %d\n\n", ret);
 		free(sslContextRef);
 		return NULL;
 	}
@@ -2709,7 +2760,7 @@ CTSSLContextRef CTSSLContextCreate(CTSocket *socketfd, CTSecCertificateRef * cer
 
 	if ((ret = mbedtls_ssl_set_hostname(&(sslContextRef->ctx), serverName)) != 0)
 	{
-		Reql_printf("ReqlSSLContextCreate::mbedtls_ssl_set_hostname failed and returned %d\n\n", ret);
+		Reql_fprintf(stderr, "ReqlSSLContextCreate::mbedtls_ssl_set_hostname failed and returned %d\n\n", ret);
 		free(sslContextRef);
 		return NULL;
 	}
@@ -2722,7 +2773,7 @@ CTSSLContextRef CTSSLContextCreate(CTSocket *socketfd, CTSecCertificateRef * cer
 	{
 		if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE)
 		{
-			printf(" failed\n  ! mbedtls_ssl_handshake returned -0x%x\n\n", ret);
+			fprintf(stderr, " failed\n  ! mbedtls_ssl_handshake returned -0x%x\n\n", ret);
 			return -1;
 		}
 	}
@@ -2756,18 +2807,18 @@ CTSSLContextRef CTSSLContextCreate(CTSocket *socketfd, CTSecCertificateRef * cer
 		if (errOrBytesWritten != MBEDTLS_ERR_SSL_WANT_READ &&
 			errOrBytesWritten != MBEDTLS_ERR_SSL_WANT_WRITE) {
 
-			printf("ReqlSSLWrite::mbedtls_ssl_write = %d\n", errOrBytesWritten);
+			fprintf(stderr, "ReqlSSLWrite::mbedtls_ssl_write = %d\n", errOrBytesWritten);
 
 		}
 	}
-	printf("ReqlSSLWrite::erroOrBytesWritten = %d\n", errOrBytesWritten);
-	//printf("ReqlSSLWrite::erroOrBytesWritten = %d\n", errOrBytesWritten);
+	fprintf(stderr, "ReqlSSLWrite::erroOrBytesWritten = %d\n", errOrBytesWritten);
+	//fprintf(stderr, "ReqlSSLWrite::erroOrBytesWritten = %d\n", errOrBytesWritten);
 
 	system("pause");
 	*/
 
-	printf("Socket = %d\n", socketfd);
-	printf("sslContextRef = %llu\n", sslContextRef);
+	fprintf(stderr, "Socket = %d\n", socketfd);
+	fprintf(stderr, "sslContextRef = %llu\n", sslContextRef);
 
 	assert(sslContextRef == &(sslContextRef->ctx));
 	return sslContextRef;
@@ -2780,7 +2831,7 @@ CTSSLContextRef CTSSLContextCreate(CTSocket *socketfd, CTSecCertificateRef * cer
 	TimeStamp     tsExpiry = { 0 };
 	//PSecurityFunctionTable pSSPI = NULL;
 	//PCtxtHandle pCtxHandle = NULL;
-	dwSSPIFlags = ISC_REQ_CONFIDENTIALITY | ISC_REQ_STREAM | ISC_REQ_ALLOCATE_MEMORY;
+	dwSSPIFlags =  ISC_REQ_STREAM | ISC_REQ_ALLOCATE_MEMORY;
 	dwSSPIOutFlags = 0;
 
 	//  Initiate a ClientHello message and generate a token.
@@ -2797,7 +2848,7 @@ CTSSLContextRef CTSSLContextCreate(CTSocket *socketfd, CTSecCertificateRef * cer
 	pSSPI = (PSecurityFunctionTable)TlsGetValue(dwTlsSecurityInterface);
 	if ((pSSPI == 0) && (GetLastError() != ERROR_SUCCESS))
 	{
-	  printf("\nReqlSSLDecryptMessage::TlsGetValue dwTlsSecurityInterface error.  Using global Security Interface...\n");
+	  fprintf(stderr, "\nReqlSSLDecryptMessage::TlsGetValue dwTlsSecurityInterface error.  Using global Security Interface...\n");
 	  pSSPI = g_pSSPI;
 	}
 	*/
@@ -2805,7 +2856,7 @@ CTSSLContextRef CTSSLContextCreate(CTSocket *socketfd, CTSecCertificateRef * cer
 	//But on on WIN32 (since we are trying to recreate Apple behavior) we must allocate the pointer ourselves
 	if (!(sslContextRef = (CTSSLContextRef)malloc(sizeof(CTSSLContext))))
 	{
-		printf("ReqlSSLContextRef Memory allocation failed!");
+		fprintf(stderr, "ReqlSSLContextRef Memory allocation failed!");
 		return NULL;
 	}
 	memset(sslContextRef, 0, sizeof(CTSSLContext));
@@ -2816,7 +2867,7 @@ CTSSLContextRef CTSSLContextCreate(CTSocket *socketfd, CTSecCertificateRef * cer
 	if (!CTCredentialHandleCreate(&sslContextRef))
 	{
 		free(sslContextRef);
-		printf("ReqlCredentialHandleCreate failed!");
+		fprintf(stderr, "ReqlCredentialHandleCreate failed!");
 		return NULL;
 	}
 
@@ -2834,7 +2885,7 @@ CTSSLContextRef CTSSLContextCreate(CTSocket *socketfd, CTSecCertificateRef * cer
 		&dwSSPIOutFlags,
 		NULL);
 
-	if (ss != SEC_I_CONTINUE_NEEDED) { printf("**** Error 0x%x returned by InitializeSecurityContext (1)\n", ss); }
+	if (ss != SEC_I_CONTINUE_NEEDED) { fprintf(stderr, "**** Error 0x%x returned by InitializeSecurityContext (1)\n", ss); }
 
 	// Send response to server if there is one.
 	if (OutBuffers[0].cbBuffer != 0 && OutBuffers[0].pvBuffer != NULL)
@@ -2844,13 +2895,13 @@ CTSSLContextRef CTSSLContextCreate(CTSocket *socketfd, CTSecCertificateRef * cer
 	}
 	else
 	{
-		printf("OPutbuffers is NULL");
+		fprintf(stderr, "OPutbuffers is NULL");
 	}
 
 #elif defined(__APPLE__)
 	//1  Create Darwin Secure Transport SSL Context
 	if ((sslContextRef = SSLCreateContext(kCFAllocatorDefault, kSSLClientSide, kSSLStreamType)) == NULL) {
-		printf("SSLCreateContextkCFAllocatorDefault, kSSLClientSide, kSSLStreamType) failed with error:", errno);
+		fprintf(stderr, "SSLCreateContextkCFAllocatorDefault, kSSLClientSide, kSSLStreamType) failed with error:", errno);
 		ReqlCloseSSLSocket(sslContext, socketfd);
 		return NULL;
 	}
@@ -2858,7 +2909,7 @@ CTSSLContextRef CTSSLContextCreate(CTSocket *socketfd, CTSecCertificateRef * cer
 	//2  Set SSL Secure Transport Callback functions for reading and writing
 	if ((status = SSLSetIOFuncs(sslContextRef, readFromSocket, writeToSocket)) != noErr)
 	{
-		printf("SSLSetIOFuncs failed with err status %d", status);
+		fprintf(stderr, "SSLSetIOFuncs failed with err status %d", status);
 		ReqlCloseSSLSocket(sslContextRef, socketfd);
 		return NULL;
 	}
@@ -2866,7 +2917,7 @@ CTSSLContextRef CTSSLContextCreate(CTSocket *socketfd, CTSecCertificateRef * cer
 	//3  Set the socket file descriptor on the ssl context
 	if ((status = SSLSetConnection(sslContextRef, (SSLConnectionRef)(intptr_t)socketfd)) != noErr)
 	{
-		printf("SSLSetConnection failed with err status %d", status);
+		fprintf(stderr, "SSLSetConnection failed with err status %d", status);
 		ReqlCloseSSLSocket(sslContextRef, socketfd);
 		return NULL;
 	}
@@ -2874,7 +2925,7 @@ CTSSLContextRef CTSSLContextCreate(CTSocket *socketfd, CTSecCertificateRef * cer
 	//4  Set minimum TLS version 1.2
 	if ((status = SSLSetProtocolVersionMin(sslContextRef, kTLSProtocol12)) != noErr)
 	{
-		printf("SSLSetProtocolVersionMin(sslContext, kTLSProtocol12) failed with err status:  %d", status);
+		fprintf(stderr, "SSLSetProtocolVersionMin(sslContext, kTLSProtocol12) failed with err status:  %d", status);
 		ReqlCloseSSLSocket(sslContext, socketfd);
 		return NULL;
 	}
@@ -2882,7 +2933,7 @@ CTSSLContextRef CTSSLContextCreate(CTSocket *socketfd, CTSecCertificateRef * cer
 	//5  Set options to custom control the SSL handshake procedure
 	if ((status = SSLSetSessionOption(sslContextRef, kSSLSessionOptionBreakOnServerAuth, true)) != noErr)
 	{
-		printf("SSLSetSessionOption(sslContext, kSSLSessionOptionBreakOnServerAuth, true) failed with err status %d", status);
+		fprintf(stderr, "SSLSetSessionOption(sslContext, kSSLSessionOptionBreakOnServerAuth, true) failed with err status %d", status);
 		ReqlCloseSSLSocket(sslContextRef, socketfd);
 		return NULL;
 	}
@@ -2891,7 +2942,7 @@ CTSSLContextRef CTSSLContextCreate(CTSocket *socketfd, CTSecCertificateRef * cer
 	//which means our server is not requesting client cert
 	if ((status = SSLSetSessionOption(sslContextRef, kSSLSessionOptionBreakOnCertRequested, true)) != noErr)
 	{
-		printf("SSLSetSessionOption (kSSLSessionOptionBreakOnCertRequested) failed with err status %d", status);
+		fprintf(stderr, "SSLSetSessionOption (kSSLSessionOptionBreakOnCertRequested) failed with err status %d", status);
 		ReqlCloseSSLSocket(sslContextRef, socketfd);
 		return NULL;
 	}
@@ -2913,7 +2964,7 @@ int CTSSLHandshakeProcessFirstResponse(CTCursor * cursor, CTSocket socketfd, CTS
 	CTSSLDecryptTransient dTransient = { 0, cursor->headerLength + cursor->contentLength, 0, cursor->file.buffer};
 	CTSSLEncryptTransient* eTransient = NULL;// { socketfd, socketfd, NULL, 0 };
 
-	printf("CTSSLHandshakeProcessFirstResponse::CoreTransport supplying (%lu) handshake bytes to WolfSSL...\n", cursor->headerLength + cursor->contentLength);
+	fprintf(stderr, "CTSSLHandshakeProcessFirstResponse::CoreTransport supplying (%lu) handshake bytes to WolfSSL...\n", cursor->headerLength + cursor->contentLength);
 
 	//we are finished sending the first response, reset the send context for the second client message after the recv
 	
@@ -2927,7 +2978,7 @@ int CTSSLHandshakeProcessFirstResponse(CTCursor * cursor, CTSocket socketfd, CTS
 
 		err = wolfSSL_get_error(sslContextRef->ctx, 0);
 		wolfSSL_ERR_error_string(err, buffer);
-		fprintf(stderr, "CTSSLHandshakeProcessFirstResponse: wolfSSL_connect failed to read (%d): \n\n%s\n\n", wolfSSL_get_error(sslContextRef->ctx, 0), buffer);
+		ffprintf(stderr, stderr, "CTSSLHandshakeProcessFirstResponse: wolfSSL_connect failed to read (%d): \n\n%s\n\n", wolfSSL_get_error(sslContextRef->ctx, 0), buffer);
 
 		//HANDLE INCOMPLETE MESSAGE: the buffer didn't have as many bytes as WolfSSL needed for decryption
 		if (err == WOLFSSL_ERROR_WANT_READ)
@@ -2982,12 +3033,12 @@ int CTSSLHandshakeProcessFirstResponse(CTCursor * cursor, CTSocket socketfd, CTS
 				//the async operation returned immediately
 				if (scRet == CTSuccess)
 				{
-					printf("CTSSLHandshakeProcessFirstResponse::CTAsyncRecv returned immediate with %lu bytes\n", NumBytesRemaining);
+					fprintf(stderr, "CTSSLHandshakeProcessFirstResponse::CTAsyncRecv returned immediate with %lu bytes\n", NumBytesRemaining);
 					//scRet = CTSSLDecryptMessage(overlappedResponse->conn->sslContext, overlappedResponse->wsaBuf.buf, &NumBytesRecv);
 				}
 				else //failure
 				{
-					printf("CTSSLHandshakeProcessFirstResponse::CTAsyncRecv failed with CTDriverError = %d\n", scRet);
+					fprintf(stderr, "CTSSLHandshakeProcessFirstResponse::CTAsyncRecv failed with CTDriverError = %d\n", scRet);
 					assert(1 == 0);
 				}
 			}
@@ -3015,7 +3066,7 @@ int CTSSLHandshakeProcessFirstResponse(CTCursor * cursor, CTSocket socketfd, CTS
 		err = wolfSSL_get_error(sslContextRef->ctx, ret);
 		if (err != SSL_ERROR_WANT_READ && err != SSL_ERROR_WANT_WRITE)
 		{
-			fprintf(stderr, "ERROR: wolfSSL handshake failed!\n");
+			ffprintf(stderr, stderr, "ERROR: wolfSSL handshake failed!\n");
 		}
 		return err;
 		*/
@@ -3024,11 +3075,11 @@ int CTSSLHandshakeProcessFirstResponse(CTCursor * cursor, CTSocket socketfd, CTS
 #elif defined( CTRANSPORT_USE_MBED_TLS )
 	while ((ret = mbedtls_ssl_handshake(&(sslContextRef->ctx))) != 0)
 	{
-		Reql_printf("%s", "CTSSLHandshake\n");
+		Reql_fprintf(stderr, "%s", "CTSSLHandshake\n");
 
 		if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE)
 		{
-			Reql_printf("CTSSLHandshake::mbedtls_ssl_handshake failed and returned %d\n\n", ret);
+			Reql_fprintf(stderr, "CTSSLHandshake::mbedtls_ssl_handshake failed and returned %d\n\n", ret);
 			return ret;
 		}
 	}
@@ -3048,7 +3099,7 @@ int CTSSLHandshakeProcessFirstResponse(CTCursor * cursor, CTSocket socketfd, CTS
 	pSSPI = (PSecurityFunctionTable)TlsGetValue(dwTlsSecurityInterface);
 	if ((pSSPI == 0) && (GetLastError() != ERROR_SUCCESS))
 	{
-	  printf("\nReqlSSLDecryptMessage::TlsGetValue dwTlsSecurityInterface error.  Using global Security Interface...\n");
+	  fprintf(stderr, "\nReqlSSLDecryptMessage::TlsGetValue dwTlsSecurityInterface error.  Using global Security Interface...\n");
 	  pSSPI = g_pSSPI;
 	}
 	*/
@@ -3060,14 +3111,14 @@ int CTSSLHandshakeProcessFirstResponse(CTCursor * cursor, CTSocket socketfd, CTS
 	//IoBuffer = (PUCHAR)LocalAlloc(LMEM_FIXED, IO_BUFFER_SIZE);
 	IoBuffer = cursor->file.buffer;
 
-	if (IoBuffer == NULL) { printf("**** Out of memory (1)\n"); return SEC_E_INTERNAL_ERROR; }
+	if (IoBuffer == NULL) { fprintf(stderr, "**** Out of memory (1)\n"); return SEC_E_INTERNAL_ERROR; }
 	cbIoBuffer = cursor->overlappedResponse.buf - cursor->file.buffer;// cursor->headerLength + cursor->contentLength;
 	fDoRead = 1;//fDoInitialRead;
 
 	// Loop until the handshake is finished or an error occurs.
 	scRet = SEC_I_CONTINUE_NEEDED;
 
-	printf(" CTSSLHandhsakeProcessFirstResponse:: recvd %d bytes of handshake data \n\n", cursor->overlappedResponse.buf - cursor->file.buffer);
+	fprintf(stderr, " CTSSLHandhsakeProcessFirstResponse:: recvd %d bytes of handshake data \n\n", cursor->overlappedResponse.buf - cursor->file.buffer);
 
 	while (scRet == SEC_I_CONTINUE_NEEDED ||
 		scRet == SEC_E_INCOMPLETE_MESSAGE ||
@@ -3081,18 +3132,18 @@ int CTSSLHandshakeProcessFirstResponse(CTCursor * cursor, CTSocket socketfd, CTS
 				cbData = recv(socketfd, (char*)IoBuffer + cbIoBuffer, IO_BUFFER_SIZE - cbIoBuffer, 0);
 				if (cbData == SOCKET_ERROR)
 				{
-					printf("**** Error %d reading data from server\n", WSAGetLastError());
+					fprintf(stderr, "**** Error %d reading data from server\n", WSAGetLastError());
 					scRet = SEC_E_INTERNAL_ERROR;
 					break;
 				}
 				else if (cbData == 0)
 				{
-					printf("**** Server unexpectedly disconnected\n");
+					fprintf(stderr, "**** Server unexpectedly disconnected\n");
 					scRet = SEC_E_INTERNAL_ERROR;
 					break;
 				}
-				printf("%d bytes of handshake data received\n", cbData);
-				if (fVerbose) { PrintHexDump(cbData, IoBuffer + cbIoBuffer); printf("\n"); }
+				fprintf(stderr, "%d bytes of handshake data received\n", cbData);
+				if (fVerbose) { PrintHexDump(cbData, IoBuffer + cbIoBuffer); fprintf(stderr, "\n"); }
 				cbIoBuffer += cbData;
 			}
 			else
@@ -3132,7 +3183,7 @@ int CTSSLHandshakeProcessFirstResponse(CTCursor * cursor, CTSocket socketfd, CTS
 		// Call InitializeSecurityContext.
 		scRet = InitializeSecurityContextA(&(cursor->conn->sslContext->hCred),
 			&(cursor->conn->sslContext->hCtxt),
-			(SEC_CHAR*)(cursor->conn->target->host),
+			(SEC_CHAR*)(cursor->conn->target->url.host),
 			dwSSPIFlags,
 			0,
 			SECURITY_NATIVE_DREP,
@@ -3153,7 +3204,7 @@ int CTSSLHandshakeProcessFirstResponse(CTCursor * cursor, CTSocket socketfd, CTS
 			FAILED(scRet) && (dwSSPIOutFlags & ISC_RET_EXTENDED_ERROR))
 		{
 			// Check for fatal error.
-			if (FAILED(scRet)) { printf("**** Error 0x%x returned by InitializeSecurityContext (2)\n", scRet); }
+			if (FAILED(scRet)) { fprintf(stderr, "**** Error 0x%x returned by InitializeSecurityContext (2)\n", scRet); }
 
 			assert((LONG)scRet != 2148074278);
 
@@ -3164,13 +3215,13 @@ int CTSSLHandshakeProcessFirstResponse(CTCursor * cursor, CTSocket socketfd, CTS
 				cbData = send(socketfd, (const char*)OutBuffers[0].pvBuffer, OutBuffers[0].cbBuffer, 0);
 				if (cbData == SOCKET_ERROR || cbData == 0)
 				{
-					printf("**** Error %d sending data to server (2)\n", WSAGetLastError());
+					fprintf(stderr, "**** Error %d sending data to server (2)\n", WSAGetLastError());
 					FreeContextBuffer(OutBuffers[0].pvBuffer);
 					DeleteSecurityContext(&(sslContextRef->hCtxt));
 					return SEC_E_INTERNAL_ERROR;
 				}
-				printf("%d bytes of handshake data sent\n", cbData);
-				if (fVerbose) { PrintHexDump(cbData, (PBYTE)OutBuffers[0].pvBuffer); printf("\n"); }
+				fprintf(stderr, "%d bytes of handshake data sent\n", cbData);
+				if (fVerbose) { PrintHexDump(cbData, (PBYTE)OutBuffers[0].pvBuffer); fprintf(stderr, "\n"); }
 
 				// Free output buffer.
 				FreeContextBuffer(OutBuffers[0].pvBuffer);
@@ -3197,7 +3248,7 @@ int CTSSLHandshakeProcessFirstResponse(CTCursor * cursor, CTSocket socketfd, CTS
 				return CTSuccess;
 				*/
 
-				//printf(" CTSSLHandhsakeProcessFirstResponse:: recvd %d bytes of handshake data \n\n", cursor->overlappedResponse.buf - cursor->file.buffer);
+				//fprintf(stderr, " CTSSLHandhsakeProcessFirstResponse:: recvd %d bytes of handshake data \n\n", cursor->overlappedResponse.buf - cursor->file.buffer);
 				unsigned long NumBytesRemaining = cbIoBuffer + ct_system_allocation_granularity();// 32768;   //request exactly the amount to complete the message NumBytesRemaining 
 												   //populated by CTSSLDecryptMessage2 above or request more if desired
 				CTOverlappedResponse* olResponse = &(cursor->overlappedResponse);
@@ -3206,12 +3257,12 @@ int CTSSLHandshakeProcessFirstResponse(CTCursor * cursor, CTSocket socketfd, CTS
 					//the async operation returned immediately
 					if (scRet == CTSuccess)
 					{
-						//printf("CTConnection::DecryptResponseCallback::CTAsyncRecv returned immediate with %lu bytes\n", NumBytesRemaining);
+						//fprintf(stderr, "CTConnection::DecryptResponseCallback::CTAsyncRecv returned immediate with %lu bytes\n", NumBytesRemaining);
 						//scRet = CTSSLDecryptMessage(overlappedResponse->conn->sslContext, overlappedResponse->wsaBuf.buf, &NumBytesRecv);
 					}
 					else //failure
 					{
-						printf("CTConnection::DecryptResponseCallback::CTAsyncRecv failed with CTDriverError = %d\n", scRet);
+						fprintf(stderr, "CTConnection::DecryptResponseCallback::CTAsyncRecv failed with CTDriverError = %d\n", scRet);
 						break;
 					}
 
@@ -3223,7 +3274,7 @@ int CTSSLHandshakeProcessFirstResponse(CTCursor * cursor, CTSocket socketfd, CTS
 
 		// If InitializeSecurityContext returned SEC_E_INCOMPLETE_MESSAGE,
 		// then we need to read more data from the server and try again.
-		if (scRet == SEC_E_INCOMPLETE_MESSAGE ) { printf("SEC_E_INCOMPLETE_MESSAGE"); continue; }
+		if (scRet == SEC_E_INCOMPLETE_MESSAGE ) { fprintf(stderr, "SEC_E_INCOMPLETE_MESSAGE"); continue; }
 
 		// Copy any leftover data from the "extra" buffer, and go around again.
 		if (InBuffers[1].BufferType == SECBUFFER_EXTRA)
@@ -3259,13 +3310,13 @@ int CTSSLHandshakeProcessFirstResponse(CTCursor * cursor, CTSocket socketfd, CTS
 		cbData = send(cursor->conn->socketfd, (const char*)OutBuffers[0].pvBuffer, OutBuffers[0].cbBuffer, 0);
 		if (cbData == SOCKET_ERROR || cbData == 0)
 		{
-			printf("**** Error %d sending data to server (2)\n", WSAGetLastError());
+			fprintf(stderr, "**** Error %d sending data to server (2)\n", WSAGetLastError());
 			FreeContextBuffer(OutBuffers[0].pvBuffer);
 			DeleteSecurityContext(&(sslContextRef->hCtxt));
 			return SEC_E_INTERNAL_ERROR;
 		}
-		printf("%d bytes of handshake data sent\n", cbData);
-		if (fVerbose) { PrintHexDump(cbData, (PBYTE)OutBuffers[0].pvBuffer); printf("\n"); }
+		fprintf(stderr, "%d bytes of handshake data sent\n", cbData);
+		if (fVerbose) { PrintHexDump(cbData, (PBYTE)OutBuffers[0].pvBuffer); fprintf(stderr, "\n"); }
 
 		// Free output buffer.
 		FreeContextBuffer(OutBuffers[0].pvBuffer);
@@ -3298,7 +3349,7 @@ int CTSSLHandshakeProcessSecondResponse(CTCursor * cursor, CTSocket socketfd, CT
 	//eTransient->messageLen = 0;
 	//eTransient->messageBuffer = NULL;
 
-	printf("CTSSLHandshakeProcessSecondResponse::CoreTransport supplying (%lu) handshake bytes to WolfSSL...\n", cursor->headerLength + cursor->contentLength);
+	fprintf(stderr, "CTSSLHandshakeProcessSecondResponse::CoreTransport supplying (%lu) handshake bytes to WolfSSL...\n", cursor->headerLength + cursor->contentLength);
 
 	//we are finished sending the first response, reset the send context for the second client message after the recv
 	wolfSSL_SetIOWriteCtx(cursor->conn->sslContext->ctx, &eTransient);
@@ -3311,7 +3362,7 @@ int CTSSLHandshakeProcessSecondResponse(CTCursor * cursor, CTSocket socketfd, CT
 
 		err = wolfSSL_get_error(sslContextRef->ctx, 0);
 		wolfSSL_ERR_error_string(err, buffer);
-		fprintf(stderr, "CTSSLHandshakeProcessSecondResponse: wolfSSL_connect failed to read (%d): \n\n%s\n\n", wolfSSL_get_error(sslContextRef->ctx, 0), buffer);
+		ffprintf(stderr, stderr, "CTSSLHandshakeProcessSecondResponse: wolfSSL_connect failed to read (%d): \n\n%s\n\n", wolfSSL_get_error(sslContextRef->ctx, 0), buffer);
 
 		//HANDLE INCOMPLETE MESSAGE: the buffer didn't have as many bytes as WolfSSL needed for decryption
 		if (err == WOLFSSL_ERROR_WANT_READ)
@@ -3366,12 +3417,12 @@ int CTSSLHandshakeProcessSecondResponse(CTCursor * cursor, CTSocket socketfd, CT
 				//the async operation returned immediately
 				if (scRet == CTSuccess)
 				{
-					printf("CTSSLHandshakeProcessSecondResponse::CTAsyncRecv returned immediate with %lu bytes\n", NumBytesRemaining);
+					fprintf(stderr, "CTSSLHandshakeProcessSecondResponse::CTAsyncRecv returned immediate with %lu bytes\n", NumBytesRemaining);
 					//scRet = CTSSLDecryptMessage(overlappedResponse->conn->sslContext, overlappedResponse->wsaBuf.buf, &NumBytesRecv);
 				}
 				else //failure
 				{
-					printf("CTSSLHandshakeProcessSecondResponse::CTAsyncRecv failed with CTDriverError = %d\n", scRet);
+					fprintf(stderr, "CTSSLHandshakeProcessSecondResponse::CTAsyncRecv failed with CTDriverError = %d\n", scRet);
 					assert(1 == 0);
 				}
 			}
@@ -3385,7 +3436,7 @@ int CTSSLHandshakeProcessSecondResponse(CTCursor * cursor, CTSocket socketfd, CT
 		err = wolfSSL_get_error(sslContextRef->ctx, ret);
 		if (err != SSL_ERROR_WANT_READ && err != SSL_ERROR_WANT_WRITE)
 		{
-			fprintf(stderr, "ERROR: wolfSSL handshake failed!\n");
+			ffprintf(stderr, stderr, "ERROR: wolfSSL handshake failed!\n");
 		}
 		return err;
 		*/
@@ -3406,7 +3457,7 @@ int CTSSLHandshakeProcessSecondResponse(CTCursor * cursor, CTSocket socketfd, CT
 	pSSPI = (PSecurityFunctionTable)TlsGetValue(dwTlsSecurityInterface);
 	if ((pSSPI == 0) && (GetLastError() != ERROR_SUCCESS))
 	{
-	  printf("\nReqlSSLDecryptMessage::TlsGetValue dwTlsSecurityInterface error.  Using global Security Interface...\n");
+	  fprintf(stderr, "\nReqlSSLDecryptMessage::TlsGetValue dwTlsSecurityInterface error.  Using global Security Interface...\n");
 	  pSSPI = g_pSSPI;
 	}
 	*/
@@ -3416,7 +3467,7 @@ int CTSSLHandshakeProcessSecondResponse(CTCursor * cursor, CTSocket socketfd, CT
 
 				  // Allocate data buffer.
 	IoBuffer = cursor->file.buffer;// (PUCHAR)LocalAlloc(LMEM_FIXED, IO_BUFFER_SIZE);
-	if (IoBuffer == NULL) { printf("**** Out of memory (1)\n"); return SEC_E_INTERNAL_ERROR; }
+	if (IoBuffer == NULL) { fprintf(stderr, "**** Out of memory (1)\n"); return SEC_E_INTERNAL_ERROR; }
 	cbIoBuffer = cursor->headerLength + cursor->contentLength;
 	fDoRead = 1;//fDoInitialRead;
 
@@ -3436,18 +3487,18 @@ int CTSSLHandshakeProcessSecondResponse(CTCursor * cursor, CTSocket socketfd, CT
 				cbData = recv(socketfd, (char*)IoBuffer + cbIoBuffer, IO_BUFFER_SIZE - cbIoBuffer, 0);
 				if (cbData == SOCKET_ERROR)
 				{
-					printf("**** Error %d reading data from server\n", WSAGetLastError());
+					fprintf(stderr, "**** Error %d reading data from server\n", WSAGetLastError());
 					scRet = SEC_E_INTERNAL_ERROR;
 					break;
 				}
 				else if (cbData == 0)
 				{
-					printf("**** Server unexpectedly disconnected\n");
+					fprintf(stderr, "**** Server unexpectedly disconnected\n");
 					scRet = SEC_E_INTERNAL_ERROR;
 					break;
 				}
-				printf("%d bytes of handshake data received\n", cbData);
-				if (fVerbose) { PrintHexDump(cbData, IoBuffer + cbIoBuffer); printf("\n"); }
+				fprintf(stderr, "%d bytes of handshake data received\n", cbData);
+				if (fVerbose) { PrintHexDump(cbData, IoBuffer + cbIoBuffer); fprintf(stderr, "\n"); }
 				cbIoBuffer += cbData;
 			}
 			else
@@ -3487,7 +3538,7 @@ int CTSSLHandshakeProcessSecondResponse(CTCursor * cursor, CTSocket socketfd, CT
 		// Call InitializeSecurityContext.
 		scRet = InitializeSecurityContextA(&(sslContextRef->hCred),
 			&(sslContextRef->hCtxt),
-			(SEC_CHAR*)(cursor->conn->target->host),
+			(SEC_CHAR*)(cursor->conn->target->url.host),
 			dwSSPIFlags,
 			0,
 			SECURITY_NATIVE_DREP,
@@ -3501,7 +3552,7 @@ int CTSSLHandshakeProcessSecondResponse(CTCursor * cursor, CTSocket socketfd, CT
 
 		// If InitializeSecurityContext returned SEC_E_INCOMPLETE_MESSAGE,
 		// then we need to read more data from the server and try again.
-		if (scRet == SEC_E_INCOMPLETE_MESSAGE) { printf("SEC_E_INCOMPLETE_MESSAGE"); continue; }
+		if (scRet == SEC_E_INCOMPLETE_MESSAGE) { fprintf(stderr, "SEC_E_INCOMPLETE_MESSAGE"); continue; }
 
 
 		// If InitializeSecurityContext returned SEC_E_OK, then the
@@ -3511,12 +3562,12 @@ int CTSSLHandshakeProcessSecondResponse(CTCursor * cursor, CTSocket socketfd, CT
 			// If the "extra" buffer contains data, this is encrypted application
 			// protocol layer stuff. It needs to be saved. The application layer
 			// will later decrypt it with DecryptMessage.
-			printf("Handshake was successful\n");
+			fprintf(stderr, "Handshake was successful\n");
 
 			if (InBuffers[1].BufferType == SECBUFFER_EXTRA)
 			{
 				sslContextRef->ExtraData.pvBuffer = LocalAlloc(LMEM_FIXED, InBuffers[1].cbBuffer);
-				if (sslContextRef->ExtraData.pvBuffer == NULL) { printf("**** Out of memory (2)\n"); return SEC_E_INTERNAL_ERROR; }
+				if (sslContextRef->ExtraData.pvBuffer == NULL) { fprintf(stderr, "**** Out of memory (2)\n"); return SEC_E_INTERNAL_ERROR; }
 
 				MoveMemory(sslContextRef->ExtraData.pvBuffer,
 					IoBuffer + (cbIoBuffer - InBuffers[1].cbBuffer),
@@ -3525,7 +3576,7 @@ int CTSSLHandshakeProcessSecondResponse(CTCursor * cursor, CTSocket socketfd, CT
 				sslContextRef->ExtraData.cbBuffer = InBuffers[1].cbBuffer;
 				sslContextRef->ExtraData.BufferType = SECBUFFER_TOKEN;
 
-				printf("%d bytes of app data was bundled with handshake data\n", sslContextRef->ExtraData.cbBuffer);
+				fprintf(stderr, "%d bytes of app data was bundled with handshake data\n", sslContextRef->ExtraData.cbBuffer);
 			}
 			else
 			{
@@ -3539,7 +3590,7 @@ int CTSSLHandshakeProcessSecondResponse(CTCursor * cursor, CTSocket socketfd, CT
 
 
 		// Check for fatal error.
-		if (FAILED(scRet)) { printf("**** Error 0x%x returned by InitializeSecurityContext (2)\n", scRet); break; }
+		if (FAILED(scRet)) { fprintf(stderr, "**** Error 0x%x returned by InitializeSecurityContext (2)\n", scRet); break; }
 
 		// If InitializeSecurityContext returned SEC_I_INCOMPLETE_CREDENTIALS,
 		// then the server just requested client authentication.
@@ -3575,7 +3626,7 @@ int CTSSLHandshakeProcessSecondResponse(CTCursor * cursor, CTSocket socketfd, CT
 	// Delete the security context in the case of a fatal error.
 	if (FAILED(scRet))
 	{
-		printf("ReqlSSLhandshake::Deleting Securitiy Context\n");
+		fprintf(stderr, "ReqlSSLhandshake::Deleting Securitiy Context\n");
 		DeleteSecurityContext(&(sslContextRef->hCtxt)); return scRet;
 	}
 #endif
@@ -3602,7 +3653,7 @@ int CTSSLHandshake(CTSocket socketfd, CTSSLContextRef sslContextRef, CTSecCertif
 		err = wolfSSL_get_error(sslContextRef->ctx, ret);
 		if (err != SSL_ERROR_WANT_READ && err != SSL_ERROR_WANT_WRITE)
 		{
-			fprintf(stderr, "ERROR: wolfSSL handshake failed!\n");
+			ffprintf(stderr, stderr, "ERROR: wolfSSL handshake failed!\n");
 		}
 		return err;
 	}
@@ -3610,11 +3661,11 @@ int CTSSLHandshake(CTSocket socketfd, CTSSLContextRef sslContextRef, CTSecCertif
 #elif defined( CTRANSPORT_USE_MBED_TLS )
 	while ((ret = mbedtls_ssl_handshake(&(sslContextRef->ctx))) != 0)
 	{
-		Reql_printf("%s", "CTSSLHandshake\n");
+		Reql_fprintf(stderr, "%s", "CTSSLHandshake\n");
 
 		if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE)
 		{
-			Reql_printf("CTSSLHandshake::mbedtls_ssl_handshake failed and returned %d\n\n", ret);
+			Reql_fprintf(stderr, "CTSSLHandshake::mbedtls_ssl_handshake failed and returned %d\n\n", ret);
 			return ret;
 		}
 	}
@@ -3634,17 +3685,17 @@ int CTSSLHandshake(CTSocket socketfd, CTSSLContextRef sslContextRef, CTSecCertif
     pSSPI = (PSecurityFunctionTable)TlsGetValue(dwTlsSecurityInterface); 
     if ((pSSPI == 0) && (GetLastError() != ERROR_SUCCESS))
 	{
-      printf("\nReqlSSLDecryptMessage::TlsGetValue dwTlsSecurityInterface error.  Using global Security Interface...\n");
+      fprintf(stderr, "\nReqlSSLDecryptMessage::TlsGetValue dwTlsSecurityInterface error.  Using global Security Interface...\n");
 	  pSSPI = g_pSSPI;
 	}
 	*/
 
-    dwSSPIFlags = ISC_REQ_CONFIDENTIALITY| ISC_REQ_STREAM | ISC_REQ_ALLOCATE_MEMORY |ISC_RET_EXTENDED_ERROR  /*   | ISC_REQ_REPLAY_DETECT     | ISC_REQ_CONFIDENTIALITY   |
+    dwSSPIFlags = ISC_REQ_STREAM | ISC_REQ_ALLOCATE_MEMORY |ISC_RET_EXTENDED_ERROR  /*   | ISC_REQ_REPLAY_DETECT     | ISC_REQ_CONFIDENTIALITY   |
                   ISC_RET_EXTENDED_ERROR    | | ISC_REQ_STREAM */ ;
 
     // Allocate data buffer.
     IoBuffer = (PUCHAR)LocalAlloc(LMEM_FIXED, IO_BUFFER_SIZE);
-    if(IoBuffer == NULL) { printf("**** Out of memory (1)\n"); return SEC_E_INTERNAL_ERROR; }
+    if(IoBuffer == NULL) { fprintf(stderr, "**** Out of memory (1)\n"); return SEC_E_INTERNAL_ERROR; }
     cbIoBuffer = 0;
     fDoRead = 1;//fDoInitialRead;
 
@@ -3662,18 +3713,18 @@ int CTSSLHandshake(CTSocket socketfd, CTSSLContextRef sslContextRef, CTSecCertif
                 cbData = recv(socketfd, (char*)IoBuffer + cbIoBuffer, IO_BUFFER_SIZE - cbIoBuffer, 0 );
                 if(cbData == SOCKET_ERROR)
                 {
-                    printf("**** Error %d reading data from server\n", WSAGetLastError());
+                    fprintf(stderr, "**** Error %d reading data from server\n", WSAGetLastError());
                     scRet = SEC_E_INTERNAL_ERROR;
                     break;
                 }
                 else if(cbData == 0)
                 {
-                    printf("**** Server unexpectedly disconnected\n");
+                    fprintf(stderr, "**** Server unexpectedly disconnected\n");
                     scRet = SEC_E_INTERNAL_ERROR;
                     break;
                 }
-                printf("%d bytes of handshake data received\n", cbData);
-                if(fVerbose) { PrintHexDump(cbData, IoBuffer + cbIoBuffer); printf("\n"); }
+                fprintf(stderr, "%d bytes of handshake data received\n", cbData);
+                if(fVerbose) { PrintHexDump(cbData, IoBuffer + cbIoBuffer); fprintf(stderr, "\n"); }
                 cbIoBuffer += cbData;
             }
             else
@@ -3731,20 +3782,20 @@ int CTSSLHandshake(CTSocket socketfd, CTSSLContextRef sslContextRef, CTSecCertif
            scRet == SEC_I_CONTINUE_NEEDED   ||
            FAILED(scRet) && (dwSSPIOutFlags & ISC_RET_EXTENDED_ERROR))
         {
-			if (FAILED(scRet)) { printf("**** Error 0x%x returned by InitializeSecurityContext (2)\n", scRet); }
+			if (FAILED(scRet)) { fprintf(stderr, "**** Error 0x%x returned by InitializeSecurityContext (2)\n", scRet); }
 
             if(OutBuffers[0].cbBuffer != 0 && OutBuffers[0].pvBuffer != NULL)
             {
                 cbData = send(socketfd, (const char *)OutBuffers[0].pvBuffer, OutBuffers[0].cbBuffer, 0 );
                 if(cbData == SOCKET_ERROR || cbData == 0)
                 {
-                    printf( "**** Error %d sending data to server (2)\n",  WSAGetLastError() );
+                    fprintf(stderr,  "**** Error %d sending data to server (2)\n",  WSAGetLastError() );
                     FreeContextBuffer(OutBuffers[0].pvBuffer);
                     DeleteSecurityContext(&(sslContextRef->hCtxt));
                     return SEC_E_INTERNAL_ERROR;
                 }
-                printf("%d bytes of handshake data sent\n", cbData);
-                if(fVerbose) { PrintHexDump(cbData, (PBYTE)OutBuffers[0].pvBuffer); printf("\n"); }
+                fprintf(stderr, "%d bytes of handshake data sent\n", cbData);
+                if(fVerbose) { PrintHexDump(cbData, (PBYTE)OutBuffers[0].pvBuffer); fprintf(stderr, "\n"); }
 
                 // Free output buffer.
                 FreeContextBuffer(OutBuffers[0].pvBuffer);
@@ -3754,7 +3805,7 @@ int CTSSLHandshake(CTSocket socketfd, CTSSLContextRef sslContextRef, CTSecCertif
 
         // If InitializeSecurityContext returned SEC_E_INCOMPLETE_MESSAGE,
         // then we need to read more data from the server and try again.
-		if(scRet == SEC_E_INCOMPLETE_MESSAGE) { printf("SEC_E_INCOMPLETE_MESSAGE\n"); continue; }
+		if(scRet == SEC_E_INCOMPLETE_MESSAGE) { fprintf(stderr, "SEC_E_INCOMPLETE_MESSAGE\n"); continue; }
 
         // If InitializeSecurityContext returned SEC_E_OK, then the
         // handshake completed successfully.
@@ -3763,12 +3814,12 @@ int CTSSLHandshake(CTSocket socketfd, CTSSLContextRef sslContextRef, CTSecCertif
             // If the "extra" buffer contains data, this is encrypted application
             // protocol layer stuff. It needs to be saved. The application layer
             // will later decrypt it with DecryptMessage.
-            printf("Handshake was successful\n");
+            fprintf(stderr, "Handshake was successful\n");
 
             if(InBuffers[1].BufferType == SECBUFFER_EXTRA)
             {
                 sslContextRef->ExtraData.pvBuffer = LocalAlloc( LMEM_FIXED, InBuffers[1].cbBuffer );
-                if(sslContextRef->ExtraData.pvBuffer == NULL) { printf("**** Out of memory (2)\n"); return SEC_E_INTERNAL_ERROR; }
+                if(sslContextRef->ExtraData.pvBuffer == NULL) { fprintf(stderr, "**** Out of memory (2)\n"); return SEC_E_INTERNAL_ERROR; }
 
                 MoveMemory( sslContextRef->ExtraData.pvBuffer,
                             IoBuffer + (cbIoBuffer - InBuffers[1].cbBuffer),
@@ -3777,7 +3828,7 @@ int CTSSLHandshake(CTSocket socketfd, CTSSLContextRef sslContextRef, CTSecCertif
                 sslContextRef->ExtraData.cbBuffer   = InBuffers[1].cbBuffer;
                 sslContextRef->ExtraData.BufferType = SECBUFFER_TOKEN;
 
-                printf( "%d bytes of app data was bundled with handshake data\n", sslContextRef->ExtraData.cbBuffer );
+                fprintf(stderr,  "%d bytes of app data was bundled with handshake data\n", sslContextRef->ExtraData.cbBuffer );
             }
             else
             {
@@ -3791,7 +3842,7 @@ int CTSSLHandshake(CTSocket socketfd, CTSSLContextRef sslContextRef, CTSecCertif
 
 
         // Check for fatal error.
-        if(FAILED(scRet)) { printf("**** Error 0x%x returned by InitializeSecurityContext (2)\n", scRet); break; }
+        if(FAILED(scRet)) { fprintf(stderr, "**** Error 0x%x returned by InitializeSecurityContext (2)\n", scRet); break; }
 
         // If InitializeSecurityContext returned SEC_I_INCOMPLETE_CREDENTIALS,
         // then the server just requested client authentication.
@@ -3827,7 +3878,7 @@ int CTSSLHandshake(CTSocket socketfd, CTSSLContextRef sslContextRef, CTSecCertif
     // Delete the security context in the case of a fatal error.
 	if(FAILED(scRet)) 
 	{ 
-		printf("ReqlSSLhandshake::Deleting Securitiy Context\n");
+		fprintf(stderr, "ReqlSSLhandshake::Deleting Securitiy Context\n");
 		DeleteSecurityContext(&(sslContextRef->hCtxt)); return scRet;
 	}
 	
@@ -3851,7 +3902,7 @@ int CTVerifyServerCertificate(CTSSLContextRef sslContextRef, char * pszServerNam
 	//Load client certificates into WOLFSSL_CTX
 	if (wolfSSL_CTX_load_verify_locations(sslContextRef->conf, certRef, NULL) != WOLFSSL_SUCCESS)
 	{
-		fprintf(stderr, "ERROR: failed to load %s, please check the file.\n", certRef);
+		ffprintf(stderr, stderr, "ERROR: failed to load %s, please check the file.\n", certRef);
 		assert(1 == 0);
 	}
 	*/
@@ -3864,11 +3915,11 @@ int CTVerifyServerCertificate(CTSSLContextRef sslContextRef, char * pszServerNam
 		char vrfy_buf[512];
 		mbedtls_x509_crt_verify_info(vrfy_buf, sizeof(vrfy_buf), "  ! ", flags);
 
-		//Reql_printf("ReqlVerifyServerCertificate::mbedtls_ssl_get_verify_result failed\n");
-		Reql_printf("ReqlVerifyServerCertificate::mbedtls_ssl_get_verify_result failed %s", vrfy_buf);
+		//Reql_fprintf(stderr, "ReqlVerifyServerCertificate::mbedtls_ssl_get_verify_result failed\n");
+		Reql_fprintf(stderr, "ReqlVerifyServerCertificate::mbedtls_ssl_get_verify_result failed %s", vrfy_buf);
 	}
 	else
-		Reql_printf("%s", "ReqlVerifyServerCertificate::success\n");
+		Reql_fprintf(stderr, "%s", "ReqlVerifyServerCertificate::success\n");
 	return (int)flags;
 #elif defined(_WIN32)
 
@@ -3885,95 +3936,95 @@ int CTVerifyServerCertificate(CTSSLContextRef sslContextRef, char * pszServerNam
 	pSSPI = (PSecurityFunctionTable)TlsGetValue(dwTlsSecurityInterface);
 	if ((pSSPI == 0) && (GetLastError() != ERROR_SUCCESS))
 	{
-	  printf("\nReqlSSLDecryptMessage::TlsGetValue dwTlsSecurityInterface error.  Using global Security Interface...\n");
+	  fprintf(stderr, "\nReqlSSLDecryptMessage::TlsGetValue dwTlsSecurityInterface error.  Using global Security Interface...\n");
 	  pSSPI = g_pSSPI;
 	}
 	*/
 
 	//Query Credential Attributes
 	scRet = QueryCredentialsAttributes(&(sslContextRef->hCred), SECPKG_ATTR_CIPHER_STRENGTHS, &cipherStrengths);
-	//printf("Cipher Strengths = %d, %d\n", (int)cipherStrengths.dwMinimumCipherStrength, (int)cipherStrengths.dwMaximumCipherStrength);
+	//fprintf(stderr, "Cipher Strengths = %d, %d\n", (int)cipherStrengths.dwMinimumCipherStrength, (int)cipherStrengths.dwMaximumCipherStrength);
 
 	if (scRet != SEC_E_OK)
 	{
-		printf("Error 0x%x querying Cipher STrengs\n", scRet); return scRet;
+		fprintf(stderr, "Error 0x%x querying Cipher STrengs\n", scRet); return scRet;
 	} //
 
 	scRet = QueryCredentialsAttributes(&(sslContextRef->hCred), SECPKG_ATTR_SUPPORTED_ALGS, &supportedAlgs);
 
 	if (scRet != SEC_E_OK)
 	{
-		printf("Error 0x%x querying Supported Algs\n", scRet); return scRet;
+		fprintf(stderr, "Error 0x%x querying Supported Algs\n", scRet); return scRet;
 	} //
 
 /*
-printf("Supported Algs = \n");
+fprintf(stderr, "Supported Algs = \n");
 assert(supportedAlgs.palgSupportedAlgs);
 for( i=0; i<(int)supportedAlgs.cSupportedAlgs; i++)
 {
 	ALG_ID alg = supportedAlgs.palgSupportedAlgs[i];
-	printf("%u,", (unsigned)alg);
+	fprintf(stderr, "%u,", (unsigned)alg);
 
 	for( systemAlgIndex = 0; systemAlgIndex<47; systemAlgIndex++)
 	{
 		if( allAlgs[systemAlgIndex] == (ALG_ID)supportedAlgs.palgSupportedAlgs[i] )
-			printf("Alg AtIndex = %d\n", systemAlgIndex);
+			fprintf(stderr, "Alg AtIndex = %d\n", systemAlgIndex);
 
 	}
 
 }
-printf("\n");
+fprintf(stderr, "\n");
 */
 	scRet = QueryCredentialsAttributes(&(sslContextRef->hCred), SECPKG_ATTR_SUPPORTED_PROTOCOLS, &supportedProtocols);
 
 	if (scRet != SEC_E_OK)
 	{
-		printf("Error 0x%x querying Protocols\n", scRet); return scRet;
+		fprintf(stderr, "Error 0x%x querying Protocols\n", scRet); return scRet;
 	} //
 
-	printf("**** Protocols 0x%x (%ld) returned by AcquireCredentialsHandle\n", supportedProtocols.grbitProtocol);
+	fprintf(stderr, "**** Protocols 0x%x (%ld) returned by AcquireCredentialsHandle\n", supportedProtocols.grbitProtocol);
 
 	printProtocolsForDWORD(supportedProtocols.grbitProtocol);
 
 
-	//printf("pszServerName = %s\n", pszServerName);
+	//fprintf(stderr, "pszServerName = %s\n", pszServerName);
 	 // Authenticate server's credentials. Get server's certificate.
 	scRet = QueryContextAttributes(&(sslContextRef->hCtxt), SECPKG_ATTR_REMOTE_CERT_CONTEXT, (LPVOID)&pRemoteCertContext);
 	if (scRet != SEC_E_OK)
 	{
-		printf("Error 0x%x querying remote certificate\n", scRet); return scRet;
+		fprintf(stderr, "Error 0x%x querying remote certificate\n", scRet); return scRet;
 	} //
 
-//printf("----- Server Credentials Authenticated \n");
+//fprintf(stderr, "----- Server Credentials Authenticated \n");
 	assert(pRemoteCertContext);
 	// Display server certificate chain.
 	DisplayCertChain(pRemoteCertContext, FALSE); //
 
-	printf("----- Certificate Chain Displayed \n");
+	fprintf(stderr, "----- Certificate Chain Displayed \n");
 
 	// Attempt to validate server certificate.
 	scRet = VerifyServerCertificate(pRemoteCertContext, pszServerName, 0);
-	if (scRet) { printf("**** Error 0x%x authenticating server credentials!\n", scRet); return scRet; }
+	if (scRet) { fprintf(stderr, "**** Error 0x%x authenticating server credentials!\n", scRet); return scRet; }
 	// The server certificate did not validate correctly. At this point, we cannot tell
 	// if we are connecting to the correct server, or if we are connecting to a
 	// "man in the middle" attack server - Best to just abort the connection.
 
-	printf("----- Server Certificate Verified\n");
+	fprintf(stderr, "----- Server Certificate Verified\n");
 
 	// Free the server certificate context.
 	CertFreeCertificateContext(pRemoteCertContext);
 	pRemoteCertContext = NULL; //
-	printf("----- Server certificate context released \n");
+	fprintf(stderr, "----- Server certificate context released \n");
 
 	// Display connection info.
 	DisplayConnectionInfo(&sslContextRef->hCtxt); //
-	printf("----- Secure Connection Info\n");
+	fprintf(stderr, "----- Secure Connection Info\n");
 
 	// Read stream encryption properties.
 	scRet = QueryContextAttributes(&(sslContextRef->hCtxt), SECPKG_ATTR_STREAM_SIZES, &(sslContextRef->Sizes));
 	if (scRet != SEC_E_OK)
 	{
-		printf("**** Error 0x%x reading SECPKG_ATTR_STREAM_SIZES\n", scRet); return scRet;
+		fprintf(stderr, "**** Error 0x%x reading SECPKG_ATTR_STREAM_SIZES\n", scRet); return scRet;
 	}
 
 	//    SecPkgContext_StreamSizes Sizes;            // unsigned long cbBuffer;    // Size of the buffer, in bytes
@@ -4045,8 +4096,8 @@ CTSSLStatus CTSSLRead( CTSocket socketfd, CTSSLContextRef sslContextRef, void * 
 		//DWORD numBytesAvailable
 		scRet = ioctlsocket(socketfd, FIONREAD, msgLength);
 	
-		printf("**** mbedReadFromSocket::ictlsocket status = %d\n", (int)scRet);
-		printf("**** mbedReadFromSocket::numBytesAvailable = %d\n", (int)*msgLength);
+		fprintf(stderr, "**** mbedReadFromSocket::ictlsocket status = %d\n", (int)scRet);
+		fprintf(stderr, "**** mbedReadFromSocket::numBytesAvailable = %d\n", (int)*msgLength);
 
 		//select said there was data but ioctlsocket says there is no data
 		if( *msgLength == 0)
@@ -4064,14 +4115,14 @@ CTSSLStatus CTSSLRead( CTSocket socketfd, CTSSLContextRef sslContextRef, void * 
 	{
 		//if mbedtls_ssl_read returned 0 then the socket disconnected
 #ifdef _DEBUG
-		Reql_printf("%s", "ReqlSSLRead::mbedtls_ssl_read disconnect!\n");
+		Reql_fprintf(stderr, "%s", "ReqlSSLRead::mbedtls_ssl_read disconnect!\n");
 #endif
 		return CTSocketDisconnect;
 	}
 	else if (scRet == MBEDTLS_ERR_SSL_WANT_READ) 
 	{
 #ifdef _DEBUG
-		Reql_printf("%s", "ReqlSSLRead::mbedtls_ssl_read MBED_ERR_TLS_WANT_READ\n");
+		Reql_fprintf(stderr, "%s", "ReqlSSLRead::mbedtls_ssl_read MBED_ERR_TLS_WANT_READ\n");
 #endif
 		//MBEDTLS_ERR_SSL_WANT_READ/WRITE is the same ass WOULDBLOCK? confirm
 		return CTSocketWouldBlock;
@@ -4079,17 +4130,17 @@ CTSSLStatus CTSSLRead( CTSocket socketfd, CTSSLContextRef sslContextRef, void * 
 #ifdef _DEBUG
 	else if( scRet < 0 )
 	{
-		Reql_printf("%s", "ReqlSSLRead::mbedtls_ssl_read error (%d)\n", scRet);
+		Reql_fprintf(stderr, "%s", "ReqlSSLRead::mbedtls_ssl_read error (%d)\n", scRet);
 	}
 #endif
 	else
 	{
 		//on success mbedtls_ssl_read return provides the number of bytes
 		//but we want to return success and put 
-		Reql_printf("ReqlSSLRead::mbedtls_ssl_read %d bytes\n", scRet);
+		Reql_fprintf(stderr, "ReqlSSLRead::mbedtls_ssl_read %d bytes\n", scRet);
 		*msgLength = scRet;
 		scRet = CTSuccess;
-		//Reql_printf("\n%s\n", (char*)msg);
+		//Reql_fprintf(stderr, "\n%s\n", (char*)msg);
 	}
 	return scRet;
 #elif defined(_WIN32)
@@ -4112,7 +4163,7 @@ CTSSLStatus CTSSLRead( CTSocket socketfd, CTSSLContextRef sslContextRef, void * 
             cbData = recv(socketfd, (char*)msg + cbIoBuffer, cbIoBufferLength - cbIoBuffer, 0);
             if(cbData == SOCKET_ERROR)
             {
-                printf("**** Error %d reading data from server\n", WSAGetLastError());
+                fprintf(stderr, "**** Error %d reading data from server\n", WSAGetLastError());
                 scRet = SEC_E_INTERNAL_ERROR;
                 break;
             }
@@ -4120,7 +4171,7 @@ CTSSLStatus CTSSLRead( CTSocket socketfd, CTSSLContextRef sslContextRef, void * 
             {
                 if(cbIoBuffer)
                 {
-                    printf("**** Server unexpectedly disconnected\n");
+                    fprintf(stderr, "**** Server unexpectedly disconnected\n");
                     scRet = SEC_E_INTERNAL_ERROR;
                     return scRet;
                 }
@@ -4129,8 +4180,8 @@ CTSSLStatus CTSSLRead( CTSocket socketfd, CTSSLContextRef sslContextRef, void * 
             }
             else // success
             {
-                printf("%d bytes of (encrypted) application data received\n\n", cbData);
-                if(fVerbose) { PrintHexDump(cbData, (PBYTE)msg + cbIoBuffer); printf("\n"); }
+                fprintf(stderr, "%d bytes of (encrypted) application data received\n\n", cbData);
+                if(fVerbose) { PrintHexDump(cbData, (PBYTE)msg + cbIoBuffer); fprintf(stderr, "\n"); }
                 cbIoBuffer += cbData;
             }
         }
@@ -4145,7 +4196,7 @@ CTSSLStatus CTSSLRead( CTSocket socketfd, CTSSLContextRef sslContextRef, void * 
         // The server wants to perform another handshake sequence.
         if(scRet == CTSSLRenegotiate)
         {
-            printf("Server requested renegotiate!\n");
+            fprintf(stderr, "Server requested renegotiate!\n");
             //scRet = ClientHandshakeLoop( Socket, phCreds, phContext, FALSE, &ExtraBuffer);
 			scRet = CTSSLHandshake(socketfd, sslContextRef, NULL, NULL);
             if(scRet != SEC_E_OK) return scRet;
@@ -4191,7 +4242,7 @@ int CTSSLWrite( CTSocket socketfd, CTSSLContextRef sslContextRef, void * msg, un
 	//if ( (errOrBytesWritten = wolfSSL_BIO_write(sslContextRef->bio, msg, *msgLength)) != *msgLength)
 	if ((errOrBytesWritten = wolfSSL_write(sslContextRef->ctx, msg, *msgLength)) != *msgLength)
 	{
-		printf("CTSSLWrite ERROR: wolfSSL_write failed to write\n");
+		fprintf(stderr, "CTSSLWrite ERROR: wolfSSL_write failed to write\n");
 		errOrBytesWritten = -1;
 	}
 	*msgLength = errOrBytesWritten;
@@ -4202,11 +4253,11 @@ int CTSSLWrite( CTSocket socketfd, CTSSLContextRef sslContextRef, void * msg, un
 	if (errOrBytesWritten < 0) {
 		if (errOrBytesWritten != MBEDTLS_ERR_SSL_WANT_READ &&
 			errOrBytesWritten != MBEDTLS_ERR_SSL_WANT_WRITE) {
-			Reql_printf("ReqlSSLWrite::mbedtls_ssl_write error (%d)", errOrBytesWritten);
+			Reql_fprintf(stderr, "ReqlSSLWrite::mbedtls_ssl_write error (%d)", errOrBytesWritten);
 			//onError(_tcpsocket, -1);
 		}
 	}
-	printf("ReqlSSLWrite::erroOrBytesWritten = %d\n", errOrBytesWritten);
+	fprintf(stderr, "ReqlSSLWrite::erroOrBytesWritten = %d\n", errOrBytesWritten);
 #elif defined(_WIN32)
     //int errOrBytesWritten = 0;
 	//returns status, overwrites msgLength with encrypted bytes written
@@ -4217,8 +4268,8 @@ int CTSSLWrite( CTSocket socketfd, CTSSLContextRef sslContextRef, void * msg, un
 		errOrBytesWritten += send( socketfd, (char*)sslContextRef->hBuffer, sslContextRef->Sizes.cbHeader/*Buffers[0].cbBuffer*/, 0);
 		errOrBytesWritten += send( socketfd, (char*)msg, *msgLength, 0);
 		errOrBytesWritten += send( socketfd, (char*)sslContextRef->tBuffer, sslContextRef->Sizes.cbTrailer/*Buffers[2].cbBuffer*/, 0);
-		//printf("%d bytes of encrypted data sent\n\n", errOrBytesWritten);
-		//if(fVerbose) { PrintHexDump(errOrBytesWritten, (PBYTE)msg); printf("\n"); }
+		//fprintf(stderr, "%d bytes of encrypted data sent\n\n", errOrBytesWritten);
+		//if(fVerbose) { PrintHexDump(errOrBytesWritten, (PBYTE)msg); fprintf(stderr, "\n"); }
 		
 	}
 	*msgLength = errOrBytesWritten;

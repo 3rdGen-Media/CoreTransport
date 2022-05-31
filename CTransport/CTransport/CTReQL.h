@@ -39,7 +39,7 @@ static const char * REQL_CHANGE_TYPE_REMOVE = "remove";
 
 
 
-#pragma mark -- Reql Object Type Enums
+//#pragma mark -- Reql Object Type Enums
 
 /***
  *  ReqlQueryType Enums
@@ -149,7 +149,7 @@ typedef struct CTRANSPORT_PACK_ATTRIBUTE ReqlQueryMessageHeader
 }ReqlQueryMessageHeader;
 #pragma pack(pop)
 
-#pragma mark -- ReqlCursor
+//#pragma mark -- ReqlCursor
 
 /***
  *  ReqlCursor

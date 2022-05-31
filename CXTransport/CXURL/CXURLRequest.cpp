@@ -70,16 +70,16 @@ CTClientError CXURLRequest::SendWithQueue(CTConnection* conn, void * msg, unsign
 	overlappedQuery->conn = conn;
 	overlappedQuery->queryToken = *(uint64_t*)msg;
 
-	printf("CXReQLSendWithQueue::overlapped->queryBuffer = %s\n", (char*)msg + sizeof(ReqlQueryMessageHeader));
+	fprintf(stderr, "CXReQLSendWithQueue::overlapped->queryBuffer = %s\n", (char*)msg + sizeof(ReqlQueryMessageHeader));
 
 	//Post the overlapped object message asynchronously to the socket transmit thread queue using Win32 Overlapped IO and IOCP
 	if (!PostQueuedCompletionStatus(conn->socketContext.txQueue, *msgLength, dwCompletionKey, &(overlappedQuery->Overlapped)))
 	{
-		printf("\nCXReQLSendWithQueue::PostQueuedCompletionStatus failed with error:  %d\n", GetLastError());
+		fprintf(stderr, "\nCXReQLSendWithQueue::PostQueuedCompletionStatus failed with error:  %d\n", GetLastError());
 		return (ReqlDriverError)GetLastError();
 	}
 
-	printf("CXReQLSendWithQueue::after PostQueuedCompletionStatus\n");
+	fprintf(stderr, "CXReQLSendWithQueue::after PostQueuedCompletionStatus\n");
 
 
 #elif defined(__APPLE__)
@@ -121,7 +121,7 @@ uint64_t CXURLRequest::SendRequestWithCursorOnQueue(std::shared_ptr<CXCursor> cx
 	//get the buffer for sending with async iocp
 
 	//unsigned long cBufferSize = ct_system_allocation_granularity(); //+ sizeof(CTOverlappedResponse); 
-	char * requestBuffer = cxCursor->_cursor.requestBuffer;//&(cxCursor->_cursor.conn->request_buffers[(requestToken % CX_MAX_INFLIGHT_QUERIES) * cBufferSize ]);
+	char * requestBuffer = cxCursor->_cursor->requestBuffer;//&(cxCursor->_cursor.conn->request_buffers[(requestToken % CX_MAX_INFLIGHT_QUERIES) * cBufferSize ]);
 	char * baseBuffer = requestBuffer;
 
 	//serialize the http headers and body to a string
@@ -135,6 +135,16 @@ uint64_t CXURLRequest::SendRequestWithCursorOnQueue(std::shared_ptr<CXCursor> cx
 	{
 		memcpy(requestBuffer, "POST ", 5);
 		requestBuffer += 5;
+	}
+	else if (_command == URL_CONNECT)
+	{
+		memcpy(requestBuffer, "CONNECT ", 8);
+		requestBuffer += 8;
+	}
+	else if (_command == URL_OPTIONS)
+	{
+		memcpy(requestBuffer, "OPTIONS ", 8);
+		requestBuffer += 8;
 	}
 
 	if( _requestPath )
@@ -154,8 +164,17 @@ uint64_t CXURLRequest::SendRequestWithCursorOnQueue(std::shared_ptr<CXCursor> cx
 	memcpy( requestBuffer, "Host: ", strlen("Host: "));
 	requestBuffer+=strlen("Host: ");
 
-	memcpy( requestBuffer, cxCursor->_cursor.conn->target->host, strlen(cxCursor->_cursor.conn->target->host));
-	requestBuffer+=strlen(cxCursor->_cursor.conn->target->host);
+	std::map<char*, char*>::iterator hostPos = _headers.find("Host");
+	if (hostPos == _headers.end()) {
+		memcpy(requestBuffer, cxCursor->_cursor->conn->target->url.host, strlen(cxCursor->_cursor->conn->target->url.host));
+		requestBuffer += strlen(cxCursor->_cursor->conn->target->url.host);
+	}
+	else {
+		memcpy(requestBuffer, hostPos->second, strlen(hostPos->second));
+		requestBuffer += strlen(hostPos->second);
+	}
+
+	
 
 	memcpy( requestBuffer, "\r\nUser-Agent: CXTransport\r\n", strlen("\r\nUser-Agent: CXTransport\r\n"));
 	requestBuffer += strlen("\r\nUser-Agent: CXTransport\r\n");
@@ -171,6 +190,9 @@ uint64_t CXURLRequest::SendRequestWithCursorOnQueue(std::shared_ptr<CXCursor> cx
 	{
 
 		std::cout << it->first << ": " << it->second << "\n";
+
+		if (it == hostPos)
+			continue;
 
 		memcpy( requestBuffer, it->first, strlen(it->first));
 		requestBuffer+=strlen(it->first);
@@ -228,7 +250,7 @@ uint64_t CXURLRequest::SendRequestWithCursorOnQueue(std::shared_ptr<CXCursor> cx
 	requestLength = requestBuffer-baseBuffer;//queryMsgBuffer - queryBuffer - sizeof(ReqlQueryMessageHeader);// (int32_t)strlen(queryMsgBuffer);// jsonQueryStr.length();
 
 	//print the request for debuggin
-	printf("CXURLSendRequestWithTokenOnQueue::request (%d) = %.*s\n", (int)requestLength, (int)requestLength, baseBuffer);
+	fprintf(stderr, "CXURLSendRequestWithTokenOnQueue::request (%d) = %.*s\n", (int)requestLength, (int)requestLength, baseBuffer);
 
 	//Send the HTTP(S) request
 	//ReqlSend(conn, (void*)&queryHeader, queryHeaderLength);
@@ -238,6 +260,6 @@ uint64_t CXURLRequest::SendRequestWithCursorOnQueue(std::shared_ptr<CXCursor> cx
 	
 	//CXCursor internal CTCursor conn was already set when CXCursor was created with constructor
 	//cxCursor->_cursor->conn = &_httpConn;
-	cxCursor->_cursor.queryToken = requestToken;
-	return CTCursorSendOnQueue(&(cxCursor->_cursor), (char**)&baseBuffer, requestLength);
+	cxCursor->_cursor->queryToken = requestToken;
+	return CTCursorSendOnQueue((cxCursor->_cursor), (char**)&baseBuffer, requestLength);
 }

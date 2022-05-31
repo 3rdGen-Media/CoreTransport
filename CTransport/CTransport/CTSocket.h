@@ -101,7 +101,7 @@ typedef struct CTSocketContext
 
 typedef CTSocketContext* CTSocketContextRef;
 
-#pragma mark -- CTSocket API
+//#pragma mark -- CTSocket API
 
 /***
  *	CTSocketLInit

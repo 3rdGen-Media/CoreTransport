@@ -30,7 +30,7 @@ typedef unsigned __int64 uint64_t;
 #include "mbedtls/debug.h"
 #endif
 
-//#pragma mark -- ReqlError Enums
+////#pragma mark -- ReqlError Enums
 
 typedef enum CTErrorClass
 {
@@ -65,13 +65,14 @@ typedef enum CTClientError
 	CTSocketDisconnet				= EDISCON,
 #endif
 	CTSocketIOPending				 = WSA_IO_PENDING,	 //ReqlAsyncSend is sending in an async state
-    CTDNSError                       = -140,
-    CTRunLoopError					 = -130,
-    CTSysCallError					 = -120,
-    CTSocketDNSError                 = -110, //Unable to resolve the ReqlService host address via DNS
-    CTSCRAMEncryptionError			 = -100,
-    CTSASLHandshakeError			 = -90, //An SSL/SCRAM handshake call produced the error
-    CTSSLHandshakeError				 = -80, //An SSL handkshake call produced the error
+    CTDNSError                       = -150,
+    CTRunLoopError					 = -140,
+    CTSysCallError					 = -130,
+    CTSocketDNSError                 = -120, //Unable to resolve the ReqlService host address via DNS
+    CTSCRAMEncryptionError			 = -110,
+    CTSASLHandshakeError			 = -100, //An SSL/SCRAM handshake call produced the error
+    CTSSLHandshakeError				 = -90, //An SSL handkshake call produced the error
+    CTProxyHandshakeError            = -80,
     CTSSLKeychainError				 = -70, //A device keychain call produced the error
     CTSSLCertificateError            = -60, //An SSL Certificate call produced the error
     CTSecureTransportError           = -50, //An SSL/TLS layer call produced the error
@@ -93,7 +94,7 @@ typedef enum CTFileError
 	CTFileSuccess			= 0
 }CTFileError;
 
-#pragma mark -- CTError Struct
+//#pragma mark -- CTError Struct
 
 /* * *
  *  ReqlError Object

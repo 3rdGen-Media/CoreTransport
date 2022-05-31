@@ -96,7 +96,7 @@ namespace CoreTransport
 			{
 				//The handshake failed
 				//parse the Error and bail out
-				printf("_CXReQLSessionHandshakeCallback::CTReQLAsyncLHandshake failed!\n");
+				fprintf(stderr, "_CXReQLSessionHandshakeCallback::CTReQLAsyncLHandshake failed!\n");
 				err->id = CTSASLHandshakeError;
 				assert(1 == 0);
 
@@ -184,7 +184,7 @@ namespace CoreTransport
 				}
 				else
 				{
-					printf("_CXReQLSessionConnectionCallback::CTReQLSASLHandshake failed!\n");
+					fprintf(stderr, "_CXReQLSessionConnectionCallback::CTReQLSASLHandshake failed!\n");
 					//CTCloseConnection(&_reqlConn);
 					//CTSSLCleanup();
 					err->id = CTSASLHandshakeError;
@@ -218,14 +218,14 @@ namespace CoreTransport
 
 			//convert port short to c string
 			char port[6];
-			_itoa((int)service->port, port, 10);
+			_itoa((int)service->url.port, port, 10);
 
 			//hijack the input target ctx variable
 			void* clientCtx = service->ctx;
 			service->ctx = this;
 
 			//create connection key
-			std::string connectionKey(service->host);
+			std::string connectionKey(service->url.host);
 			connectionKey.append(":");
 			connectionKey.append(port);
 

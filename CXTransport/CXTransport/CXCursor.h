@@ -35,14 +35,14 @@ namespace CoreTransport
 			CXCursor(CXConnection * conn, const char * filepath);
 
 			~CXCursor(void);
-			CTCursor _cursor;
+			CTCursor * _cursor;
 			//unsigned long _headerLength;
 			//char	_requestBuffer[CX_REQUEST_BUFFER_SIZE];
 
 			CXConnection* connection();
 
-			virtual uint64_t Continue() { printf("CXCursor::continue should be overidden!!!"); return 0;  }
-			virtual char* ProcessResponseHeader(char * buffer, unsigned long bufferLength){printf("CXCursor::ProcessResponseHeaders should be overidden!!!"); return NULL; }
+			virtual uint64_t Continue() { fprintf(stderr, "CXCursor::continue should be overidden!!!"); return 0;  }
+			virtual char* ProcessResponseHeader(CTCursor * cursor, char * buffer, unsigned long bufferLength){fprintf(stderr, "CXCursor::ProcessResponseHeaders should be overidden!!!"); return NULL; }
 
 			std::function<void(CTError* error, std::shared_ptr<CXCursor> cxCursor)> callback;
 		protected:

@@ -197,7 +197,7 @@ CXReQLQuery::~CXReQLQuery()
 {
 
 	//delete rapidjson objects in reverse order
-	printf("CXReQLQuery::~CXReQLQuery\n");
+	fprintf(stderr, "CXReQLQuery::~CXReQLQuery\n");
 	//delete rapidjson objects in reverse order
 	delete _queryArray;
 	delete _queryObject;
@@ -418,6 +418,28 @@ CXReQLQuery& CXReQLQuery::changes()
 }
 
 
+CXReQLQuery& CXReQLQuery::changes(Value * options)
+{
+	//put the previous query and the table name json string in an array of arguments
+	Value changeQueryArgs(kArrayType);
+	changeQueryArgs.PushBack(*_queryArray, *_domValueAllocator);// .PushBack(primaryKeyJsonStr, *_domValueAllocator);
+
+	Value changesCommand(REQL_CHANGES);
+
+	//put the table command and its array of args in a new top level DOM object array
+	ReqlQueryDocumentType* newQueryArray = new ReqlQueryDocumentType(_domValueAllocator, CX_REQL_QUERY_STATIC_BUFF_SIZE);
+	newQueryArray->SetArray();
+	newQueryArray->PushBack(changesCommand, *_domValueAllocator).PushBack(changeQueryArgs, *_domValueAllocator);
+
+	if (options)
+		newQueryArray->PushBack(*options, *_domValueAllocator);
+
+	delete _queryArray;			  //delete the old top level dom object
+	_queryArray = newQueryArray; //store pointer to new top level dom object
+	return *this;
+
+}
+
 CXReQLQuery& CXReQLQuery::bland(CXReQLQuery* chainQuery)
 {
 	//put the previous query and the table name json string in an array of arguments
@@ -485,6 +507,52 @@ CXReQLQuery& CXReQLQuery::insert(char* jsonObjStr)
 }
 
 
+CXReQLQuery& CXReQLQuery::update(Value* jsonObj)
+{
+	//put the previous query and the table name json string in an array of arguments
+	Value insertQueryArgs(kArrayType);
+	insertQueryArgs.PushBack(*_queryArray, *_domValueAllocator).PushBack(*jsonObj, *_domValueAllocator);
+	//REQL_TABLE Command (15)
+	Value updateCommand(REQL_UPDATE);
+	//Value newQueryArray(kArrayType);
+
+	//put the table command and its array of args in a new top level DOM object array
+	ReqlQueryDocumentType* newQueryArray = new ReqlQueryDocumentType(_domValueAllocator, CX_REQL_QUERY_STATIC_BUFF_SIZE);
+	newQueryArray->SetArray();
+	newQueryArray->PushBack(updateCommand, *_domValueAllocator).PushBack(insertQueryArgs, *_domValueAllocator);
+
+	delete _queryArray;			  //delete the old top level dom object
+	_queryArray = newQueryArray; //store pointer to new top level dom object
+
+	return *this;
+
+}
+
+
+CXReQLQuery& CXReQLQuery::update(char* jsonObjStr)
+{
+	_queryObject->SetObject();
+	_queryObject->Parse((char*)jsonObjStr);
+
+	//put the previous query and the table name json string in an array of arguments
+	Value insertQueryArgs(kArrayType);
+	insertQueryArgs.PushBack(*_queryArray, *_domValueAllocator).PushBack(*_queryObject, *_domValueAllocator);
+	//REQL_TABLE Command (15)
+	Value updateCommand(REQL_UPDATE);
+	//Value newQueryArray(kArrayType);
+
+	//put the table command and its array of args in a new top level DOM object array
+	ReqlQueryDocumentType* newQueryArray = new ReqlQueryDocumentType(_domValueAllocator, CX_REQL_QUERY_STATIC_BUFF_SIZE);
+	newQueryArray->SetArray();
+	newQueryArray->PushBack(updateCommand, *_domValueAllocator).PushBack(insertQueryArgs, *_domValueAllocator);
+
+	delete _queryArray;			  //delete the old top level dom object
+	_queryArray = newQueryArray; //store pointer to new top level dom object
+
+	return *this;
+}
+
+
 /***
  *	ReqlSendWithQueue
  *
@@ -510,16 +578,16 @@ ReqlDriverError CXReQLQuery::CXReQLSendWithQueue(CTConnection* conn, void * msg,
 	overlappedQuery->conn = conn;
 	overlappedQuery->queryToken = *(uint64_t*)msg;
 
-	printf("CXReQLSendWithQueue::overlapped->queryBuffer = %s\n", (char*)msg + sizeof(ReqlQueryMessageHeader));
+	fprintf(stderr, "CXReQLSendWithQueue::overlapped->queryBuffer = %s\n", (char*)msg + sizeof(ReqlQueryMessageHeader));
 
 	//Post the overlapped object message asynchronously to the socket transmit thread queue using Win32 Overlapped IO and IOCP
 	if (!PostQueuedCompletionStatus(conn->socketContext.txQueue, *msgLength, dwCompletionKey, &(overlappedQuery->Overlapped)))
 	{
-		printf("\nCXReQLSendWithQueue::PostQueuedCompletionStatus failed with error:  %d\n", GetLastError());
+		fprintf(stderr, "\nCXReQLSendWithQueue::PostQueuedCompletionStatus failed with error:  %d\n", GetLastError());
 		return (ReqlDriverError)GetLastError();
 	}
 
-	printf("CXReQLSendWithQueue::after PostQueuedCompletionStatus\n");
+	fprintf(stderr, "CXReQLSendWithQueue::after PostQueuedCompletionStatus\n");
 
 
 	/*
@@ -530,7 +598,7 @@ ReqlDriverError CXReQLQuery::CXReQLSendWithQueue(CTConnection* conn, void * msg,
 		//WSA_IO_PENDING
 		if( WSAGetLastError() != WSA_IO_PENDING )
 		{
-			printf( "****ReqlAsyncSend::WSASend failed with error %d \n",  WSAGetLastError() );
+			fprintf(stderr,  "****ReqlAsyncSend::WSASend failed with error %d \n",  WSAGetLastError() );
 		}
 
 		//forward the winsock system error to the client
@@ -557,11 +625,11 @@ uint64_t CXReQLQuery::RunQueryWithCursorOnQueue(std::shared_ptr<CXCursor> cxCurs
 
 	//serialize the query array to string
 
-	char * queryBuffer = cxCursor->_cursor.requestBuffer;//&(conn->query_buffers[(queryToken % CX_REQL_MAX_INFLIGHT_QUERIES) * CX_REQL_QUERY_STATIC_BUFF_SIZE]);
+	char * queryBuffer = cxCursor->_cursor->requestBuffer;//&(conn->query_buffers[(queryToken % CX_REQL_MAX_INFLIGHT_QUERIES) * CX_REQL_QUERY_STATIC_BUFF_SIZE]);
 	char * queryMsgBuffer = queryBuffer + sizeof(ReqlQueryMessageHeader);
 	
 	//Serialize to buffer
-	//printf("CXREQL_QUERY_BUF_SIZE = %d\n", CX_REQL_QUERY_STATIC_BUFF_SIZE);
+	//fprintf(stderr, "CXREQL_QUERY_BUF_SIZE = %d\n", CX_REQL_QUERY_STATIC_BUFF_SIZE);
 	CXRapidJsonString parseDomToJsonString(&queryMsgBuffer, CX_REQL_QUERY_STATIC_BUFF_SIZE - sizeof(ReqlQueryMessageHeader));
 	rapidjson::Writer<CXRapidJsonString> writer(parseDomToJsonString);
 	_queryArray->Accept(writer);
@@ -569,7 +637,7 @@ uint64_t CXReQLQuery::RunQueryWithCursorOnQueue(std::shared_ptr<CXCursor> cxCurs
 	//*queryMsgBuffer='\0';
 	//queryMsgBuffer++;
 
-	//printf("parseDomToJsonBuffer = \n\n%s\n\n", queryBuffer + sizeof(ReqlQueryMessageHeader));
+	//fprintf(stderr, "parseDomToJsonBuffer = \n\n%s\n\n", queryBuffer + sizeof(ReqlQueryMessageHeader));
 	queryStrLength = queryMsgBuffer - queryBuffer - sizeof(ReqlQueryMessageHeader);// (int32_t)strlen(queryMsgBuffer);// jsonQueryStr.length();
 
 	//now we know the size of the query string we can define the header
@@ -578,7 +646,7 @@ uint64_t CXReQLQuery::RunQueryWithCursorOnQueue(std::shared_ptr<CXCursor> cxCurs
 	queryHeader->length = (int32_t)queryStrLength;
 
 #ifdef _DEBUG
-	printf("CXReQLRunQueryWithTokenOnQueue::jsonQueryStream (%d) = %.*s\n", (int)queryStrLength, (int)queryStrLength, queryBuffer + sizeof(ReqlQueryMessageHeader));
+	fprintf(stderr, "CXReQLRunQueryWithTokenOnQueue::jsonQueryStream (%d) = %.*s\n", (int)queryStrLength, (int)queryStrLength, queryBuffer + sizeof(ReqlQueryMessageHeader));
 #endif	
 	queryMessageLength = sizeof(ReqlQueryMessageHeader) + queryStrLength;
 
@@ -586,8 +654,8 @@ uint64_t CXReQLQuery::RunQueryWithCursorOnQueue(std::shared_ptr<CXCursor> cxCurs
 	//ReqlSend(conn, (void*)&queryHeader, queryHeaderLength);
 	//CXReQLSendWithQueue(conn, (void*)queryBuffer, &queryMessageLength);
 	//return CTSendOnQueue2(cxCursor->_cursor.conn, (char **)&queryBuffer, queryMessageLength, queryToken, &(cxCursor->_cursor.overlappedResponse));//, &overlappedResponse);
-	cxCursor->_cursor.queryToken = queryToken;
-	return CTCursorSendOnQueue(&(cxCursor->_cursor), (char**)&queryBuffer, queryMessageLength);
+	cxCursor->_cursor->queryToken = queryToken;
+	return CTCursorSendOnQueue((cxCursor->_cursor), (char**)&queryBuffer, queryMessageLength);
 	//return queryHeader->token;
 }
 
@@ -599,7 +667,7 @@ uint64_t CXReQLQuery::RunQueryWithCursorOnQueue(std::shared_ptr<CXCursor> cxCurs
 uint64_t CXReQLQuery::run(CXReQLConnection* conn, Value* options, std::function<void(char * buffer)> const &callback)
 {
 	uint64_t expectedQueryToken = (conn->connection()->queryCount++);
-	//CXReQL_printf("CXReQLQuery::Run ExpectedQueryToken = %llu\n", expectedQueryToken);
+	//CXReQL_fprintf(stderr, "CXReQLQuery::Run ExpectedQueryToken = %llu\n", expectedQueryToken);
 
 	Value runCommand(1);
 	//Value newQueryArray(kArrayType);

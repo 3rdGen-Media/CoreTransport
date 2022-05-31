@@ -12,7 +12,7 @@ extern "C" {
 #endif
 
 
-#pragma mark -- CTSSL Struct
+//#pragma mark -- CTSSL Struct
 
 /* * *
  *  ReqlSSL Object
@@ -31,7 +31,7 @@ typedef struct CTRANSPORT_PACK_ATTRIBUTE CTSSL
 	CTSSLMethod method;
 }CTSSL;
 
-#pragma mark -- CTDNS Struct
+//#pragma mark -- CTDNS Struct
 
 /* * *
  *  ReqlDNS Object
@@ -53,7 +53,7 @@ typedef struct CTRANSPORT_PACK_ATTRIBUTE CTDNS
 
 }CTDNS;
 
-#pragma mark -- HTTPConnection Struct
+//#pragma mark -- HTTPConnection Struct
 
 typedef struct CTCursor;
 typedef struct CTTarget;
@@ -134,7 +134,7 @@ typedef struct CTConnection
 }CTConnection;
 
 
-#pragma mark -- CTConnection API Callback Typedefs
+//#pragma mark -- CTConnection API Callback Typedefs
 /* * *
  *  CTConnectionCallback
  *
@@ -149,7 +149,7 @@ typedef void (*CTConnectionCallback)(struct CTError* err, struct CTConnection* c
 typedef int (*CTConnectionClosure)(struct CTError* err, struct CTConnection* conn);
 
 
-#pragma mark -- HTTPTarget [ReqlConnectionOptions]
+//#pragma mark -- HTTPTarget [ReqlConnectionOptions]
 /* * *
  *  ReqlService [alias: ReqlConnectionOptions]
  *
@@ -164,49 +164,38 @@ typedef int (*CTConnectionClosure)(struct CTError* err, struct CTConnection* con
  *      thus, bypassing the ReqlConnectRoutine Hostname DNS Resolve Step
  *
  * * */
-typedef struct CTTarget      //72 bytes, 8 byte data alignment
+typedef struct CTTarget     //TO DO:  calculate size and alignment
 {
+	//Server host address
+	CTURL		url;			//22 or 26 bytes
+	CTURL       proxy;			//22 or 26 bytes
 
-#ifdef _WIN32
-
-	//TO DO:  replace this with sockaddr_storage
-	//Pre-resolved socket address input or storage for async resolve
-	struct sockaddr_in host_addr;   //16 bytes
-
-#endif
-
-	//Server host address string
-	char* host;                    //8 bytes
-
-	//RethinkDB SASL SCRAM SHA-256 Handshake Credentials
-	char* user;                    //8 bytes
-	char* password;                //8 bytes
-	//char nonce[32];
-
-	//We place a socket on target to allow for transient async DNS and async connections
+	//We place a socket on target struct to allow for transient async DNS over UDP and connectionless UDP pipeline
 	CTSocket	socket;
 
 	//TLS SSL: Root Certificate Authority File Path
-	CTSSL ssl;                    //8 bytes
+	CTSSL		ssl;            //8 bytes
 
 	//DNS:  Nameserver [resolv.conf] and NSSwitch.conf File Paths
-	CTDNS dns;                    //16 bytes
+	CTDNS		dns;            //16 bytes
 
-	//ReqlConnectionCallback * callback;  //8 bytes
+	//UDP/TCP Socket Connection Options
+	int64_t		timeout;        //-1 indicates wait forever
 
-	//TCP Socket Connection Input
-	int64_t timeout;                //-1 indicates wait forever
-
-	CTThreadQueue cxQueue;			//The desired kernel queue for the socket connection to async connect AND async recv on 
-	CTThreadQueue txQueue;			//The desired kernel queue for the socket connection to async send on
-	CTThreadQueue rxQueue;			//The desired kernel queue for the socket connection to async send on
-	CTConnectionClosure	callback;
-
+	CTThreadQueue	cxQueue;	//The desired kernel queue for the socket connection to async connect AND async recv on 
+	CTThreadQueue	txQueue;	//The desired kernel queue for the socket connection to async send on
+	CTThreadQueue	rxQueue;	//The desired kernel queue for the socket connection to async send on
+		
+	CTConnectionClosure				callback;
 	struct CTOverlappedTarget		overlappedTarget;
 
 	void* ctx;
-	unsigned short port;
 
+	//RethinkDB SASL SCRAM SHA-256 Handshake Credentials; 
+	//TO DO: These auth properties have more to do with the connection than the target but we need a way to pass them when connecting
+	//		 so perhaps move them into the CTURL struct
+	char* user;                    //8 bytes
+	char* password;                //8 bytes
 
 	//explicit padding
 	unsigned char padding[2];
@@ -300,7 +289,7 @@ extern int			 CT_CURSOR_INDEX;
 extern CTConnection *	CT_CONNECTION_POOL;
 extern CTCursor		*	CT_CURSOR_POOL;
 
-#pragma mark -- CTConnection API Method Function Pointer Definitions
+//#pragma mark -- CTConnection API Method Function Pointer Definitions
 typedef int (*CTConnectFunc)(struct CTTarget * service, CTConnectionClosure callback);
 
 #if defined(__cplusplus) //|| defined(__OBJC__)

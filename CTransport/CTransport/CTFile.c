@@ -278,3 +278,19 @@ CTRANSPORT_API CTRANSPORT_INLINE void*  ct_file_map_to_buffer( char ** buffer, o
 }
 
 
+CTRANSPORT_API CTRANSPORT_INLINE uint64_t ct_system_utc()
+{
+	const uint64_t OA_ZERO_TICKS = 94353120000000000; //12/30/1899 12:00am in ticks
+	//const uint64_t TICKS_PER_DAY = 864000000000;      //ticks per day
+
+	FILETIME ft = { 0 };
+	GetSystemTimePreciseAsFileTime(&ft);
+
+	ULARGE_INTEGER dt; //needed to avoid alignment faults
+	dt.LowPart = ft.dwLowDateTime;
+	dt.HighPart = ft.dwHighDateTime;
+
+	return (dt.QuadPart - OA_ZERO_TICKS);
+}
+
+

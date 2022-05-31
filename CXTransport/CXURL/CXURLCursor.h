@@ -12,7 +12,7 @@ namespace CoreTransport
 			CXURLCursor(CXConnection * conn) : CXCursor(conn) {}
 			CXURLCursor(CXConnection * conn, const char * filepath) : CXCursor(conn, filepath) {}
 			~CXURLCursor(void){}
-			char * ProcessResponseHeader(char * buffer, unsigned long bufferLength);
+			char * ProcessResponseHeader(CTCursor * cursor, char * buffer, unsigned long bufferLength);
 
 		private:
 	};

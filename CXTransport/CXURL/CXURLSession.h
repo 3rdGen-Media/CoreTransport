@@ -115,7 +115,7 @@ namespace CoreTransport
 				{
 					if (CTSocketCreateEventQueue(&(conn->socketContext)) < 0)
 					{
-						printf("_CXURLSessionConnectionCallback::CTSocketCreateEventQueue failed\n");
+						fprintf(stderr, "_CXURLSessionConnectionCallback::CTSocketCreateEventQueue failed\n");
 						err->id = (int)conn->event_queue;
 					}
 				}
@@ -151,14 +151,14 @@ namespace CoreTransport
 
 			//convert port short to c string
 			char port[6];
-			_itoa((int)target->port, port, 10);
+			_itoa((int)target->url.port, port, 10);
 
 			//hijack the input target ctx variable
 			void* clientCtx = target->ctx;
 			target->ctx = this;
 
 			//create connection key
-			std::string connectionKey(target->host);
+			std::string connectionKey(target->url.host);
 			connectionKey.append(":");
 			connectionKey.append(port);
 

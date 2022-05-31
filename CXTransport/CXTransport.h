@@ -75,7 +75,7 @@
 #endif
 #endif
 
-//#define CT_printf(f_, ...) printf((f_), __VA_ARGS__)
+//#define CT_fprintf(stderr, f_, ...) fprintf(stderr, (f_), __VA_ARGS__)
 
 //statically tune the outgoing request/query buffer size
 #define CX_REQUEST_BUFFER_SIZE 65536L

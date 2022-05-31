@@ -13,7 +13,7 @@ namespace CoreTransport
 			~CXReQLCursor(void){}
 
 			uint64_t Continue();
-			char * ProcessResponseHeader(char * buffer, unsigned long bufferLength);
+			char * ProcessResponseHeader(CTCursor * cursor, char * buffer, unsigned long bufferLength);
 
 		private:
 	};

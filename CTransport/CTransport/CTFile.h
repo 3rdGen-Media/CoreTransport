@@ -111,4 +111,7 @@ CTRANSPORT_API CTRANSPORT_INLINE void ct_file_allocate_storage(int fileDescripto
 CTRANSPORT_API CTRANSPORT_INLINE void*  ct_file_map_to_buffer( char ** buffer, off_t filesize, unsigned long filePrivelege, unsigned long mapOptions, int fileDescriptor, off_t offset);
 CTRANSPORT_API CTRANSPORT_INLINE void ct_file_unmap(int fileDescriptor, char * fbuffer);
 
+//Win32 UTC .1 microsecond precision
+CTRANSPORT_API CTRANSPORT_INLINE uint64_t ct_system_utc();
+
 #endif /* cr_file_h */

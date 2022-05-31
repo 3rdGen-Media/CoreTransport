@@ -393,6 +393,7 @@ exit 0</Command>
     <ClInclude Include="CTransport\CTConnection.h" />
     <ClInclude Include="CTransport\CTCoroutine.h" />
     <ClInclude Include="CTransport\CTDNS.h" />
+    <ClInclude Include="CTransport\CTEndian.h" />
     <ClInclude Include="CTransport\CTError.h" />
     <ClInclude Include="CTransport\CTQueue.h" />
     <ClInclude Include="CTransport\CTransportAPI.h" />

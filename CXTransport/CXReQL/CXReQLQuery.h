@@ -33,7 +33,7 @@ namespace CoreTransport
 {
 
 	/*
-	static void UWP_printf(char *format, ...)
+	static void UWP_fprintf(stderr, char *format, ...)
 	{
 		char REQL_PRINT_BUFFER[4096];
 
@@ -47,7 +47,7 @@ namespace CoreTransport
 		va_end(args);
 	}
 	*/
-	#define CXReQL_printf(f_, ...) printf((f_), __VA_ARGS__)
+	#define CXReQL_fprintf(stderr, f_, ...) fprintf(stderr, (f_), __VA_ARGS__)
 
 	//typedef void(*CXReQLQueryClosure) (ReqlError * error, CXReQLCursor * cursor);
 
@@ -82,6 +82,9 @@ namespace CoreTransport
 		CXReQLQuery& insert(char* jsonObjStr);
 		CXReQLQuery& insert(Value* jsonObj);
 
+		CXReQLQuery& update(char* jsonObjStr);
+		CXReQLQuery& update(Value* jsonObj);
+
 		//Math Queries
 		CXReQLQuery& count();
 		CXReQLQuery& gt(int value);
@@ -91,6 +94,7 @@ namespace CoreTransport
 
 		//changefeed queries
 		CXReQLQuery& changes();
+		CXReQLQuery& changes(Value* options);
 
 		//Send Query Methods
 		//uint64_t CXReQLRunQueryWithTokenOnQueue(CTConnection * conn, uint64_t queryToken);//, void * options)//, ReqlQueryClosure callback)
@@ -104,8 +108,8 @@ namespace CoreTransport
 		template<typename CXReQLQueryClosure>
 		uint64_t Continue(std::shared_ptr<CXCursor> continueCursor, CXReQLQueryClosure callback)
 		{
-			uint64_t expectedQueryToken = continueCursor->_cursor.queryToken; //(conn->connection()->queryCount++);
-			CXReQL_printf("CXReQLQuery::Continue ExpectedQueryToken = %llu\n", expectedQueryToken);
+			uint64_t expectedQueryToken = continueCursor->_cursor->queryToken; //(conn->connection()->queryCount++);
+			CXReQL_fprintf(stderr, "CXReQLQuery::Continue ExpectedQueryToken = %llu\n", expectedQueryToken);
 
 			//Value continueCommand(2);
 			//Value newQueryArray(kArrayType);
@@ -131,7 +135,7 @@ namespace CoreTransport
 				strcat(filepath, ".txt");
 
 				_filepath = filepath;// "ReQLQuery.txt\0";//ct_file_name((char*)requestPath);
-				printf("CXReQLQUery::run filepath = %s\n", _filepath);
+				fprintf(stderr, "CXReQLQUery::run filepath = %s\n", _filepath);
 			}
 			*/
 
@@ -143,8 +147,10 @@ namespace CoreTransport
 			//conn->addQueryCallbackForKey(callback, expectedQueryToken);
 
 
-			continueCursor->_cursor.headerLength = 0;
-			continueCursor->_cursor.contentLength = 0;
+			continueCursor->_cursor->headerLength = 0;
+			continueCursor->_cursor->contentLength = 0;
+
+			//continueCursor->_cursor->conn->responseCount--;
 
 			//return SendRequestWithCursorOnQueue(cxURLCursor, expectedQueryToken);
 			RunQueryWithCursorOnQueue(continueCursor, expectedQueryToken);
@@ -161,8 +167,8 @@ namespace CoreTransport
 		template<typename CXReQLQueryClosure>
 		uint64_t run(CXConnection* conn, Value* options, CXReQLQueryClosure callback)
 		{
-			uint64_t expectedQueryToken = (conn->connection()->queryCount++);
-			//CXReQL_printf("CXReQLQuery::Run ExpectedQueryToken = %llu\n", expectedQueryToken);
+			uint64_t expectedQueryToken = (conn->connection()->queryCount);
+			//CXReQL_fprintf(stderr, "CXReQLQuery::Run ExpectedQueryToken = %llu\n", expectedQueryToken);
 
 			Value runCommand(1);
 			//Value newQueryArray(kArrayType);
@@ -186,7 +192,7 @@ namespace CoreTransport
 				strcat(filepath, ".txt");
 
 				_filepath = filepath;// "ReQLQuery.txt\0";//ct_file_name((char*)requestPath);
-				printf("CXReQLQUery::run filepath = %s\n", _filepath);
+				fprintf(stderr, "CXReQLQUery::run filepath = %s\n", _filepath);
 			}
 
 			//create a cursor (for the query response, but also it holds our query buffer)

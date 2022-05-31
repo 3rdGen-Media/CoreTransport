@@ -51,7 +51,7 @@ ReqlResponseType ReqlCursorGetResponseType(ReqlCursor * cursor)
 
 uint64_t ReqlContinueQueryCtx( ReqlQueryContext* ctx, ReqlConnection * conn, uint64_t queryToken, void * options )
 {
-    //printf("ReqlContinueQuery\n");
+    //fprintf(stderr, "ReqlContinueQuery\n");
     
 	int32_t queryHeaderLength, queryStrLength;
     ReqlQueryMessageHeader queryHeader;
@@ -61,11 +61,11 @@ uint64_t ReqlContinueQueryCtx( ReqlQueryContext* ctx, ReqlConnection * conn, uin
 	ReqlError * errPtr = NULL;
     ReqlError err = {ReqlDriverErrorClass, ReqlSuccess, NULL};
     
-    //printf("sizeof(ReQLHeader) == %lu\n", sizeof(ReqlQueryMessageHeader));
+    //fprintf(stderr, "sizeof(ReQLHeader) == %lu\n", sizeof(ReqlQueryMessageHeader));
     
     //Get the ReqlQuery stack stored via Posix Thread Local Storage memory
     //ReqlQueryContext * ctx = ReqlQueryGetContext();
-    //printf("Num Queries = %d\n", ctx->numQueries);
+    //fprintf(stderr, "Num Queries = %d\n", ctx->numQueries);
     //assert( ctx->numQueries > 0 );
     
     //const char * empty_options = "{}";
@@ -101,7 +101,7 @@ uint64_t ReqlContinueQueryCtx( ReqlQueryContext* ctx, ReqlConnection * conn, uin
             }
             else    //this allows population of single c-string in json
                 sprintf(queryBuf[queryIndex%2]+sizeof(ReqlQueryMessageHeader), "[%d,[%s,\"%s\"]]", ctx->stack[queryIndex].type, queryBuf[(queryIndex+1)%2]+sizeof(ReqlQueryMessageHeader), (char*)ctx->stack[queryIndex].data);
-            //printf("queryBuf = \n\n%s\n\n", queryBuf[(queryIndex%2)]+sizeof(ReqlQueryMessageHeader));
+            //fprintf(stderr, "queryBuf = \n\n%s\n\n", queryBuf[(queryIndex%2)]+sizeof(ReqlQueryMessageHeader));
         }
         
         //Finally, once we are done serialzing the queries on the TLS query stack
@@ -109,7 +109,7 @@ uint64_t ReqlContinueQueryCtx( ReqlQueryContext* ctx, ReqlConnection * conn, uin
         sprintf(queryBuf[queryIndex%2]+sizeof(ReqlQueryMessageHeader), "[%d,%s,%s]", continueQuery.type, queryBuf[(queryIndex+1)%2]+sizeof(ReqlQueryMessageHeader), (char*)continueQuery.data);
         
         //Most helpful for debugging!!!
-        //printf("queryBuf = \n\n%s\n\n", queryBuf[(queryIndex)%2]+sizeof(ReqlQueryMessageHeader));
+        //fprintf(stderr, "queryBuf = \n\n%s\n\n", queryBuf[(queryIndex)%2]+sizeof(ReqlQueryMessageHeader));
     }
     else
     {
@@ -129,12 +129,12 @@ uint64_t ReqlContinueQueryCtx( ReqlQueryContext* ctx, ReqlConnection * conn, uin
     queryHeaderLength = sizeof(ReqlQueryMessageHeader);
     queryStrLength = (int32_t)strlen(queryStr + queryHeaderLength);
     
-    //printf("queryStrLength = %d\n", queryStrLength);
+    //fprintf(stderr, "queryStrLength = %d\n", queryStrLength);
     queryHeader.length = queryStrLength;// + queryHeaderLength;
     memcpy(queryBuf[(queryIndex)%2], &queryHeader, sizeof(ReqlQueryMessageHeader)); //copy query header
     queryBuf[(queryIndex)%2][queryStrLength + queryHeaderLength] = '\0';  //cap with null char
     
-    //printf("sendBuffer = \n\n%s\n", queryBuf);
+    //fprintf(stderr, "sendBuffer = \n\n%s\n", queryBuf);
     CTSend(conn, queryStr, queryStrLength + queryHeaderLength);
     return queryHeader.token;
     
@@ -142,7 +142,7 @@ uint64_t ReqlContinueQueryCtx( ReqlQueryContext* ctx, ReqlConnection * conn, uin
 
 uint64_t ReqlStopQueryCtx( ReqlQueryContext* ctx, ReqlConnection * conn, uint64_t queryToken, void * options )
 {
-    //printf("ReqlContinueQuery\n");
+    //fprintf(stderr, "ReqlContinueQuery\n");
   
 	int32_t queryHeaderLength, queryStrLength;
 	ReqlQueryMessageHeader queryHeader;
@@ -155,18 +155,18 @@ uint64_t ReqlStopQueryCtx( ReqlQueryContext* ctx, ReqlConnection * conn, uint64_
         
     sprintf(queryBuf[queryIndex%2]+sizeof(ReqlQueryMessageHeader), "[3]");
     queryBuf[queryIndex%2][sizeof(ReqlQueryMessageHeader)+ 3] = '\0';
-    //printf("sizeof(ReQLHeader) == %lu\n", sizeof(ReqlQueryMessageHeader));
+    //fprintf(stderr, "sizeof(ReQLHeader) == %lu\n", sizeof(ReqlQueryMessageHeader));
     
     //Get the ReqlQuery stack stored via Posix Thread Local Storage memory
     //ReqlQueryContext * ctx = ReqlQueryGetContext();
-    //printf("Num Queries = %d\n", ctx->numQueries);
+    //fprintf(stderr, "Num Queries = %d\n", ctx->numQueries);
     //assert( ctx->numQueries > 0 );
     
     //const char * empty_options = "{}";
     //Serialize the ReqlQueryStack to the JSON expected by REQL
     
    
-    printf("stop queryBuf = \n\n%s\n\n", queryBuf[(queryIndex)%2]+sizeof(ReqlQueryMessageHeader));
+    fprintf(stderr, "stop queryBuf = \n\n%s\n\n", queryBuf[(queryIndex)%2]+sizeof(ReqlQueryMessageHeader));
 
     //reset the TLS ReqlQuery stack
     ctx->numQueries = 0;
@@ -179,12 +179,12 @@ uint64_t ReqlStopQueryCtx( ReqlQueryContext* ctx, ReqlConnection * conn, uint64_
     queryHeaderLength = sizeof(ReqlQueryMessageHeader);
     queryStrLength = (int32_t)strlen(queryStr + queryHeaderLength);
     
-    printf("queryStrLength = %d\n", queryStrLength);
+    fprintf(stderr, "queryStrLength = %d\n", queryStrLength);
     queryHeader.length = queryStrLength;// + queryHeaderLength;
     memcpy(queryBuf[(queryIndex)%2], &queryHeader, sizeof(ReqlQueryMessageHeader)); //copy query header
     queryBuf[(queryIndex)%2][queryStrLength + queryHeaderLength] = '\0';  //cap with null char
     
-    //printf("sendBuffer = \n\n%s\n", queryBuf);
+    //fprintf(stderr, "sendBuffer = \n\n%s\n", queryBuf);
     CTSend(conn, queryStr, queryStrLength + queryHeaderLength);
     return queryHeader.token;
     
@@ -207,7 +207,7 @@ uint64_t ReqlStopQuery(ReqlConnection * conn, uint64_t queryToken, void * option
 
 uint64_t ReqlCursorContinue(ReqlCursor *cursor, void * options)
 {
-    //printf("ReqlCursorContinue\n");
+    //fprintf(stderr, "ReqlCursorContinue\n");
     return ReqlContinueQuery(cursor->conn, cursor->header->token, options);
 }
 
@@ -219,7 +219,7 @@ CTRANSPORT_API CTRANSPORT_INLINE int CTReQLHandshakeProcessMagicNumberResponse(c
     bool magicNumberSuccess = false;
     char* successVal = NULL;
     //char* mnResponsePtr = (char*)MAGIC_NUMBER_RESPONSE_BUFFER.data();
-    printf("CTReQLHandshakeProcessMagicNumberResponse Buffer = \n\n%s\n\n", mnResponsePtr);
+    fprintf(stderr, "CTReQLHandshakeProcessMagicNumberResponse Buffer = \n\n%s\n\n", mnResponsePtr);
 
     //if (!mnResponsePtr || !sFirstMessagePtr)
     //    return VTSASLHandshakeError;
@@ -239,7 +239,7 @@ CTRANSPORT_API CTRANSPORT_INLINE int CTReQLHandshakeProcessMagicNumberResponse(c
     }
     if (!magicNumberSuccess)
     {
-        printf("RDB Magic Number Response Failure!\n");
+        fprintf(stderr, "RDB Magic Number Response Failure!\n");
         //struct CTError vError = { (CTErrorClass)0,ec.value(),(void*)(ec.message().c_str()) };    //Reql API client functions will generally return ints as errors
         //callback(&vError, r);
         return -1;
@@ -253,7 +253,7 @@ CTRANSPORT_API CTRANSPORT_INLINE int CTReQLHandshakeProcessMagicNumberResponse(c
 
 CTRANSPORT_API CTRANSPORT_INLINE void* CTReQLHandshakeProcessFirstMessageResponse(char* sFirstMessagePtr, size_t sFirstMessageLen, char* password)
 {
-    printf("CTReQLHandshakeProcessFirstMessageResponse Buffer = \n\n%s\n\n", sFirstMessagePtr);
+    fprintf(stderr, "CTReQLHandshakeProcessFirstMessageResponse Buffer = \n\n%s\n\n", sFirstMessagePtr);
 
     bool sfmSuccess = false;
     char* successVal = NULL;
@@ -300,7 +300,7 @@ CTRANSPORT_API CTRANSPORT_INLINE void* CTReQLHandshakeProcessFirstMessageRespons
 
     //ct_scram_init();
 
-    //printf("SERVER_FIRST_MESSAGE_BUFFER (%d) = \n\n%s\n\n", strlen(sFirstMessagePtr), sFirstMessagePtr);
+    //fprintf(stderr, "SERVER_FIRST_MESSAGE_BUFFER (%d) = \n\n%s\n\n", strlen(sFirstMessagePtr), sFirstMessagePtr);
 
     //  Parse the server-first-message json response buffer to see if client-first-message exchange was successful
     //  Note:  Here we are counting on the fact that rdb server json does not send whitespace!!!
@@ -315,7 +315,7 @@ CTRANSPORT_API CTRANSPORT_INLINE void* CTReQLHandshakeProcessFirstMessageRespons
     }
     if (!sfmSuccess)//|| !authValue || authLength < 1 )
     {
-        printf("RDB server-first-message response failure!\n");
+        fprintf(stderr, "RDB server-first-message response failure!\n");
         //struct CTError vError = { (CTErrorClass)0,ec.value(),(void*)(ec.message().c_str()) };    //Reql API client functions will generally return ints as errors
         //callback(&vError, r);
         return NULL;
@@ -373,16 +373,16 @@ CTRANSPORT_API CTRANSPORT_INLINE void* CTReQLHandshakeProcessFirstMessageRespons
     //       and so was moved to a memcpy here closer to the serverNonce ptr population
     memcpy(CLIENT_FINAL_MESSAGE, "c=biws,r=", 9);
     memcpy(CLIENT_FINAL_MESSAGE + 9, serverNonce, 40); //We always know the CLIENT + SERVER nonces will be 20 + 20 characters (ie bytes)
-    printf("CLIENT_FINAL_MESSAGE = \n\n%s\n\n", CLIENT_FINAL_MESSAGE);
+    fprintf(stderr, "CLIENT_FINAL_MESSAGE = \n\n%s\n\n", CLIENT_FINAL_MESSAGE);
 
     assert(base64Salt);
     assert(saltIterations);
 
 
-    printf("serverNonce = %s\n", serverNonce);
-    printf("base64Salt = %s\n", base64Salt);
-    printf("saltIterations = %d\n", atoi(saltIterations));
-    printf("password = %s\n", password);
+    fprintf(stderr, "serverNonce = %s\n", serverNonce);
+    fprintf(stderr, "base64Salt = %s\n", base64Salt);
+    fprintf(stderr, "saltIterations = %d\n", atoi(saltIterations));
+    fprintf(stderr, "password = %s\n", password);
 
     
     //  While the nonce(s) is (are) already in ASCII encoding sans , and " characters,
@@ -397,7 +397,7 @@ CTRANSPORT_API CTRANSPORT_INLINE void* CTReQLHandshakeProcessFirstMessageRespons
     int si = atoi(saltIterations);
     memset(saltedPassword, 0, CC_SHA256_DIGEST_LENGTH);
     ct_scram_salt_password(password, strlen(password), salt, saltLength, si, saltedPassword);
-    //printf("salted password = %.*s\n", CC_SHA256_DIGEST_LENGTH, saltedPassword);
+    //fprintf(stderr, "salted password = %.*s\n", CC_SHA256_DIGEST_LENGTH, saltedPassword);
 
     //  Generate Client and Server Key buffers
     //  by encrypting the verbatim strings "Client Key" and "Server Key, respectively,
@@ -406,25 +406,25 @@ CTRANSPORT_API CTRANSPORT_INLINE void* CTReQLHandshakeProcessFirstMessageRespons
     //      ServerKey       := HMAC(SaltedPassword, "Server Key")
     ct_scram_hmac(saltedPassword, CC_SHA256_DIGEST_LENGTH, REQL_CLIENT_KEY, strlen(REQL_CLIENT_KEY), clientKey);
     ct_scram_hmac(saltedPassword, CC_SHA256_DIGEST_LENGTH, REQL_SERVER_KEY, strlen(REQL_SERVER_KEY), serverKey);
-    //printf("clientKey = %.*s\n", CC_SHA256_DIGEST_LENGTH, clientKey);
-    //printf("serverKey = %.*s\n", CC_SHA256_DIGEST_LENGTH, serverKey);
+    //fprintf(stderr, "clientKey = %.*s\n", CC_SHA256_DIGEST_LENGTH, clientKey);
+    //fprintf(stderr, "serverKey = %.*s\n", CC_SHA256_DIGEST_LENGTH, serverKey);
 
     //  Calculate the "Normal" SHA 256 Hash of the clientKey
     //      storedKey := H(clientKey)
     ct_scram_hash(clientKey, CC_SHA256_DIGEST_LENGTH, storedKey);
-    //printf("storedKey = %.*s\n", CC_SHA256_DIGEST_LENGTH, storedKey);
+    //fprintf(stderr, "storedKey = %.*s\n", CC_SHA256_DIGEST_LENGTH, storedKey);
 
     //  Populate SCRAM client-final-message (ie channel binding and random nonce WITHOUT client proof)
     //  E.g.  "authentication": "c=biws,r=rOprNGfwEbeRWgbNEkqO%hvYDpWUa2RaTCAfuxFIlj)hNlF$k0,p=dHzbZapWIk4jUhN+Ute9ytag9zjfMHgsqmmiz7AndVQ="
     //  Note:  The CLIENT_FINAL_MESSAGE used to be populated here with sprintf, but this was causing crashes on Linux
     //         and so was moved to a memcpy closer to the serverNonce ptr above
     //sprintf(CLIENT_FINAL_MESSAGE, "c=biws,r=%.*s", serverNonce);
-    //printf("CLIENT_FINAL_MESSAGE = \n\n%s\n\n", CLIENT_FINAL_MESSAGE);
+    //fprintf(stderr, "CLIENT_FINAL_MESSAGE = \n\n%s\n\n", CLIENT_FINAL_MESSAGE);
 
     //Copy the client-final-message (without client proof) to the AuthMessage buffer
     strncat(SCRAM_AUTH_MESSAGE_PTR, CLIENT_FINAL_MESSAGE, strlen(CLIENT_FINAL_MESSAGE));
     AuthMessageLengthCopy += (unsigned long)strlen(CLIENT_FINAL_MESSAGE);
-    //printf("SCRAM_AUTH_MESSAGE = \n\n%s\n\n", SCRAM_AUTH_MESSAGE);
+    //fprintf(stderr, "SCRAM_AUTH_MESSAGE = \n\n%s\n\n", SCRAM_AUTH_MESSAGE);
 
     //Now that we have the complete Auth Message we can use it in the SCRAM procedure
     //to calculate client and server signatures
@@ -453,11 +453,11 @@ CTRANSPORT_API CTRANSPORT_INLINE void* CTReQLHandshakeProcessFirstMessageRespons
     base64SS = cr_utf8_to_base64(serverSignature, CC_SHA256_DIGEST_LENGTH, 0, &base64SSLength);
 
     assert(base64SS && base64SSLength > 0);
-    printf("Base64 Server Signature:  %s\n\n", (char*)base64SS);
+    fprintf(stderr, "Base64 Server Signature:  %s\n\n", (char*)base64SS);
 
     //Add the client proof to the end of the client-final-message
     sprintf(CLIENT_FINAL_MESSAGE_JSON, "{\"authentication\":\"%s,p=%.*s\"}\0", CLIENT_FINAL_MESSAGE, (int)base64ProofLength, (char*)base64Proof);
-    printf("CLIENT_FINAL_MESSAGE_JSON = \n\n%s\n\n", CLIENT_FINAL_MESSAGE_JSON);
+    fprintf(stderr, "CLIENT_FINAL_MESSAGE_JSON = \n\n%s\n\n", CLIENT_FINAL_MESSAGE_JSON);
 
     //Send the client-final-message wrapped in json
     //CLIENT_FINAL_MESSAGE_JSON[strlen(CLIENT_FINAL_MESSAGE_JSON)] = '\0';
@@ -486,7 +486,7 @@ CTRANSPORT_API CTRANSPORT_INLINE void* CTReQLHandshakeProcessFirstMessageRespons
 
 CTRANSPORT_API CTRANSPORT_INLINE int CTReQLHandshakeProcessFinalMessageResponse(char* sFinalMessagePtr, size_t sFinalMessageLen, char* base64SS)
 {
-    //printf("CTReQLHandshakeProcessFinalMessageResponse Buffer = \n\n%s\n\n", sFinalMessagePtr);\
+    //fprintf(stderr, "CTReQLHandshakeProcessFinalMessageResponse Buffer = \n\n%s\n\n", sFinalMessagePtr);\
 
     //Wait for SERVER_FINAL_MESSAGE
     char* authValue = NULL;
@@ -495,7 +495,7 @@ CTRANSPORT_API CTRANSPORT_INLINE int CTReQLHandshakeProcessFinalMessageResponse(
 
     readLength = 1024;
     //char* sFinalMessagePtr = (char*)SERVER_FINAL_MESSAGE_BUFFER.data();// (char*)VTRecv(r, SERVER_FINAL_MESSAGE_JSON, &readLength);
-    printf("SERVER_FINAL_MESSAGE_JSON = \n\n%s\n\n", sFinalMessagePtr);
+    fprintf(stderr, "SERVER_FINAL_MESSAGE_JSON = \n\n%s\n\n", sFinalMessagePtr);
 
     //Validate Server Signature
     unsigned long authLength = 0;
@@ -523,7 +523,7 @@ CTRANSPORT_API CTRANSPORT_INLINE int CTReQLHandshakeProcessFinalMessageResponse(
         //char* base64Signature = *base64SSPtr;
         if (authValue && strncmp(base64SS, authValue, authLength) != 0)
         {
-            printf("Failed to authenticate server signature: %s\n", authValue);
+            fprintf(stderr, "Failed to authenticate server signature: %s\n", authValue);
             //vError.errClass = VTRuntimeErrorClass;
             //vError.id = VTSASLHandshakeError;
             //vError.description = ...
@@ -532,7 +532,7 @@ CTRANSPORT_API CTRANSPORT_INLINE int CTReQLHandshakeProcessFinalMessageResponse(
     }
     else//if( !authValue )
     {
-        printf("Failed to retrieve server signature from SCRAM server-final-message.\n");
+        fprintf(stderr, "Failed to retrieve server signature from SCRAM server-final-message.\n");
         //vError.errClass = VTRuntimeErrorClass;
         //vError.id = VTSASLHandshakeError;
         //vError.description = ...

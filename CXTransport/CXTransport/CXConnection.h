@@ -45,10 +45,24 @@ static unsigned long					CX_RESPONSE_BUFF_SIZE  = 0;	//Response buffer size will
 			void removeRequestCallbackForKey(uint64_t requestToken) {_queries.erase(requestToken);}
 			std::function<void(CTError* error, std::shared_ptr<CXCursor> cxCursor)> getRequestCallbackForKey(uint64_t requestToken) { return _queries.at(requestToken); }
 			
-			void addRequestCursorForKey(std::shared_ptr<CXCursor> cursor, uint64_t requestToken) {_cursors.insert(std::make_pair(requestToken, cursor));}
+			void addRequestCursorForKey(std::shared_ptr<CXCursor> cursor, uint64_t requestToken) { assert(_cursors.find(requestToken) == _cursors.end());  _cursors.insert(std::make_pair(requestToken, cursor)); }
 			void removeRequestCursorForKey(uint64_t requestToken) {_cursors.erase(requestToken);}
 			std::shared_ptr<CXCursor> getRequestCursorForKey(uint64_t requestToken) { return _cursors.size() > 0 ? _cursors.at(requestToken) : NULL; }
 			std::shared_ptr<CXCursor> createRequestCursor(uint64_t queryToken);
+
+			void SwapCursors(uint64_t key1, uint64_t key2) { std::swap(_cursors[key1], _cursors[key2]); }
+
+			void printCursors()
+			{
+
+				std::map<uint64_t, std::shared_ptr<CXCursor>>::iterator it = _cursors.begin();
+				std::map<uint64_t, std::shared_ptr<CXCursor>>::iterator endIt = _cursors.end();
+				for (it; it != endIt; ++it)
+				{
+					std::cout << "Existing Key (" << it->first << ')\n';
+				}
+				std::cout << "Existing Key (" << endIt->first << ')\n';
+			}
 
 			void printQueries()
 			{
@@ -93,7 +107,7 @@ static unsigned long					CX_RESPONSE_BUFF_SIZE  = 0;	//Response buffer size will
 			//};
 			
 			//overload virtual functions	
-				virtual void ProcessProtocolHeader() { printf("CXConnection::ProcessProtocolHeader() Base Class Implementation should be overridden!\n"); }
+				virtual void ProcessProtocolHeader() { fprintf(stderr, "CXConnection::ProcessProtocolHeader() Base Class Implementation should be overridden!\n"); }
 	};
 
 	extern std::function< void(CTError* err, CXConnection* conn) > CXConnectionLambdaFunc;// = [&](CTError* err, CXConnection* conn) {};

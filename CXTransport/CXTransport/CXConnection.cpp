@@ -35,7 +35,7 @@ CXConnection::CXConnection(CTConnection *conn, CTThreadQueue rxQueue, CTThreadQu
 
 CXConnection::~CXConnection()
 {
-	printf("CXConnection::Destructor()\n");
+	fprintf(stderr, "CXConnection::Destructor()\n");
 	close();
 }
 
@@ -68,10 +68,12 @@ void CXConnection::distributeResponseWithCursorForToken(uint64_t requestToken)
 			callback( NULL, cxCursor);
 			//removeRequestCallbackForKey(requestToken);  this used to be here, but if we want to be able to delete the connection from the callback...
 
+			fprintf(stderr, "CXConnection::Removed Cursor (%d)\n", requestToken);
+
 		}
 		else
 		{
-			printf("CXConnection::distributeResponseWithCursorForToken::No Callback!");
+			fprintf(stderr, "CXConnection::distributeResponseWithCursorForToken::No Callback!");
 			printQueries();
 		}
 
@@ -88,17 +90,17 @@ static void PrintText(DWORD length, PBYTE buffer) // handle unprintable charater
 {
 	int i; //
 
-	printf("\n"); // "length = %d bytes \n", length);
+	fprintf(stderr, "\n"); // "length = %d bytes \n", length);
 	for (i = 0; i < (int)length; i++)
 	{
 		if (buffer[i] == 10 || buffer[i] == 13)
-			printf("%c", (char)buffer[i]);
+			fprintf(stderr, "%c", (char)buffer[i]);
 		else if (buffer[i] < 32 || buffer[i] > 126 || buffer[i] == '%')
-			continue;//printf("%c", '.');
+			continue;//fprintf(stderr, "%c", '.');
 		else
-			printf("%c", (char)buffer[i]);
+			fprintf(stderr, "%c", (char)buffer[i]);
 	}
-	printf("\n\n");
+	fprintf(stderr, "\n\n");
 }
 
 

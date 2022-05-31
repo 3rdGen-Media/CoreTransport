@@ -30,13 +30,13 @@ unsigned long __stdcall CX_Dequeue_Connect(LPVOID lpParameter)
 	CTCursor* closeCursor = NULL;
 	CTError err = { (CTErrorClass)0,0,NULL };
 
-	printf("CTConnectThread Begin\n");
+	fprintf(stderr, "CTConnectThread Begin\n");
 
 	//TO DO:  Optimize number of packets dequeued at once
 	while (1)
 	{
 		BOOL result = GetQueuedCompletionStatusEx(hCompletionPort, ovl_entry, CX_MAX_INFLIGHT_CONNECT_PACKETS, &nPaquetsDequeued, INFINITE, TRUE);
-		//printf("CTConnection::EncryptQueryCallback::nPaquetsDequeued = %d\n", (int)nPaquetsDequeued);
+		//fprintf(stderr, "CTConnection::EncryptQueryCallback::nPaquetsDequeued = %d\n", (int)nPaquetsDequeued);
 		for (i = 0; i < nPaquetsDequeued; i++)
 		{
 			CompletionKey = (ULONG_PTR)ovl_entry[i].lpCompletionKey;
@@ -45,23 +45,28 @@ unsigned long __stdcall CX_Dequeue_Connect(LPVOID lpParameter)
 
 			if (!overlappedTarget)
 			{
-				printf("CTConnection::CTConnectThread::GetQueuedCompletionStatus continue\n");
+				fprintf(stderr, "CTConnection::CTConnectThread::GetQueuedCompletionStatus continue\n");
 				continue;
 			}
 
-			printf("CTConnection::CTConnectThread::Overlapped Target Packet Dequeued!!!\n");
+			fprintf(stderr, "CTConnection::CTConnectThread::Overlapped Target Packet Dequeued!!!\n");
 
 			if (overlappedTarget->stage == CT_OVERLAPPED_SCHEDULE)
 			{
 				//This will resolve the host and kick off the async connection
 				//TO DO: make the resolve async
 				//overlappedTarget->target->ctx = overlappedTarget; // store the overlapped for subsquent async connection execution
+				fprintf(stderr, "CTConnection::CTConnectThread::CT_OVERLAPPED_SCHEDULE\n");
+				fflush(stderr);
 				CTTargetResolveHost(overlappedTarget->target, overlappedTarget->target->callback);
-				printf("CTConnection::CTConnectThread::End CTTargetResolveHost\n");
-
+				fprintf(stderr, "CTConnection::CTConnectThread::End CTTargetResolveHost\n");
+				fflush(stderr);
 			}
 			else if (overlappedTarget->stage == CT_OVERLAPPED_RECV_FROM)
 			{
+				fprintf(stderr, "CTConnection::CTConnectThread::CT_OVERLAPPED_RECV_FROM\n");
+				fflush(stderr);
+
 				//assert(1 == 0);
 				cursor = overlappedTarget->cursor;
 				cursor->target = overlappedTarget->target;
@@ -79,7 +84,7 @@ unsigned long __stdcall CX_Dequeue_Connect(LPVOID lpParameter)
 
 						memcpy(cursor->requestBuffer, cursor->file.buffer, cursor->headerLength);
 
-						printf("CTDecryptResponseCallbacK::Header = \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
+						fprintf(stderr, "CTDecryptResponseCallbacK::Header = \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
 
 						//copy body to start of buffer to overwrite header 
 						memcpy(cursor->file.buffer, endOfHeader, NumBytesTransferred - cursor->headerLength);
@@ -113,7 +118,7 @@ unsigned long __stdcall CX_Dequeue_Connect(LPVOID lpParameter)
 				//assert(result == TRUE);
 				//This will get the result of the async connection and perform ssl hanshake
 
-				printf("ConnectEx complete error = %d\n\n", WSAGetLastError());
+				fprintf(stderr, "ConnectEx complete error = %d\n\n", WSAGetLastError());
 				//struct CTConnection conn = { 0 };
 				//get a pointer to a new connection object memory
 				struct CTError error = { (CTErrorClass)0,0,0 };    //Reql API client functions will generally return ints as errors
@@ -122,7 +127,7 @@ unsigned long __stdcall CX_Dequeue_Connect(LPVOID lpParameter)
 				if ((error.id = CTSocketGetError(overlappedTarget->target->socket)) != 0)
 				{
 					// connection failed; error code is in 'result'
-					printf("CTConnection::CTConnectThread::socket async connect failed with result: %d", error.id);
+					fprintf(stderr, "CTConnection::CTConnectThread::socket async connect failed with result: %d", error.id);
 					CTSocketClose(overlappedTarget->target->socket);
 					error.id = CTSocketConnectError;
 					goto CONN_CALLBACK;
@@ -131,7 +136,7 @@ unsigned long __stdcall CX_Dequeue_Connect(LPVOID lpParameter)
 				/* Make the socket more well-behaved.
 			   int rc = setsockopt(overlappedTarget->target->socket, SOL_SOCKET, SO_UPDATE_CONNECT_CONTEXT, NULL, 0);
 			   if (rc != 0) {
-				   printf("SO_UPDATE_CONNECT_CONTEXT failed: %d\n", WSAGetLastError());
+				   fprintf(stderr, "SO_UPDATE_CONNECT_CONTEXT failed: %d\n", WSAGetLastError());
 				   return 1;
 			   }
 			   */
@@ -141,7 +146,7 @@ unsigned long __stdcall CX_Dequeue_Connect(LPVOID lpParameter)
 
 				conn->socket = overlappedTarget->target->socket;
 				conn->socketContext.socket = overlappedTarget->target->socket;
-				conn->socketContext.host = overlappedTarget->target->host;
+				conn->socketContext.host = overlappedTarget->target->url.host;
 
 
 
@@ -184,26 +189,45 @@ unsigned long __stdcall CX_Dequeue_Connect(LPVOID lpParameter)
 				//However, the SSLHandshake loop has already been optimized with yields for every asynchronous call
 
 #ifdef DEBUG
-				printf("Before CTSSLRoutine Host = %s\n", conn.socketContext.host);
-				printf("Before CTSSLRoutine Host = %s\n", overlappedTarget->target->host);
+				fprintf(stderr, "Before CTSSLRoutine Host = %s\n", conn.socketContext.host);
+				fprintf(stderr, "Before CTSSLRoutine Host = %s\n", overlappedTarget->target->host);
 #endif
 
 				//put the connection callback on the service so we can ride it through the async handshake
-
 				conn->target = overlappedTarget->target;
 
-				//Initate the Async SSL Handshake scheduling from this thread (ie cxQueue) to rxQueue and txQueue threads
-				if ((status = CTSSLRoutine(conn, conn->socketContext.host, overlappedTarget->target->ssl.ca)) != 0)
-				{
-					printf("CTConnection::CTConnectThread::CTSSLRoutine failed with error: %d\n", (int)status);
-					error.id = CTSSLHandshakeError;
-					goto CONN_CALLBACK;
-					//return status;
-				}
 
-				//if we are running the handshake asynchronously on a queue, don't return connection to client yet
-				if (conn->socketContext.txQueue)
-					continue;
+				if (conn->target->proxy.host)
+				{
+					//Initate the Async SSL Handshake scheduling from this thread (ie cxQueue) to rxQueue and txQueue threads
+					if ((status = CTProxyHandshake(conn)) != 0)
+					{
+						fprintf(stderr, "CTConnection::CTConnectThread::CTSSLRoutine failed with error: %d\n", (int)status);
+						error.id = CTSSLHandshakeError;
+						goto CONN_CALLBACK;
+						//return status;
+					}
+
+					//if we are running the handshake asynchronously on a queue, don't return connection to client yet
+					if (conn->socketContext.txQueue)
+						continue;
+				}
+				else if (conn->target->ssl.method > CTSSL_NONE)
+				{
+
+					//Initate the Async SSL Handshake scheduling from this thread (ie cxQueue) to rxQueue and txQueue threads
+					if ((status = CTSSLRoutine(conn, conn->socketContext.host, overlappedTarget->target->ssl.ca)) != 0)
+					{
+						fprintf(stderr, "CTConnection::CTConnectThread::CTSSLRoutine failed with error: %d\n", (int)status);
+						error.id = CTSSLHandshakeError;
+						goto CONN_CALLBACK;
+						//return status;
+					}
+
+					//if we are running the handshake asynchronously on a queue, don't return connection to client yet
+					if (conn->socketContext.txQueue)
+						continue;
+				}
 				/*
 				int iResult;
 
@@ -218,17 +242,19 @@ unsigned long __stdcall CX_Dequeue_Connect(LPVOID lpParameter)
 
 				iResult = ioctlsocket(conn.socket, FIONBIO, &iMode);
 				if (iResult != NO_ERROR)
-					printf("ioctlsocket failed with error: %ld\n", iResult);
+					fprintf(stderr, "ioctlsocket failed with error: %ld\n", iResult);
 				*/
 
 				//The connection completed successfully, allocate memory to return to the client
 				error.id = CTSuccess;
 
 			CONN_CALLBACK:
-				//printf("before callback!\n");
+				//fprintf(stderr, "before callback!\n");
 				conn->responseCount = 0;  //we incremented this for the handshake, it is critical to reset this for the client before returning the connection
+				conn->queryCount = 0;
+				CTSetCursorPoolIndex(0);
 				overlappedTarget->target->callback(&error, conn);
-				//printf("After callback!\n");
+				//fprintf(stderr, "After callback!\n");
 
 				/*
 				//Remove observer that yields to coroutines
@@ -245,11 +271,15 @@ unsigned long __stdcall CX_Dequeue_Connect(LPVOID lpParameter)
 				return error.id;
 
 			}
-
+			else
+			{
+				fprintf(stderr, "CTConnection::CTConnectThread::UNHANDLED_STAGE (%d)\n", overlappedTarget->stage);
+				fflush(stderr);
+			}
 			/*
 			if (NumBytesSent == 0)
 			{
-				printf("CTConnection::CTConnectThread::Server Disconnected!!!\n");
+				fprintf(stderr, "CTConnection::CTConnectThread::Server Disconnected!!!\n");
 			}
 			else
 			{
@@ -262,7 +292,7 @@ unsigned long __stdcall CX_Dequeue_Connect(LPVOID lpParameter)
 
 	}
 
-	printf("\nCTConnection::CTConnectThread::End\n");
+	fprintf(stderr, "\nCTConnection::CTConnectThread::End\n");
 	ExitThread(0);
 	return 0;
 
@@ -306,7 +336,7 @@ unsigned long __stdcall CX_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 	//unsigned long headerLength;
 	//unsigned long contentLength;
 #ifdef _DEBUG
-	printf("CXConnection::DecryptResponseCallback Begin\n");
+	fprintf(stderr, "CXConnection::DecryptResponseCallback Begin\n");
 #endif
 
 	//Create a Win32 Platform Message Queue for this thread by calling PeekMessage 
@@ -317,7 +347,7 @@ unsigned long __stdcall CX_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 	while (GetQueuedCompletionStatusEx(hCompletionPort, ovl_entry, CX_MAX_INFLIGHT_DECRYPT_PACKETS, &nPaquetsDequeued, INFINITE, TRUE))
 	{
 #ifdef _DEBUG
-		printf("CXConnection::CTDecryptResponseCallback::nPaquetsDequeued = %d\n", (int)nPaquetsDequeued);
+		fprintf(stderr, "CXConnection::CTDecryptResponseCallback::nPaquetsDequeued = %d\n", (int)nPaquetsDequeued);
 #endif
 		for (i = 0; i < nPaquetsDequeued; i++)
 		{
@@ -337,7 +367,7 @@ unsigned long __stdcall CX_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 #ifdef _DEBUG
 			if (!overlappedResponse)
 			{
-				printf("CXConnection::CXDecryptResponseCallback::overlappedResponse is NULL!\n");
+				fprintf(stderr, "CXConnection::CXDecryptResponseCallback::overlappedResponse is NULL!\n");
 				assert(1 == 0);
 			}
 #endif
@@ -351,39 +381,40 @@ unsigned long __stdcall CX_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 			//		for the cursor's response
 			if (overlappedResponse->stage > -1 && overlappedResponse->stage < 3)
 			{
-				printf("CTConnection::CTDecryptResponseCallback::Scheduling Cursor via ...");
+				fprintf(stderr, "CX_Dequeue_Recv_Decrypt::Scheduling Cursor (%d) via ...", cursor->queryToken);
 
 				//set the overlapped message type to indicate that scheduling for the current
 				//overlapped/cursor has already been processed
 				overlappedResponse->stage = (CTOverlappedStage) ((int)overlappedResponse->stage + 4);// CT_OVERLAPPED_EXECUTE;
-				if (cursor->conn->responseCount < cursor->queryToken)//(cursor->conn->rxCursorQueueCount < 1)
+				if (cursor->conn->responseCount > 0 )//< cursor->queryToken)
 				{
-					printf("PostThreadMessage\n");
+					fprintf(stderr, "PostThreadMessage\n");
 					if (PostThreadMessage(currentThreadID, WM_USER + cursor->queryToken, 0, (LPARAM)cursor) < 1)
 					{
 						//cursor->conn->rxCursorQueueCount++;
-						printf("CTDecryptResponseCallback::PostThreadMessage failed with error: %d", GetLastError());
+						fprintf(stderr, "CTDecryptResponseCallback::PostThreadMessage failed with error: %d", GetLastError());
 					}
 				}
 				else
 				{
-					printf("CTCursorAsyncRecv\n");
+					fprintf(stderr, "CTCursorAsyncRecv\n");
 					if ((ctError = CTCursorAsyncRecv(&overlappedResponse, (void*)(cursor->file.buffer), 0, &NumBytesRecv)) != CTSocketIOPending)
 					{
 						//the async operation returned immediately
 						if (ctError == CTSuccess)
 						{
 							//cursor->conn->rxCursorQueueCount++;
-							printf("CTConnection::CTDecryptResponseCallback::CTAsyncRecv returned immediate with %lu bytes\n", NumBytesRecv);
+							fprintf(stderr, "CTConnection::CTDecryptResponseCallback::CTAsyncRecv returned immediate with %lu bytes\n", NumBytesRecv);
 						}
 						else //failure
 						{
-							printf("CTConnection::CTDecryptResponseCallback::CTAsyncRecv failed with CTDriverError = %d\n", ctError);
+							fprintf(stderr, "CTConnection::CTDecryptResponseCallback::CTAsyncRecv failed with CTDriverError = %d\n", ctError);
 						}
 					}
 					//else cursor->conn->rxCursorQueueCount++;
 				}
 
+				cursor->conn->responseCount++;
 				continue;
 			}
 
@@ -391,87 +422,14 @@ unsigned long __stdcall CX_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 			//2 If we requested anything more than zero bytes using WSARecv, then IOCP is telling us that it was unable to read any bytes at all from the socket buffer (SCHANNEL/WolfSSL)
 			//if (NumBytesRecv == 0)
 			//{
-			//	printf("CXConnection::CXDecryptResponseCallback::SCHANNEL IOCP::NumBytesRecv = ZERO\n");
+			//	fprintf(stderr, "CXConnection::CXDecryptResponseCallback::SCHANNEL IOCP::NumBytesRecv = ZERO\n");
 			//}
 			//else //IOCP already read the data from the socket into the buffer we provided to Overlapped, we have to decrypt it
 			//{
 				//Get the cursor/connection
 				//cursor = (CTCursor*)overlappedResponse->cursor;
 			NumBytesRecv += overlappedResponse->wsaBuf.buf - overlappedResponse->buf;
-
-			if (overlappedResponse->stage == CT_OVERLAPPED_RECV)
-			{
-				overlappedResponse->buf += NumBytesRecv;
-				if (cursor->headerLength == 0)
-				{
-					//search for end of protocol header (and set cxCursor headerLength property
-					char* endOfHeader = cursor->headerLengthCallback(cursor, cursor->file.buffer, NumBytesRecv);
-
-					//calculate size of header
-					if (endOfHeader)
-					{
-						cursor->headerLength = endOfHeader - (cursor->file.buffer);
-
-						if (cursor->headerLength > 0)
-							memcpy(cursor->requestBuffer, cursor->file.buffer, cursor->headerLength);
-
-						printf("CTDecryptResponseCallbacK::Header = \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
-
-						//copy body to start of buffer to overwrite header 
-						if (endOfHeader != cursor->file.buffer)
-							memcpy(cursor->file.buffer, endOfHeader, NumBytesRecv - cursor->headerLength);
-						//overlappedResponse->buf += endDecryptedBytes - endOfHeader;
-
-						overlappedResponse->buf -= cursor->headerLength;
-					}
-				}
-				assert(cursor->contentLength > 0);
-
-				if (cursor->contentLength <= overlappedResponse->buf - cursor->file.buffer)
-				{
-					closeCursor = cursor;
-					//increment the connection response count
-					//closeCursor->conn->rxCursorQueueCount--;
-					closeCursor->conn->responseCount++;
-
-#ifdef _DEBUG
-					assert(closeCursor->responseCallback);
-#endif
-					//issue the response to the client caller
-					closeCursor->responseCallback(&err, closeCursor);
-					closeCursor = NULL;	//set to NULL for posterity
-
-				}
-				else
-				{
-					NumBytesRemaining = cBufferSize;
-					if ((scRet = CTCursorAsyncRecv(&overlappedResponse, overlappedResponse->buf, 0, &NumBytesRemaining)) != CTSocketIOPending)
-					{
-						//the async operation returned immediately
-						if (scRet == CTSuccess)
-						{
-							printf("CTConnection::DecryptResponseCallback::CTAsyncRecv returned immediate with %lu bytes\n", NumBytesRemaining);
-							//scRet = CTSSLDecryptMessage(overlappedResponse->conn->sslContext, overlappedResponse->wsaBuf.buf, &NumBytesRecv);
-						}
-						else //failure
-						{
-							printf("CTConnection::DecryptResponseCallback::CTAsyncRecv failed with CTDriverError = %d\n", scRet);
-							break;
-						}
-					}
-				}
-				continue;
-			}
-
-#ifdef _DEBUG
-			assert(cursor);
-			assert(cursor->conn);
-			//assert(cursor->headerLengthCallback);
-			assert(overlappedResponse->buf);
-			assert(overlappedResponse->wsaBuf.buf);
-			printf("CXConnection::DecryptResponseCallback B::NumBytesRecv = %d\n", (int)NumBytesRecv);
-#endif
-			//Issue a blocking call to decrypt the message (again, only if using non-zero read path, which is exclusively used with MBEDTLS at current)
+			fprintf(stderr, "Cursor Response Count (%d) NumBytesRecv (%d)\n\n", cursor->conn->responseCount, NumBytesRecv);
 
 			PrevBytesRecvd = NumBytesRecv;	 //store the recvd bytes value from the overlapped
 			NumBytesRemaining = cBufferSize; //we can never decrypt more bytes than the size of our buffer, and likely schannel will still separate that into chunks
@@ -480,53 +438,33 @@ unsigned long __stdcall CX_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 			NumBytesRemaining = NumBytesRecv;
 			scRet = SEC_E_OK;
 
-			//while their is extra data to decrypt keep calling decrypt
-			while (NumBytesRemaining > 0 && scRet == SEC_E_OK)
-			{
-				//move the extra buffer to the front of our operating buffer
-				overlappedResponse->wsaBuf.buf = extraBuffer;
-				extraBuffer = NULL;
-				PrevBytesRecvd = NumBytesRecv;		//store the previous amount of decrypted bytes
-				NumBytesRecv = NumBytesRemaining;	//set up for the next decryption call
-
-				scRet = CTSSLDecryptMessage2(cursor->conn->sslContext, overlappedResponse->wsaBuf.buf, &NumBytesRecv, &extraBuffer, &NumBytesRemaining);
 #ifdef _DEBUG
-				printf("CXConnection::DecryptResponseCallback C::Decrypted data: %d bytes recvd, %d bytes remaining, scRet = 0x%x\n", NumBytesRecv, NumBytesRemaining, scRet); //PrintText(NumBytesRecv, (PBYTE)(overlappedResponse->wsaBuf.buf + overlappedResponse->conn->sslContext->Sizes.cbHeader));
+			assert(cursor);
+			assert(cursor->conn);
+			//assert(cursor->headerLengthCallback);
+			assert(overlappedResponse->buf);
+			assert(overlappedResponse->wsaBuf.buf);
+			//fprintf(stderr, "CTConnection::DecryptResponseCallback B::NumBytesRecv = %d\n", (int)NumBytesRecv);
 #endif
-				if (scRet == SEC_E_OK)
+
+			//while their is extra data to decrypt keep calling decrypt
+
+			if (overlappedResponse->stage == CT_OVERLAPPED_RECV)
+			{
+				overlappedResponse->buf += NumBytesRecv;
+
+				while (NumBytesRemaining > 0 && scRet == SEC_E_OK)
 				{
-					//push past cbHeader and copy decrypte message bytes
-					memcpy((char*)overlappedResponse->buf, (char*)overlappedResponse->wsaBuf.buf + cursor->conn->sslContext->Sizes.cbHeader, NumBytesRecv);
-					overlappedResponse->buf += NumBytesRecv;//+ overlappedResponse->conn->sslContext->Sizes.cbHeader;// + overlappedResponse->conn->sslContext->Sizes.cbTrailer;
-
-					//if( NumBytesRemaining == 0 )
-					//{
-						//scRet = ioctlsocket(cursor->conn->socket, FIONREAD, &NumBytesRemaining);
-
-						//printf("**** CXDecryptResponseCallback::ictlsocket C status = %d\n", (int)scRet);
-						//printf("**** CXDecryptResponseCallback::ictlsocket C = %d\n", (int)NumBytesRemaining);
-
-						//select said there was data but ioctlsocket says there is no data
-						//if( NumBytesRemaining == 0)
-						//{
-						//	std::shared_ptr<CXCursor> cxCursor = cxConn->getRequestCursorForKey(overlappedResponse->queryToken);
-
-						//	CTCursorCloseMappingWithSize(&(cxCursor->_cursor), overlappedResponse->buf - cxCursor->_cursor.file.buffer); 
-						//	cxConn->distributeResponseWithCursorForToken(overlappedResponse->queryToken);
-						//}
-					//}
 
 					if (cursor->headerLength == 0)
 					{
 						//search for end of protocol header (and set cxCursor headerLength property
-						//char* endOfHeader = cursor->headerLengthCallback(cursor, cursor->file.buffer, NumBytesRecv);
-
 						char* endOfHeader = NULL;
 
 						if (cxConn)
 						{
 							std::shared_ptr<CXCursor> cxCursor = cxConn->getRequestCursorForKey(cursor->queryToken);
-							endOfHeader = cxCursor->ProcessResponseHeader(cursor->file.buffer, NumBytesRecv);
+							endOfHeader = cxCursor->ProcessResponseHeader(cursor, cursor->file.buffer, NumBytesRecv);
 						}
 						else
 						{
@@ -538,38 +476,56 @@ unsigned long __stdcall CX_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 						{
 							cursor->headerLength = endOfHeader - (cursor->file.buffer);
 
-							memcpy(cursor->requestBuffer, cursor->file.buffer, cursor->headerLength);
+							fprintf(stderr, "CT_Deque_Recv_Decrypt::CT_OVERLAPPED_RECV Header (%llu) = \n\n%.*s\n\n", ((ReqlQueryMessageHeader*)(cursor->file.buffer))->token, cursor->headerLength, cursor->file.buffer);
 
-							printf("CXDecryptResponseCallbacK::Header = \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
+							if (cursor->headerLength > 0)
+								memcpy(cursor->requestBuffer, cursor->file.buffer, cursor->headerLength);
+
+							//fprintf(stderr, "CT_Deque_Recv_Decrypt::CT_OVERLAPPED_RECV Header (%llu) = \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
 
 							//copy body to start of buffer to overwrite header 
-							memcpy(cursor->file.buffer, endOfHeader, NumBytesRecv - cursor->headerLength);
-							//overlappedResponse->buf += endDecryptedBytes - endOfHeader;
-
+							if (endOfHeader != cursor->file.buffer)
+							{
+								if (NumBytesRecv == cursor->headerLength)
+									memset(cursor->file.buffer, 0, cursor->headerLength);
+								else
+								{
+									memcpy(cursor->file.buffer, endOfHeader, NumBytesRecv - cursor->headerLength);
+									fprintf(stderr, "CT_Deque_Recv_Decrypt::CT_OVERLAPPED_RECV Body (%d) = \n\n%.*s\n\n", cursor->contentLength, cursor->contentLength, cursor->file.buffer);
+								}
+							}
 							overlappedResponse->buf -= cursor->headerLength;
+							NumBytesRemaining -= cursor->headerLength;
 						}
 					}
 					//assert(cursor->contentLength > 0);
-					if (cursor->contentLength <= overlappedResponse->buf - cursor->file.buffer)
+
+					if (cursor->contentLength > 0 && cursor->contentLength <= overlappedResponse->buf - cursor->file.buffer)
 					{
 						extraBufferOffset = 0;
-						closeCursor = cursor;	//store a ptr to the current cursor so we can close it after replacing with next cursor
+						closeCursor = cursor;
+						NumBytesRemaining = 0;// (cursor->contentLength + cursor->headerLength);// -NumBytesRecv;
+
 						memset(&nextCursorMsg, 0, sizeof(MSG));
-						if (PeekMessage(&nextCursorMsg, NULL, WM_USER + cursor->queryToken + 1, WM_USER + cursor->queryToken + 1, PM_REMOVE)) //(nextCursor)
+						nextCursor = NULL;
+						if (PeekMessage(&nextCursorMsg, NULL, WM_USER, WM_USER + cursor->conn->queryCount - 1, PM_REMOVE)) //(nextCursor)
 						{
 							nextCursor = (CTCursor*)(nextCursorMsg.lParam);
 #ifdef _DEBUG
-							assert(nextCursorMsg.message == WM_USER + (UINT)cursor->queryToken + 1);
+							//assert(nextCursorMsg.message == WM_USER + (UINT)cursor->queryToken + 1);
 							assert(nextCursor);
 #endif									
 							if (cursor->contentLength < overlappedResponse->buf - cursor->file.buffer)
 							{
+								fprintf(stderr, "CT_Deque_Recv_Decrypt::CT_OVERLAPPED_RECV::vagina");
+
 								cursor->conn->response_overlap_buffer_length = (size_t)overlappedResponse->buf - (size_t)(cursor->file.buffer + cursor->contentLength);
 								assert(cursor->conn->response_overlap_buffer_length > 0);
 
-								//NumBytesRemaining = cursor->conn->response_overlap_buffer_length;
 								if (nextCursor && cursor->conn->response_overlap_buffer_length > 0)
 								{
+									NumBytesRemaining = cursor->conn->response_overlap_buffer_length;
+
 									//copy overlapping cursor's response from previous cursor's buffer to next cursor's buffer
 									memcpy(nextCursor->file.buffer, cursor->file.buffer + cursor->contentLength, cursor->conn->response_overlap_buffer_length);
 
@@ -578,201 +534,469 @@ unsigned long __stdcall CX_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 									{
 										//search for end of protocol header (and set cxCursor headerLength property
 										assert(cursor->file.buffer != nextCursor->file.buffer);
-										//char* endOfHeader = nextCursor->headerLengthCallback(nextCursor, nextCursor->file.buffer, cursor->conn->response_overlap_buffer_length);
+										//assert(((ReqlQueryMessageHeader*)nextCursor->file.buffer)->token == nextCursor->queryToken);
 
 										char* endOfHeader = NULL;
 										if (cxConn)
 										{
 											std::shared_ptr<CXCursor> cxNextCursor = cxConn->getRequestCursorForKey(nextCursor->queryToken);
-											endOfHeader = cxNextCursor->ProcessResponseHeader(nextCursor->file.buffer, cursor->conn->response_overlap_buffer_length);
+											endOfHeader = cxNextCursor->ProcessResponseHeader(nextCursor, nextCursor->file.buffer, cursor->conn->response_overlap_buffer_length);
 										}
 										else
 											endOfHeader = nextCursor->headerLengthCallback(nextCursor, nextCursor->file.buffer, cursor->conn->response_overlap_buffer_length);
 
 										//calculate size of header
-										nextCursor->headerLength = endOfHeader - (nextCursor->file.buffer);
-
-										//copy header to cursor's request buffer
-										memcpy(nextCursor->requestBuffer, nextCursor->file.buffer, nextCursor->headerLength);
-
-										//copy body to start of buffer to overwrite header
-										assert(nextCursor->file.buffer);
-										memcpy(nextCursor->file.buffer, endOfHeader, cursor->conn->response_overlap_buffer_length - nextCursor->headerLength);
-
-										cursor->conn->response_overlap_buffer_length -= nextCursor->headerLength;
-										extraBufferOffset = cursor->conn->response_overlap_buffer_length;
-
-										/*
-										if (nextCursor->contentLength <= cursor->conn->response_overlap_buffer_length)
+										if (endOfHeader)
 										{
-											//if (nextCursor->contentLength < cursor->conn->response_overlap_buffer_length)
+											nextCursor->headerLength = endOfHeader - (nextCursor->file.buffer);
 
-
-											cursor->conn->response_overlap_buffer_length -= nextCursor->contentLength;
-
-											cursor = nextCursor;
-											nextCursor = NULL;
-											if (PeekMessage(&nextCursorMsg, NULL, WM_USER + cursor->queryToken + 1, WM_USER + cursor->queryToken + 1, PM_REMOVE)) //(nextCursor)
+											if (nextCursor->headerLength > 0)
 											{
-												assert(nextCursorMsg.message == WM_USER + (UINT)cursor->queryToken + 1);
-												nextCursor = (CTCursor*)(nextCursorMsg.lParam);
-												assert(nextCursor);
-											}
-											//if (nextCursor->contentLength < cursor->conn->response_overlap_buffer_length - nextCursor->headerLength)
-											//{
-											//	cursor = nextCursor;
-											//
-											//}
 
-											//decrement the cursor queue count to finish ours
-											cursor->conn->rxCursorQueueCount--;
+												if (cursor->conn->response_overlap_buffer_length < nextCursor->headerLength)
+												{
+													//leave the incomplete header in place and go around again
+													nextCursor->headerLength = 0;
+													//NumBytesRemaining = 32768;
+												}
+												else
+												{
 
-											CTCursorCloseMappingWithSize(cursor, cursor->contentLength); //overlappedResponse->buf - cursor->file.buffer);
-#ifdef _DEBUG
-													assert(cursor->responseCallback);
-#endif
-													cursor->responseCallback(NULL, cursor);
+													memcpy(nextCursor->requestBuffer, nextCursor->file.buffer, nextCursor->headerLength);
 
-													continue;
+													fprintf(stderr, "CT_Deque_Recv_Decrypt::CT_OVERLAPPED_RECV nextCursor->Header (%llu) = \n\n%.*s\n\n", ((ReqlQueryMessageHeader*)(nextCursor->file.buffer))->token, nextCursor->headerLength, nextCursor->requestBuffer);
+
+													//copy body to start of buffer to overwrite header 
+													if (cursor->conn->response_overlap_buffer_length > nextCursor->headerLength && endOfHeader != nextCursor->file.buffer)
+													{
+														memcpy(nextCursor->file.buffer, endOfHeader, cursor->conn->response_overlap_buffer_length - nextCursor->headerLength);
+														fprintf(stderr, "CT_Deque_Recv_Decrypt::CT_OVERLAPPED_RECV nextCursor->Body (%d) = \n\n%.*s\n\n", cursor->conn->response_overlap_buffer_length, nextCursor->contentLength, nextCursor->file.buffer);
+
+													}
+													//else if( cursor->conn->response_overlap_buffer_length == nextCursor->headerLength)
+													//	NumBytesRemaining = 
+													//overlappedResponse->buf += endDecryptedBytes - endOfHeader;
+
+													//fprintf(stderr, "CT_Deque_Recv_Decrypt::CT_OVERLAPPED_RECV Body = \n\n%.*s\n\n", nextCursor->contentLength, nextCursor->file.buffer);
+
+
+													cursor->conn->response_overlap_buffer_length -= nextCursor->headerLength;
+													NumBytesRemaining = cursor->conn->response_overlap_buffer_length;
+
+													//NumBytesRemaining = 32768;//
+
 
 												}
+											}
+										}
 
-												*/
+										//extraBufferOffset = cursor->conn->response_overlap_buffer_length;
+										//NumBytesRemaining -= cursor->headerLength;
+										nextCursor->overlappedResponse.buf = nextCursor->file.buffer + cursor->conn->response_overlap_buffer_length;
+										//if (nextCursor->queryToken == 99) assert(1 == 0);
+
+
 									}
 
 								}
 							}
-							if (NumBytesRemaining == 0)
+							//else
+							//	nextCursor = NULL;
+
+							if (nextCursor && NumBytesRemaining == 0)
 							{
+								fprintf(stderr, "CT_Deque_Recv_Decrypt::CT_OVERLAPPED_RECV::Penis\n");
+
+								assert(nextCursor);
 								NumBytesRecv = cBufferSize;;
 								overlappedResponse = &(nextCursor->overlappedResponse);
-								if ((scRet = CTCursorAsyncRecv(&(overlappedResponse), (void*)(nextCursor->file.buffer + cursor->conn->response_overlap_buffer_length - nextCursor->headerLength), 0, &NumBytesRecv)) != CTSocketIOPending)
+								if ((scRet = CTCursorAsyncRecv(&(overlappedResponse), (void*)(nextCursor->file.buffer  /* + cursor->conn->response_overlap_buffer_length - nextCursor->headerLength*/), 0, &NumBytesRecv)) != CTSocketIOPending)
 								{
 									//the async operation returned immediately
 									if (scRet == CTSuccess)
 									{
-										printf("CTConnection::DecryptResponseCallback::CTAsyncRecv (new cursor) returned immediate with %lu bytes\n", NumBytesRecv);
+										fprintf(stderr, "CTConnection::CT_OVERLAPPED_RECV::CTAsyncRecv (new cursor) returned immediate with %lu bytes\n", NumBytesRecv);
 
 									}
 									else //failure
 									{
-										printf("CTConnection::DecryptResponseCallback::CTAsyncRecv (new cursor) failed with CTDriverError = %d\n", scRet);
+										fprintf(stderr, "CTConnection::CT_OVERLAPPED_RECV::CTAsyncRecv (new cursor) failed with CTDriverError = %d\n", scRet);
 									}
 								}
 								nextCursor = NULL;
+								//NumBytesRemaining = 0;
 								//break;
 							}
-							else
+
+							else if (nextCursor)
 							{
+								fprintf(stderr, "CT_Deque_Recv_Decrypt::CT_OVERLAPPED_RECV::Scrotum\n");
+
 #ifdef _DEBUG
 								assert(nextCursor);
 								assert(nextCursor->file.buffer);
-								assert(extraBuffer);
+								//assert(extraBuffer);
 #endif
-								//since extra buffer may be pointing to current cursor buffer memory we have to copy it to the next
-								//cursor BEFORE closing the current cursor's mapping
-								memcpy(nextCursor->file.buffer + extraBufferOffset, extraBuffer, NumBytesRemaining);
-								extraBuffer = nextCursor->file.buffer + extraBufferOffset;
+							//since extra buffer may be pointing to current cursor buffer memory we have to copy it to the next
+							//cursor BEFORE closing the current cursor's mapping
+							//memcpy(nextCursor->file.buffer + extraBufferOffset, extraBuffer, NumBytesRemaining);
+							//extraBuffer = nextCursor->file.buffer + extraBufferOffset;
+
 
 								overlappedResponse = &(nextCursor->overlappedResponse);
-								overlappedResponse->buf = nextCursor->file.buffer + extraBufferOffset;
+								//overlappedResponse->buf = nextCursor->file.buffer + nextCursor->headerLength;// cursor->conn->response_overlap_buffer_length;// +extraBufferOffset;
 
 								cursor = nextCursor;
 								nextCursor = NULL;
+
 							}
 
 						}
 
 						//increment the connection response count
 						//closeCursor->conn->rxCursorQueueCount--;
-						closeCursor->conn->responseCount++;
+						closeCursor->conn->responseCount--;
 
-						//#ifdef _DEBUG
-						//							assert(closeCursor->responseCallback);
-						//#endif
-												//issue the response to the client caller
-												//closeCursor->responseCallback(NULL, closeCursor);
-												//std::shared_ptr<CXCursor> cxCloseCursor = cxConn->getRequestCursorForKey(closeCursor->queryToken);
-												//CTCursorCloseMappingWithSize(&(cxCursor->_cursor), overlappedResponse->buf - cxCursor->_cursor.file.buffer);
+#ifdef _DEBUG
+						//assert(closeCursor->responseCallback);
+#endif
+						//issue the response to the client caller
 						if (cxConn) cxConn->distributeResponseWithCursorForToken(closeCursor->queryToken);
-						else cursor->responseCallback(&err, closeCursor);
+						else closeCursor->responseCallback(&err, closeCursor);
 						closeCursor = NULL;	//set to NULL for posterity
 					}
-					else if (NumBytesRemaining == 0)
+					else
 					{
-						NumBytesRemaining = cBufferSize;
-						if ((scRet = CTCursorAsyncRecv(&overlappedResponse, overlappedResponse->buf, 0, &NumBytesRemaining)) != CTSocketIOPending)
+						NumBytesRecv = NumBytesRemaining;
+						NumBytesRemaining = cBufferSize - NumBytesRecv;
+						if ((scRet = CTCursorAsyncRecv(&overlappedResponse, cursor->file.buffer, NumBytesRecv, &NumBytesRemaining)) != CTSocketIOPending)
 						{
 							//the async operation returned immediately
 							if (scRet == CTSuccess)
 							{
-								printf("CTConnection::DecryptResponseCallback::CTAsyncRecv returned immediate with %lu bytes\n", NumBytesRemaining);
+								fprintf(stderr, "CTConnection::DecryptResponseCallback::CTAsyncRecv returned immediate with %lu bytes\n", NumBytesRemaining);
 								//scRet = CTSSLDecryptMessage(overlappedResponse->conn->sslContext, overlappedResponse->wsaBuf.buf, &NumBytesRecv);
+								//continue;
 							}
 							else //failure
 							{
-								printf("CTConnection::DecryptResponseCallback::CTAsyncRecv failed with CTDriverError = %d\n", scRet);
-								break;
+								fprintf(stderr, "CTConnection::DecryptResponseCallback::CTAsyncRecv failed with CTDriverError = %d\n", scRet);
+								assert(1 == 0);
 							}
 						}
+						//NumBytesRemaining = 0;
 						break;
 					}
-
+					continue;
 				}
 			}
 
-			if (scRet == SEC_E_INCOMPLETE_MESSAGE)
+			else if (overlappedResponse->stage == CT_OVERLAPPED_EXECUTE)//CT_OVERLAPPED_RECV_DECRYPT)
 			{
-				printf("CXConnection::DecryptResponseCallback C::SEC_E_INCOMPLETE_MESSAGE %d bytes recvd, %d bytes remaining\n", PrevBytesRecvd, NumBytesRemaining); //PrintText(NumBytesRecv, (PBYTE)(overlappedResponse->wsaBuf.buf + overlappedResponse->conn->sslContext->Sizes.cbHeader));
 
-				//
-				//	Handle INCOMPLETE ENCRYPTED MESSAGE AS FOLLOWS:
-				// 
-				//	1)  copy the remaining encrypted bytes to the start of our buffer so we can 
-				//		append to them when receiving from socket on the next async iocp iteration
-				//  
-				//	2)  use NumBytesRecv var as an offset input parameter CTCursorAsyncRecv
-				//
-				//	3)  use NumByteRemaining var as input to CTCursorAsyncRecv to request num bytes to recv from socket
-				//		(PrevBytesRecvd will be subtracted from NumBytesRemaining internal to CTAsyncRecv
+				//Issue a blocking call to decrypt the message (again, only if using non-zero read path, which is exclusively used with MBEDTLS at current)
 
-				//For SCHANNEL:  CTSSLDecryptMessage2 will point extraBuffer at the input msg buffer
-				//For WolfSSL:   CTSSLDecryptMessage2 will point extraBuffer at the input msg buffer + the size of the ssl header wolfssl already consumed
-				memcpy((char*)overlappedResponse->buf, extraBuffer, NumBytesRemaining);
-				NumBytesRemaining = cBufferSize;   //request exactly the amount to complete the message NumBytesRemaining 
-												   //populated by CTSSLDecryptMessage2 above or request more if desired
+				/*
+				PrevBytesRecvd = NumBytesRecv;	 //store the recvd bytes value from the overlapped
+				NumBytesRemaining = cBufferSize; //we can never decrypt more bytes than the size of our buffer, and likely schannel will still separate that into chunks
 
-				if ((scRet = CTCursorAsyncRecv(&overlappedResponse, overlappedResponse->buf, NumBytesRecv, &NumBytesRemaining)) != CTSocketIOPending)
+				extraBuffer = overlappedResponse->buf;
+				NumBytesRemaining = NumBytesRecv;
+				scRet = SEC_E_OK;
+				*/
+
+				//while their is extra data to decrypt keep calling decrypt
+				while (NumBytesRemaining > 0 && scRet == SEC_E_OK)
 				{
-					//the async operation returned immediately
-					if (scRet == CTSuccess)
+					//move the extra buffer to the front of our operating buffer
+					overlappedResponse->wsaBuf.buf = extraBuffer;
+					extraBuffer = NULL;
+					PrevBytesRecvd = NumBytesRecv;		//store the previous amount of decrypted bytes
+					NumBytesRecv = NumBytesRemaining;	//set up for the next decryption 
+
+					scRet = CTSSLDecryptMessage2(cursor->conn->sslContext, overlappedResponse->wsaBuf.buf, &NumBytesRecv, &extraBuffer, &NumBytesRemaining);
+					//fprintf(stderr, "CTConnection::DecryptResponseCallback C::Decrypted data: %d bytes recvd, %d bytes remaining, scRet = 0x%x\n", NumBytesRecv, NumBytesRemaining, scRet); //PrintText(NumBytesRecv, (PBYTE)(overlappedResponse->wsaBuf.buf + overlappedResponse->conn->sslContext->Sizes.cbHeader));
+
+					if (scRet == SEC_E_OK)
 					{
-						printf("CXConnection::DecryptResponseCallback::CTAsyncRecv returned immediate with %lu bytes\n", NumBytesRemaining);
-						//scRet = CTSSLDecryptMessage(overlappedResponse->conn->sslContext, overlappedResponse->wsaBuf.buf, &NumBytesRecv);
-					}
-					else //failure
-					{
-						printf("CXConnection::DecryptResponseCallback::CTAsyncRecv failed with CTDriverError = %d\n", scRet);
-						break;
+						//push past cbHeader and copy decrypted message bytes
+						memcpy((char*)overlappedResponse->buf, (char*)overlappedResponse->wsaBuf.buf + cursor->conn->sslContext->Sizes.cbHeader, NumBytesRecv);
+						overlappedResponse->buf += NumBytesRecv;//+ overlappedResponse->conn->sslContext->Sizes.cbHeader;// + overlappedResponse->conn->sslContext->Sizes.cbTrailer;
+
+						//if( NumBytesRemaining == 0 )
+						//{
+							//scRet = ioctlsocket(cursor->conn->socket, FIONREAD, &NumBytesRemaining);
+
+							//fprintf(stderr, "**** CTConnection::DecryptResponseCallback::ictlsocket C status = %d\n", (int)scRet);
+							//fprintf(stderr, "**** CTConnection::DecryptResponseCallback::ictlsocket C = %d\n", (int)NumBytesRemaining);
+
+							//select said there was data but ioctlsocket says there is no data
+							//if( NumBytesRemaining == 0)
+
+						if (cursor->headerLength == 0)
+						{
+							//search for end of protocol header (and set cxCursor headerLength property
+							char* endOfHeader = NULL;
+
+							if (cxConn)
+							{
+								std::shared_ptr<CXCursor> cxCursor = cxConn->getRequestCursorForKey(cursor->queryToken);
+								endOfHeader = cxCursor->ProcessResponseHeader(cursor, cursor->file.buffer, NumBytesRecv);
+							}
+							else
+							{
+								endOfHeader = cursor->headerLengthCallback(cursor, cursor->file.buffer, NumBytesRecv);
+							}
+
+							//calculate size of header
+							if (endOfHeader)
+							{
+								cursor->headerLength = endOfHeader - (cursor->file.buffer);
+
+								memcpy(cursor->requestBuffer, cursor->file.buffer, cursor->headerLength);
+
+								//fprintf(stderr, "CTDecryptResponseCallbacK::Header = \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
+
+								//copy body to start of buffer to overwrite header 
+								memcpy(cursor->file.buffer, endOfHeader, NumBytesRecv - cursor->headerLength);
+								//overlappedResponse->buf += endDecryptedBytes - endOfHeader;
+
+								overlappedResponse->buf -= cursor->headerLength;
+							}
+						}
+						assert(cursor->contentLength > 0);
+
+						if (cursor->contentLength <= overlappedResponse->buf - cursor->file.buffer)
+						{
+							extraBufferOffset = 0;
+							closeCursor = cursor;	//store a ptr to the current cursor so we can close it after replacing with next cursor
+							memset(&nextCursorMsg, 0, sizeof(MSG));
+							if (PeekMessage(&nextCursorMsg, NULL, WM_USER, WM_USER + cursor->conn->queryCount - 1, PM_REMOVE)) //(nextCursor)
+							{
+								nextCursor = (CTCursor*)(nextCursorMsg.lParam);
+#ifdef _DEBUG
+								//assert(nextCursorMsg.message == WM_USER + (UINT)cursor->queryToken + 1);
+								assert(nextCursor);
+#endif						
+								fprintf(stderr, "CX_Dequeue_Recv_Decrypt::PeekMessage Removed Cursor (%d)\n", nextCursor->queryToken);
+
+								if (cursor->contentLength < overlappedResponse->buf - cursor->file.buffer)
+								{
+									fprintf(stderr, "vagina");
+
+									cursor->conn->response_overlap_buffer_length = (size_t)overlappedResponse->buf - (size_t)(cursor->file.buffer + cursor->contentLength);
+									assert(cursor->conn->response_overlap_buffer_length > 0);
+
+									//NumBytesRemaining = cursor->conn->response_overlap_buffer_length;
+									if (nextCursor && cursor->conn->response_overlap_buffer_length > 0)
+									{
+										//copy overlapping cursor's response from previous cursor's buffer to next cursor's buffer
+										memcpy(nextCursor->file.buffer, cursor->file.buffer + cursor->contentLength, cursor->conn->response_overlap_buffer_length);
+
+										//read the new cursor's header
+										if (nextCursor->headerLength == 0)
+										{
+											//search for end of protocol header (and set cxCursor headerLength property
+											assert(cursor->file.buffer != nextCursor->file.buffer);
+
+											char* endOfHeader = NULL;
+											if (cxConn)
+											{
+												std::shared_ptr<CXCursor> cxNextCursor = cxConn->getRequestCursorForKey(nextCursor->queryToken);
+												endOfHeader = cxNextCursor->ProcessResponseHeader(nextCursor, nextCursor->file.buffer, cursor->conn->response_overlap_buffer_length);
+											}
+											else
+												endOfHeader = nextCursor->headerLengthCallback(nextCursor, nextCursor->file.buffer, cursor->conn->response_overlap_buffer_length);
+
+
+											//calculate size of header
+											nextCursor->headerLength = endOfHeader - (nextCursor->file.buffer);
+
+											//copy header to cursor's request buffer
+											memcpy(nextCursor->requestBuffer, nextCursor->file.buffer, nextCursor->headerLength);
+
+											//copy body to start of buffer to overwrite header
+											assert(nextCursor->file.buffer);
+											memcpy(nextCursor->file.buffer, endOfHeader, cursor->conn->response_overlap_buffer_length - nextCursor->headerLength);
+
+											cursor->conn->response_overlap_buffer_length -= nextCursor->headerLength;
+											extraBufferOffset = cursor->conn->response_overlap_buffer_length;
+
+											/*
+											if (nextCursor->contentLength <= cursor->conn->response_overlap_buffer_length)
+											{
+												//if (nextCursor->contentLength < cursor->conn->response_overlap_buffer_length)
+
+
+												cursor->conn->response_overlap_buffer_length -= nextCursor->contentLength;
+
+												cursor = nextCursor;
+												nextCursor = NULL;
+												if (PeekMessage(&nextCursorMsg, NULL, WM_USER + cursor->queryToken + 1, WM_USER + cursor->queryToken + 1, PM_REMOVE)) //(nextCursor)
+												{
+													assert(nextCursorMsg.message == WM_USER + (UINT)cursor->queryToken + 1);
+													nextCursor = (CTCursor*)(nextCursorMsg.lParam);
+													assert(nextCursor);
+												}
+												//if (nextCursor->contentLength < cursor->conn->response_overlap_buffer_length - nextCursor->headerLength)
+												//{
+												//	cursor = nextCursor;
+												//
+												//}
+
+												//decrement the cursor queue count to finish ours
+												cursor->conn->rxCursorQueueCount--;
+
+												CTCursorCloseMappingWithSize(cursor, cursor->contentLength); //overlappedResponse->buf - cursor->file.buffer);
+	#ifdef _DEBUG
+														assert(cursor->responseCallback);
+	#endif
+														cursor->responseCallback(NULL, cursor);
+
+														continue;
+
+													}
+
+													*/
+										}
+
+									}
+								}
+								if (NumBytesRemaining == 0)
+								{
+									fprintf(stderr, "penis");
+
+									NumBytesRecv = cBufferSize;;
+									overlappedResponse = &(nextCursor->overlappedResponse);
+									if ((scRet = CTCursorAsyncRecv(&(overlappedResponse), (void*)(nextCursor->file.buffer + cursor->conn->response_overlap_buffer_length - nextCursor->headerLength), 0, &NumBytesRecv)) != CTSocketIOPending)
+									{
+										//the async operation returned immediately
+										if (scRet == CTSuccess)
+										{
+											fprintf(stderr, "CTConnection::DecryptResponseCallback::CTAsyncRecv (new cursor) returned immediate with %lu bytes\n", NumBytesRecv);
+
+										}
+										else //failure
+										{
+											fprintf(stderr, "CTConnection::DecryptResponseCallback::CTAsyncRecv (new cursor) failed with CTDriverError = %d\n", scRet);
+										}
+									}
+									nextCursor = NULL;
+									//break;
+								}
+								else
+								{
+									fprintf(stderr, "scrotum");
+
+#ifdef _DEBUG
+									assert(nextCursor);
+									assert(nextCursor->file.buffer);
+									assert(extraBuffer);
+#endif
+									//since extra buffer may be pointing to current cursor buffer memory we have to copy it to the next
+									//cursor BEFORE closing the current cursor's mapping
+									memcpy(nextCursor->file.buffer + extraBufferOffset, extraBuffer, NumBytesRemaining);
+									extraBuffer = nextCursor->file.buffer + extraBufferOffset;
+
+									overlappedResponse = &(nextCursor->overlappedResponse);
+									overlappedResponse->buf = nextCursor->file.buffer + extraBufferOffset;
+
+									cursor = nextCursor;
+									nextCursor = NULL;
+								}
+
+							}
+
+							//increment the connection response count
+							//closeCursor->conn->rxCursorQueueCount--;
+							closeCursor->conn->responseCount--;
+
+#ifdef _DEBUG
+							//assert(closeCursor->responseCallback);
+#endif
+							//issue the response to the client caller
+							if (cxConn) cxConn->distributeResponseWithCursorForToken(closeCursor->queryToken);
+							else closeCursor->responseCallback(&err, closeCursor);
+							closeCursor = NULL;	//set to NULL for posterity
+						}
+						else if (NumBytesRemaining == 0)
+						{
+							fprintf(stderr, "wanker");
+
+							NumBytesRemaining = cBufferSize;
+							if ((scRet = CTCursorAsyncRecv(&overlappedResponse, overlappedResponse->buf, 0, &NumBytesRemaining)) != CTSocketIOPending)
+							{
+								//the async operation returned immediately
+								if (scRet == CTSuccess)
+								{
+									fprintf(stderr, "CTConnection::DecryptResponseCallback::CTAsyncRecv returned immediate with %lu bytes\n", NumBytesRemaining);
+									//scRet = CTSSLDecryptMessage(overlappedResponse->conn->sslContext, overlappedResponse->wsaBuf.buf, &NumBytesRecv);
+								}
+								else //failure
+								{
+									fprintf(stderr, "CTConnection::DecryptResponseCallback::CTAsyncRecv failed with CTDriverError = %d\n", scRet);
+									break;
+								}
+							}
+							break;
+						}
+
 					}
 				}
-			}
 
-			printf("\nCXDecryptResponseCallback::END\n\n");
+				if (scRet == SEC_E_INCOMPLETE_MESSAGE)
+				{
+					//fprintf(stderr, "CTConnection::DecryptResponseCallback C::SEC_E_INCOMPLETE_MESSAGE %d bytes recvd, %d bytes remaining\n", PrevBytesRecvd, NumBytesRemaining); //PrintText(NumBytesRecv, (PBYTE)(overlappedResponse->wsaBuf.buf + overlappedResponse->conn->sslContext->Sizes.cbHeader));
+
+					//
+					//	Handle INCOMPLETE ENCRYPTED MESSAGE AS FOLLOWS:
+					// 
+					//	1)  copy the remaining encrypted bytes to the start of our buffer so we can 
+					//		append to them when receiving from socket on the next async iocp iteration
+					//  
+					//	2)  use NumBytesRecv var as an offset input parameter CTCursorAsyncRecv
+					//
+					//	3)  use NumByteRemaining var as input to CTCursorAsyncRecv to request num bytes to recv from socket
+					//		(PrevBytesRecvd will be subtracted from NumBytesRemaining internal to CTAsyncRecv
+
+					//For SCHANNEL:  CTSSLDecryptMessage2 will point extraBuffer at the input msg buffer
+					//For WolfSSL:   CTSSLDecryptMessage2 will point extraBuffer at the input msg buffer + the size of the ssl header wolfssl already consumed
+					memcpy((char*)overlappedResponse->buf, extraBuffer, NumBytesRemaining);
+					NumBytesRemaining = cBufferSize;   //request exactly the amount to complete the message NumBytesRemaining 
+													   //populated by CTSSLDecryptMessage2 above or request more if desired
+
+					if ((scRet = CTCursorAsyncRecv(&overlappedResponse, overlappedResponse->buf, NumBytesRecv, &NumBytesRemaining)) != CTSocketIOPending)
+					{
+						//the async operation returned immediately
+						if (scRet == CTSuccess)
+						{
+							//fprintf(stderr, "CTConnection::DecryptResponseCallback::CTAsyncRecv returned immediate with %lu bytes\n", NumBytesRemaining);
+							//scRet = CTSSLDecryptMessage(overlappedResponse->conn->sslContext, overlappedResponse->wsaBuf.buf, &NumBytesRecv);
+						}
+						else //failure
+						{
+							fprintf(stderr, "CTConnection::DecryptResponseCallback::CTAsyncRecv failed with CTDriverError = %d\n", scRet);
+							break;
+						}
+					}
+				}
+
+			}
+			//fprintf(stderr, "\nCTDecryptResponseCallback::END\n\n");
 
 			//TO DO:  Enable SSL negotation.  Determine when to appropriately do so...here?
 			// The server wants to perform another handshake sequence.
 			/*
 			if(scRet == CTSSLRenegotiate)
 			{
-				printf("CTDecryptResponseCallback::Server requested renegotiate!\n");
+				fprintf(stderr, "CTDecryptResponseCallback::Server requested renegotiate!\n");
 				//scRet = ClientHandshakeLoop( Socket, phCreds, phContext, FALSE, &ExtraBuffer);
 				scRet = CTSSLHandshake(overlappedResponse->conn->socket, overlappedResponse->conn->sslContext, NULL);
 				if(scRet != SEC_E_OK) return scRet;
 
 				if(overlappedResponse->conn->sslContext->ExtraData.pvBuffer) // Move any "extra" data to the input buffer.
 				{
-					printf("\nCTDecryptResponseCallback::Unhandled Extra Data\n");
+					fprintf(stderr, "\nCTDecryptResponseCallback::Unhandled Extra Data\n");
 					//MoveMemory(overlappedConn->conn->response_buf, overlappedConn->conn->sslContextRef->ExtraData.pvBuffer, overlappedConn->conn->sslContextRef->ExtraData.cbBuffer);
 					//cbIoBuffer = sslContextRef->ExtraData.cbBuffer;
 				}
@@ -784,7 +1008,7 @@ unsigned long __stdcall CX_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 	}
 
 #ifdef DEBUG
-	printf("\nCTDecryptResponseCallback::End\n");
+	fprintf(stderr, "\nCTDecryptResponseCallback::End\n");
 #endif
 	ExitThread(0);
 	return 0;
@@ -815,12 +1039,12 @@ unsigned long __stdcall CX_Dequeue_Encrypt_Send(LPVOID lpParameter)
 
 	unsigned long cBufferSize = ct_system_allocation_granularity();
 
-	printf("CXConnection::EncryptQueryCallback Begin\n");
+	fprintf(stderr, "CXConnection::EncryptQueryCallback Begin\n");
 
 	//TO DO:  Optimize number of packets dequeued at once
 	while (GetQueuedCompletionStatusEx(hCompletionPort, ovl_entry, CX_MAX_INFLIGHT_ENCRYPT_PACKETS, &nPaquetsDequeued, INFINITE, TRUE))
 	{
-		printf("CXConnection::EncryptQueryCallback::nPaquetsDequeued = %d\n", (int)nPaquetsDequeued);
+		fprintf(stderr, "CXConnection::EncryptQueryCallback::nPaquetsDequeued = %d\n", (int)nPaquetsDequeued);
 		for (i = 0; i < nPaquetsDequeued; i++)
 		{
 			CompletionKey = (ULONG_PTR)ovl_entry[i].lpCompletionKey;
@@ -830,13 +1054,13 @@ unsigned long __stdcall CX_Dequeue_Encrypt_Send(LPVOID lpParameter)
 			int schedule_stage = CT_OVERLAPPED_SCHEDULE;
 			if (!overlappedRequest)
 			{
-				printf("CXConnection::EncryptQueryCallback::GetQueuedCompletionStatus continue\n");
+				fprintf(stderr, "CXConnection::EncryptQueryCallback::GetQueuedCompletionStatus continue\n");
 				continue;
 			}
 
 			if (NumBytesSent == 0)
 			{
-				printf("CXConnection::EncryptQueryCallback::Server Disconnected!!!\n");
+				fprintf(stderr, "CXConnection::EncryptQueryCallback::Server Disconnected!!!\n");
 			}
 			else
 			{
@@ -850,8 +1074,8 @@ unsigned long __stdcall CX_Dequeue_Encrypt_Send(LPVOID lpParameter)
 				assert(cursor->conn);
 #endif
 				NumBytesSent = overlappedRequest->len;
-				printf("CXConnection::EncryptQueryCallback::NumBytesSent = %d\n", (int)NumBytesSent);
-				//printf("CXConnection::EncryptQueryCallback::msg = %s\n", overlappedRequest->buf + sizeof(ReqlQueryMessageHeader));
+				fprintf(stderr, "CXConnection::EncryptQueryCallback::NumBytesSent = %d\n", (int)NumBytesSent);
+				//fprintf(stderr, "CXConnection::EncryptQueryCallback::msg = %s\n", overlappedRequest->buf + sizeof(ReqlQueryMessageHeader));
 
 				//Use the ReQLC API to synchronously
 				//a)	encrypt the query message in the query buffer
@@ -866,7 +1090,7 @@ unsigned long __stdcall CX_Dequeue_Encrypt_Send(LPVOID lpParameter)
 
 					if (cbData == SOCKET_ERROR || cbData == 0)
 					{
-						printf("**** CTConnection::EncryptQueryCallback::CT_OVERLAPPED_SCHEDULE_SEND Error %d sending data to server (%d)\n", WSAGetLastError(), cbData);
+						fprintf(stderr, "**** CTConnection::EncryptQueryCallback::CT_OVERLAPPED_SCHEDULE_SEND Error %d sending data to server (%d)\n", WSAGetLastError(), cbData);
 					}
 
 					//we haven't populated the cursor's overlappedResponse for recv'ing yet,
@@ -876,7 +1100,7 @@ unsigned long __stdcall CX_Dequeue_Encrypt_Send(LPVOID lpParameter)
 					if (cursor->queryCallback)
 						cursor->queryCallback(&err, cursor);
 
-					printf("%d bytes of handshake data sent\n", cbData);
+					fprintf(stderr, "%d bytes of raw tcp data sent\n", cbData);
 					cursor->overlappedResponse.buf = NULL;
 					overlappedRequest->buf = NULL; //should this stay here or in the queryCallback?
 					schedule_stage = CT_OVERLAPPED_SCHEDULE_RECV;
@@ -892,7 +1116,7 @@ unsigned long __stdcall CX_Dequeue_Encrypt_Send(LPVOID lpParameter)
 				recvMsgLength = cBufferSize;
 #endif
 				queryToken = cursor->queryToken;
-				printf("CXConnection::EncryptQueryCallback::queryTOken = %llu\n", queryToken);
+				fprintf(stderr, "CXConnection::EncryptQueryCallback::queryTOken = %llu\n", queryToken);
 
 				//Issue a blocking read for debugging purposes
 				//CTRecv(overlappedQuery->conn, (void*)&(overlappedQuery->conn->response_buffers[ (queryToken%REQL_MAX_INFLIGHT_QUERIES) * REQL_RESPONSE_BUFF_SIZE]), &recvMsgLength);
@@ -915,11 +1139,11 @@ unsigned long __stdcall CX_Dequeue_Encrypt_Send(LPVOID lpParameter)
 					//the async operation returned immediately
 					if (ctError == CTSuccess)
 					{
-						printf("CXConnection::EncryptQueryCallback::CTAsyncRecv returned immediate with %lu bytes\n", recvMsgLength);
+						fprintf(stderr, "CXConnection::EncryptQueryCallback::CTAsyncRecv returned immediate with %lu bytes\n", recvMsgLength);
 					}
 					else //failure
 					{
-						printf("CXConnection::EncryptQueryCallback::CTAsyncRecv failed with CTDriverError = %d\n", ctError);
+						fprintf(stderr, "CXConnection::EncryptQueryCallback::CTAsyncRecv failed with CTDriverError = %d\n", ctError);
 					}
 				}
 				*/
@@ -936,14 +1160,14 @@ unsigned long __stdcall CX_Dequeue_Encrypt_Send(LPVOID lpParameter)
 				/*
 				if(scRet == CTSSLRenegotiate)
 				{
-					printf("CTEncryptQueryCallback::Server requested renegotiate!\n");
+					fprintf(stderr, "CTEncryptQueryCallback::Server requested renegotiate!\n");
 					//scRet = ClientHandshakeLoop( Socket, phCreds, phContext, FALSE, &ExtraBuffer);
 					scRet = CTSSLHandshake(overlappedQuery->conn->socket, overlappedQuery->conn->sslContext, NULL);
 					if(scRet != SEC_E_OK) return scRet;
 
 					if(overlappedQuery->conn->sslContext->ExtraData.pvBuffer) // Move any "extra" data to the input buffer.
 					{
-						printf("\nCTEncryptQueryCallback::Unhandled Extra Data\n");
+						fprintf(stderr, "\nCTEncryptQueryCallback::Unhandled Extra Data\n");
 						//MoveMemory(overlappedConn->conn->response_buf, overlappedConn->conn->sslContextRef->ExtraData.pvBuffer, overlappedConn->conn->sslContextRef->ExtraData.cbBuffer);
 						//cbIoBuffer = sslContextRef->ExtraData.cbBuffer;
 					}
@@ -954,7 +1178,7 @@ unsigned long __stdcall CX_Dequeue_Encrypt_Send(LPVOID lpParameter)
 
 	}
 
-	printf("\nCXConnectin::EncryptQueryCallback::End\n");
+	fprintf(stderr, "\nCXConnectin::EncryptQueryCallback::End\n");
 	ExitThread(0);
 	return 0;
 

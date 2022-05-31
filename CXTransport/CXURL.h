@@ -75,7 +75,7 @@
 #endif
 #endif
 
-//#define CT_printf(f_, ...) printf((f_), __VA_ARGS__)
+//#define CT_fprintf(stderr, f_, ...) fprintf(stderr, (f_), __VA_ARGS__)
 
 #include "CXTransport.h"
 #include "CXURL/CXURLCursor.h"

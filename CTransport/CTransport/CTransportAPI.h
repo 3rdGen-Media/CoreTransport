@@ -78,7 +78,7 @@ typedef unsigned __int64 uint64_t;
 extern "C" {
 #endif
 
-#pragma mark -- CTCursor API methods
+//#pragma mark -- CTCursor API methods
 
 //Close cursor response file buffer mapping
 CTRANSPORT_API void		   CTCursorCloseFileMap(CTCursor *cursor);
@@ -98,17 +98,21 @@ CTRANSPORT_API CTFileError CTCursorMapFileW(CTCursor * cursor, unsigned long fil
 //Create cursor response file AND map response file buffer for writing in oneshot
 CTRANSPORT_API CTFileError CTCursorCreateMapFileW(CTCursor * cursor, char* filepath, unsigned long fileSize);
 
-#pragma mark -- CoreTransport Memory Init Methods
+//#pragma mark -- CoreTransport Memory Init Methods
 CTRANSPORT_API CTRANSPORT_INLINE void CTCreateConnectionPool(CTConnection* connectionPool, int numConnections);
 CTRANSPORT_API CTRANSPORT_INLINE CTConnection* CTGetNextPoolConnection();
 
 CTRANSPORT_API CTRANSPORT_INLINE void CTCreateCursorPool(CTCursor* cursorPool, int numCursors);
 CTRANSPORT_API CTRANSPORT_INLINE CTCursor* CTGetNextPoolCursor();
 
-#pragma mark -- CTConnect API Methods
+CTRANSPORT_API CTRANSPORT_INLINE void CTSetCursorPoolIndex(int index);
+
+//#pragma mark -- CTConnect API Methods
 //Connect to a RethinkDB Service + Init/Alloc ReØMQL [ReqlConnection] object
 CTRANSPORT_API CTRANSPORT_INLINE int CTConnect(  CTTarget * service, CTConnectionClosure callback);
 CTRANSPORT_API CTRANSPORT_INLINE coroutine int CTSSLRoutine(CTConnection* conn, char* hostname, char* caPath);
+CTRANSPORT_API CTRANSPORT_INLINE coroutine int CTProxyHandshake(CTConnection* conn);
+
 CTRANSPORT_API CTRANSPORT_INLINE coroutine int CTTargetResolveHost(CTTarget* target, CTConnectionClosure callback);
 CTRANSPORT_API CTRANSPORT_INLINE int CTReQLHandshake( CTConnection * r, CTTarget * service);
 CTRANSPORT_API CTRANSPORT_INLINE int CTReQLAsyncHandshake(CTConnection* conn, CTTarget* service, CTConnectionClosure callback);
@@ -140,7 +144,7 @@ CTRANSPORT_API CTRANSPORT_INLINE CTClientError CTCursorAsyncRecv(CTOverlappedRes
 CTRANSPORT_API CTRANSPORT_INLINE uint64_t CTReQLRunQueryOnQueue(CTConnection * conn, const char ** queryBufPtr, unsigned long queryStrLength, uint64_t queryToken);
 
 
-#pragma mark -- Global ReqlClientDriver Object
+//#pragma mark -- Global ReqlClientDriver Object
 typedef struct CTClientDriver
 {
     //The Client Driver Object can create Reql Connections

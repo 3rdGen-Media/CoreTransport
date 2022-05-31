@@ -11,12 +11,12 @@ void CTSocketInit(void)
 	{
 		// Initialize the WinSock subsystem.
 		if(WSAStartup(MAKEWORD(2, 2)/*0x0101*/, &g_WsaData) == SOCKET_ERROR) // Winsock.h
-		{ printf("Error %d returned by WSAStartup\n", GetLastError()); }// goto cleanup; } //
-		printf("----- WinSock Initialized\n");
+		{ fprintf(stderr, "Error %d returned by WSAStartup\n", GetLastError()); }// goto cleanup; } //
+		fprintf(stderr, "----- WinSock Initialized\n");
 		g_WsaInitialized = 1;
 	}
 	else
-		printf("----- WinSock Alrleady Initialized!\n");
+		fprintf(stderr, "----- WinSock Alrleady Initialized!\n");
 
 }
 
@@ -39,7 +39,7 @@ CTSocket CTSocketCreateUDP(void)
     // Create the non-blocking unix socket file descriptor for a tcp stream
     if (socketfd < 0 || socketfd == INVALID_SOCKET)
     {
-        printf("socket(PF_INET, SOCK_STREAM, IPPROTO_TCP) failed with error:  %d", errno);
+        fprintf(stderr, "socket(PF_INET, SOCK_STREAM, IPPROTO_TCP) failed with error:  %d", errno);
         return CTSocketError;
     }
 
@@ -50,21 +50,21 @@ CTSocket CTSocketCreateUDP(void)
     lin.l_linger = 0;
     if ((setsockopt(socketfd, SOL_SOCKET, SO_LINGER, (const char*)&lin, sizeof(int))) < 0)
     {
-        printf("setsockopt(socketfd, SOL_SOCKET, SO_LINGER,...) failed with error:  %d\n", errno);
+        fprintf(stderr, "setsockopt(socketfd, SOL_SOCKET, SO_LINGER,...) failed with error:  %d\n", errno);
         //return CTSocketError;
     }
 
     //Disable Nagle
     if ((setsockopt(socketfd, IPPROTO_TCP, TCP_NODELAY, (const char*)&bOptVal, bOptLen)) < 0)
     {
-        printf("setsockopt(socketfd, IPPROTO_TCP, TCP_NODELAY,...) failed with error:  %d\n", errno);
+        fprintf(stderr, "setsockopt(socketfd, IPPROTO_TCP, TCP_NODELAY,...) failed with error:  %d\n", errno);
         //return CTSocketError;
     }
 
     //Send Keep alive messages automatically
     if ((setsockopt(socketfd, SOL_SOCKET, SO_KEEPALIVE, (const char*)&bOptVal, bOptLen)) < 0)
     {
-        printf("setsockopt(socketfd, SOL_SOCKET, SO_LINGER,...) failed with error:  %d\n", errno);
+        fprintf(stderr, "setsockopt(socketfd, SOL_SOCKET, SO_LINGER,...) failed with error:  %d\n", errno);
         //return CTSocketError;
     }
     */
@@ -94,7 +94,7 @@ CTSocket CTSocketCreate(int nonblocking)
 	// Create the non-blocking unix socket file descriptor for a tcp stream
     if(  socketfd < 0 || socketfd == INVALID_SOCKET )
     {
-        printf("socket(PF_INET, SOCK_STREAM, IPPROTO_TCP) failed with error:  %d", errno);
+        fprintf(stderr, "socket(PF_INET, SOCK_STREAM, IPPROTO_TCP) failed with error:  %d", errno);
         return CTSocketError;
     }
 
@@ -107,7 +107,7 @@ CTSocket CTSocketCreate(int nonblocking)
 
     iResult = ioctlsocket(socketfd, FIONBIO, &nonblockingMode);
     if (iResult != NO_ERROR)
-        printf("ioctlsocket failed with error: %ld\n", iResult);
+        fprintf(stderr, "ioctlsocket failed with error: %ld\n", iResult);
 
     // Set linger explicitly off to kill connections on close
     // Note:  linger failure does not explicilty fail the connection
@@ -116,21 +116,21 @@ CTSocket CTSocketCreate(int nonblocking)
     lin.l_linger = 0;
     if( (setsockopt(socketfd, SOL_SOCKET, SO_LINGER, (const char *)&lin, sizeof(int))) < 0 )
     {
-        printf("setsockopt(socketfd, SOL_SOCKET, SO_LINGER,...) failed with error:  %d\n", errno);
+        fprintf(stderr, "setsockopt(socketfd, SOL_SOCKET, SO_LINGER,...) failed with error:  %d\n", errno);
         //return CTSocketError;
     }
 
     //Disable Nagle
     if ((setsockopt(socketfd, IPPROTO_TCP, TCP_NODELAY, (const char*)&bOptVal, bOptLen)) < 0)
     {
-        printf("setsockopt(socketfd, IPPROTO_TCP, TCP_NODELAY,...) failed with error:  %d\n", errno);
+        fprintf(stderr, "setsockopt(socketfd, IPPROTO_TCP, TCP_NODELAY,...) failed with error:  %d\n", errno);
         //return CTSocketError;
     }
 
     //Send Keep alive messages automatically
     if ((setsockopt(socketfd, SOL_SOCKET, SO_KEEPALIVE, (const char*)&bOptVal, bOptLen)) < 0)
     {
-        printf("setsockopt(socketfd, SOL_SOCKET, SO_LINGER,...) failed with error:  %d\n", errno);
+        fprintf(stderr, "setsockopt(socketfd, SOL_SOCKET, SO_LINGER,...) failed with error:  %d\n", errno);
         //return CTSocketError;
     }
 
@@ -139,21 +139,21 @@ CTSocket CTSocketCreate(int nonblocking)
    // timeout.tv_usec = 0;
 	/*
     if (setsockopt (socketfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
-        printf("setsockopt(socketfd, SOL_SOCKET, SO_RCVTIMEO,...) failed with error:  %d\n", errno);
+        fprintf(stderr, "setsockopt(socketfd, SOL_SOCKET, SO_RCVTIMEO,...) failed with error:  %d\n", errno);
 
     if (setsockopt (socketfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
-        printf("setsockopt(socketfd, SOL_SOCKET, SO_SNDTIMEO,...) failed with error:  %d\n", errno);
+        fprintf(stderr, "setsockopt(socketfd, SOL_SOCKET, SO_SNDTIMEO,...) failed with error:  %d\n", errno);
 	*/
 	/*
 	 iResult = ioctlsocket(socketfd, FIONBIO, &nonblockingMode );
 	if (iResult != NO_ERROR)
-		printf("ioctlsocket failed with error: %ld\n", iResult);
+		fprintf(stderr, "ioctlsocket failed with error: %ld\n", iResult);
   */
 #ifndef _WIN32
     // Set socket to close on exec
     if( (fcntl(socketfd, F_SETFD, FD_CLOEXEC)) < 0 )
     {
-        printf("fcntl(socketfd, F_SETFD, FD_CLOEXEC) failed with error:  %d\n", errno);
+        fprintf(stderr, "fcntl(socketfd, F_SETFD, FD_CLOEXEC) failed with error:  %d\n", errno);
         return CTSocketError;
     }
 #endif
@@ -162,7 +162,7 @@ CTSocket CTSocketCreate(int nonblocking)
     int flags = fcntl(socketfd, F_GETFL);
     if( (fcntl(socketfd, F_SETFL, flags | O_NONBLOCK)) < 0 )
     {
-        printf("fcntl(socketfd, F_SETFL, flags | O_NONBLOCK) failed with error:  %d\n", errno);
+        fprintf(stderr, "fcntl(socketfd, F_SETFL, flags | O_NONBLOCK) failed with error:  %d\n", errno);
         return CTSocketError;
     }
      */
@@ -234,7 +234,7 @@ coroutine uintptr_t CTSocketWait(CTSocket socketfd, int event_queue, int16_t eve
 {
 
 #ifndef _WIN32
-    //printf("CTSocketWait Start\n");
+    //fprintf(stderr, "CTSocketWait Start\n");
     struct kevent kev = {0};
     //  Synchronously wait for the socket event by idling until we receive kevent from our kqueue
     return kqueue_wait_with_timeout(event_queue, &kev, eventFilter, 10000);
@@ -255,14 +255,14 @@ typedef int socklen_t;
  ***/
 coroutine int CTSocketGetError(CTSocket socketfd)
 {
-    //printf("ReqlGetSocketError\n");
+    //fprintf(stderr, "ReqlGetSocketError\n");
     int result = 0;
-   //get the result of the socket connection
+    //get the result of the socket connection
     socklen_t result_len = sizeof(result);
     if ( getsockopt(socketfd, SOL_SOCKET, SO_ERROR, (char*)&result, &result_len) != 0 ) 
 	{
         // error, fail somehow, close socket
-        printf("getsockopt(socketfd, SOL_SOCKET, SO_ERROR,...) failed with error %d\n", errno);
+        fprintf(stderr, "getsockopt(socketfd, SOL_SOCKET, SO_ERROR,...) failed with error %d\n", errno);
         return result;//ReqlSysCallError;
     }
     return result;
