@@ -298,7 +298,7 @@ CTRANSPORT_API CTRANSPORT_INLINE void* CTReQLHandshakeProcessFirstMessageRespons
     char* CLIENT_FINAL_MESSAGE_JSON = sFirstMessagePtr;
     //CLIENT_FINAL_MESSAGE[0] = '\0';
 
-    //ct_scram_init();
+    //ca_scram_init();
 
     //fprintf(stderr, "SERVER_FIRST_MESSAGE_BUFFER (%d) = \n\n%s\n\n", strlen(sFirstMessagePtr), sFirstMessagePtr);
 
@@ -393,10 +393,10 @@ CTRANSPORT_API CTRANSPORT_INLINE void* CTReQLHandshakeProcessFirstMessageRespons
 
      //  Run iterative hmac algorithm n times and concatenate the result in an XOR buffer in order to salt the password
      //  SaltedPassword  := Hi(Normalize(password), salt, i)
-     //  Note:  Not really any way to tell if ct_scram_... fails
+     //  Note:  Not really any way to tell if ca_scram_... fails
     int si = atoi(saltIterations);
     memset(saltedPassword, 0, CC_SHA256_DIGEST_LENGTH);
-    ct_scram_salt_password(password, strlen(password), salt, saltLength, si, saltedPassword);
+    ca_scram_salt_password(password, strlen(password), salt, saltLength, si, saltedPassword);
     //fprintf(stderr, "salted password = %.*s\n", CC_SHA256_DIGEST_LENGTH, saltedPassword);
 
     //  Generate Client and Server Key buffers
@@ -404,14 +404,14 @@ CTRANSPORT_API CTRANSPORT_INLINE void* CTReQLHandshakeProcessFirstMessageRespons
     //  using keyed HMAC SHA 256 with the salted password as the secret key
     //      ClientKey       := HMAC(SaltedPassword, "Client Key")
     //      ServerKey       := HMAC(SaltedPassword, "Server Key")
-    ct_scram_hmac(saltedPassword, CC_SHA256_DIGEST_LENGTH, REQL_CLIENT_KEY, strlen(REQL_CLIENT_KEY), clientKey);
-    ct_scram_hmac(saltedPassword, CC_SHA256_DIGEST_LENGTH, REQL_SERVER_KEY, strlen(REQL_SERVER_KEY), serverKey);
+    ca_scram_hmac(saltedPassword, CC_SHA256_DIGEST_LENGTH, REQL_CLIENT_KEY, strlen(REQL_CLIENT_KEY), clientKey);
+    ca_scram_hmac(saltedPassword, CC_SHA256_DIGEST_LENGTH, REQL_SERVER_KEY, strlen(REQL_SERVER_KEY), serverKey);
     //fprintf(stderr, "clientKey = %.*s\n", CC_SHA256_DIGEST_LENGTH, clientKey);
     //fprintf(stderr, "serverKey = %.*s\n", CC_SHA256_DIGEST_LENGTH, serverKey);
 
     //  Calculate the "Normal" SHA 256 Hash of the clientKey
     //      storedKey := H(clientKey)
-    ct_scram_hash(clientKey, CC_SHA256_DIGEST_LENGTH, storedKey);
+    ca_scram_hash(clientKey, CC_SHA256_DIGEST_LENGTH, storedKey);
     //fprintf(stderr, "storedKey = %.*s\n", CC_SHA256_DIGEST_LENGTH, storedKey);
 
     //  Populate SCRAM client-final-message (ie channel binding and random nonce WITHOUT client proof)
@@ -430,8 +430,8 @@ CTRANSPORT_API CTRANSPORT_INLINE void* CTReQLHandshakeProcessFirstMessageRespons
     //to calculate client and server signatures
     // ClientSignature := HMAC(StoredKey, AuthMessage)
     // ServerSignature := HMAC(ServerKey, AuthMessage)
-    ct_scram_hmac(storedKey, CC_SHA256_DIGEST_LENGTH, SCRAM_AUTH_MESSAGE_PTR, AuthMessageLengthCopy, clientSignature);
-    ct_scram_hmac(serverKey, CC_SHA256_DIGEST_LENGTH, SCRAM_AUTH_MESSAGE_PTR, AuthMessageLengthCopy, serverSignature);
+    ca_scram_hmac(storedKey, CC_SHA256_DIGEST_LENGTH, SCRAM_AUTH_MESSAGE_PTR, AuthMessageLengthCopy, clientSignature);
+    ca_scram_hmac(serverKey, CC_SHA256_DIGEST_LENGTH, SCRAM_AUTH_MESSAGE_PTR, AuthMessageLengthCopy, serverSignature);
 
     //And finally we calculate the client proof to put in the client-final message
     //ClientProof     := ClientKey XOR ClientSignature
@@ -476,7 +476,7 @@ CTRANSPORT_API CTRANSPORT_INLINE void* CTReQLHandshakeProcessFirstMessageRespons
     //free Base64 <-> UTF8 string conversion allocations
     free(salt);
     free(base64Proof);
-    //ct_scram_cleanup();
+    //ca_scram_cleanup();
     
     return base64SS;
 

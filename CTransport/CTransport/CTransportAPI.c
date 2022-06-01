@@ -1452,9 +1452,9 @@ int CTReQLHandshake(CTConnection * r, CTTarget* service)
     //  for populating the SCRAM client-first-message
     //  We must wrap SecRandomCopyBytes in a function and use it one byte at a time
     //  to ensure we get a valid UTF8 String (so this is pretty slow)
-    if( (status = ct_scram_gen_rand_bytes( clientNonce, CT_REQL_NUM_NONCE_BYTES )) != noErr)
+    if( (status = ca_scram_gen_rand_bytes( clientNonce, CT_REQL_NUM_NONCE_BYTES )) != noErr)
     {
-        fprintf(stderr, "ct_scram_gen_rand_bytes failed with status:  %d\n", status);
+        fprintf(stderr, "ca_scram_gen_rand_bytes failed with status:  %d\n", status);
         return CTSCRAMEncryptionError;
     }
     
@@ -1594,9 +1594,9 @@ int CTReQLHandshake(CTConnection * r, CTTarget* service)
 	
     //  Run iterative hmac algorithm n times and concatenate the result in an XOR buffer in order to salt the password
     //      SaltedPassword  := Hi(Normalize(password), salt, i)
-    //  Note:  Not really any way to tell if ct_scram_... fails
+    //  Note:  Not really any way to tell if ca_scram_... fails
 	memset(saltedPassword, 0, CC_SHA256_DIGEST_LENGTH);
-    ct_scram_salt_password( service->password, strlen(service->password), salt, saltLength, atoi(saltIterations), saltedPassword );
+    ca_scram_salt_password( service->password, strlen(service->password), salt, saltLength, atoi(saltIterations), saltedPassword );
     //fprintf(stderr, "salted password = %.*s\n", CC_SHA256_DIGEST_LENGTH, saltedPassword);
     
     //  Generate Client and Server Key buffers
@@ -1604,14 +1604,14 @@ int CTReQLHandshake(CTConnection * r, CTTarget* service)
     //  using keyed HMAC SHA 256 with the salted password as the secret key
     //      ClientKey       := HMAC(SaltedPassword, "Client Key")
     //      ServerKey       := HMAC(SaltedPassword, "Server Key")
-    ct_scram_hmac(saltedPassword, CC_SHA256_DIGEST_LENGTH, REQL_CLIENT_KEY, strlen(REQL_CLIENT_KEY), clientKey );
-    ct_scram_hmac(saltedPassword, CC_SHA256_DIGEST_LENGTH, REQL_SERVER_KEY, strlen(REQL_SERVER_KEY), serverKey );
+    ca_scram_hmac(saltedPassword, CC_SHA256_DIGEST_LENGTH, REQL_CLIENT_KEY, strlen(REQL_CLIENT_KEY), clientKey );
+    ca_scram_hmac(saltedPassword, CC_SHA256_DIGEST_LENGTH, REQL_SERVER_KEY, strlen(REQL_SERVER_KEY), serverKey );
     //fprintf(stderr, "clientKey = %.*s\n", CC_SHA256_DIGEST_LENGTH, clientKey);
     //fprintf(stderr, "serverKey = %.*s\n", CC_SHA256_DIGEST_LENGTH, serverKey);
     
     //  Calculate the "Normal" SHA 256 Hash of the clientKey
     //      storedKey := H(clientKey)
-    ct_scram_hash(clientKey, CC_SHA256_DIGEST_LENGTH, storedKey);
+    ca_scram_hash(clientKey, CC_SHA256_DIGEST_LENGTH, storedKey);
     //fprintf(stderr, "storedKey = %.*s\n", CC_SHA256_DIGEST_LENGTH, storedKey);
     
     //  Populate SCRAM client-final-message (ie channel binding and random nonce WITHOUT client proof)
@@ -1628,8 +1628,8 @@ int CTReQLHandshake(CTConnection * r, CTTarget* service)
     //to calculate client and server signatures
     // ClientSignature := HMAC(StoredKey, AuthMessage)
     // ServerSignature := HMAC(ServerKey, AuthMessage)
-    ct_scram_hmac(storedKey, CC_SHA256_DIGEST_LENGTH, SCRAM_AUTH_MESSAGE, AuthMessageLength, clientSignature );
-    ct_scram_hmac(serverKey, CC_SHA256_DIGEST_LENGTH, SCRAM_AUTH_MESSAGE, AuthMessageLength, serverSignature );
+    ca_scram_hmac(storedKey, CC_SHA256_DIGEST_LENGTH, SCRAM_AUTH_MESSAGE, AuthMessageLength, clientSignature );
+    ca_scram_hmac(serverKey, CC_SHA256_DIGEST_LENGTH, SCRAM_AUTH_MESSAGE, AuthMessageLength, serverSignature );
     
     //And finally we calculate the client proof to put in the client-final message
     //ClientProof     := ClientKey XOR ClientSignature
@@ -1872,7 +1872,7 @@ int CTReQLAsyncHandshake(CTConnection* conn, CTTarget* service, CTConnectionClos
 	//  for populating the SCRAM client-first-message
 	//  We must wrap SecRandomCopyBytes in a function and use it one byte at a time
 	//  to ensure we get a valid UTF8 String (so this is pretty slow)
-	if ((status = ct_scram_gen_rand_bytes(clientNonce, CT_REQL_NUM_NONCE_BYTES)) != noErr)
+	if ((status = ca_scram_gen_rand_bytes(clientNonce, CT_REQL_NUM_NONCE_BYTES)) != noErr)
 	{
 		fprintf(stderr, "ca_scram_gen_rand_bytes failed with status:  %d\n", status);
 		struct CTError ctError = { (CTErrorClass)CTDriverErrorClass, CTSCRAMEncryptionError, NULL };    //Reql API client functions will generally return ints as errors
@@ -3538,7 +3538,7 @@ int CTConnect(CTTarget * target, CTConnectionClosure callback)
 
 	//-------------------------------------------------------------------
     //  Initialize the scram SSP security package.
-	ct_scram_init();
+	ca_scram_init();
 	
     //  Issue a request to resolve Host DNS to a sockaddr asynchonrously using CFHost API
     //  It will perform the DNS request asynchronously on a bg thread internally maintained by CFHost API

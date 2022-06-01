@@ -1,5 +1,5 @@
 //
-//  ct_scram.c
+//  ca_scram.c
 //  ReØMQL
 //
 //  This is meant to be a x-platform SCRAM interface in C,
@@ -13,7 +13,7 @@
 #include "stdafx.h"
 #endif
 
-#include "ct_scram.h"
+#include "ca_scram.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,7 +43,7 @@
 #include <security.h>
 #include <sspi.h>
 
-HCRYPTPROV   ct_scramCryptProv;
+HCRYPTPROV   ca_scramCryptProv;
 
 //CNG/BCrypt API Globals
 #include <bcrypt.h>
@@ -144,7 +144,7 @@ static unsigned char base64DecodeLookup[256] =
 // returns the decoded buffer. Must be free'd by caller. Length is given by
 //    outputLength.
 //
-CT_SCRAM_API CT_SCRAM_INLINE void * cr_base64_to_utf8(const char *inputBuffer,size_t length,size_t *outputLength)
+CA_SCRAM_API CA_SCRAM_INLINE void * cr_base64_to_utf8(const char *inputBuffer,size_t length,size_t *outputLength)
 {
 	unsigned char *outputBuffer=NULL;
 	size_t outputBufferSize = 0;
@@ -217,7 +217,7 @@ CT_SCRAM_API CT_SCRAM_INLINE void * cr_base64_to_utf8(const char *inputBuffer,si
 // returns the encoded buffer. Must be free'd by caller. Length is given by
 //    outputLength.
 //
-CT_SCRAM_API CT_SCRAM_INLINE char *cr_utf8_to_base64(const void *buffer,size_t length,bool separateLines,size_t *outputLength)
+CA_SCRAM_API CA_SCRAM_INLINE char *cr_utf8_to_base64(const void *buffer,size_t length,bool separateLines,size_t *outputLength)
 {
 	char *outputBuffer;
 	size_t lineLength;
@@ -330,7 +330,7 @@ CT_SCRAM_API CT_SCRAM_INLINE char *cr_utf8_to_base64(const void *buffer,size_t l
 }
 
 /*
-void ct_scram_init_rng_algorithm()
+void ca_scram_init_rng_algorithm()
 {
 	DWORD cbData;
 	CHAR pszName[1000];
@@ -338,13 +338,13 @@ void ct_scram_init_rng_algorithm()
 	// Open Default CSP (Crypto Service Provider)
 	// Get a handle to the default PROV_RSA_FULL provider.
 	if(CryptAcquireContext(
-		&ct_scramCryptProv,		// handle to the CSP
+		&ca_scramCryptProv,		// handle to the CSP
 		NULL,				// container name 
 		NULL,				// use the default provider
 		PROV_RSA_FULL,	// provider type
 		0 ))					// flag values
 	{
-		fprintf(stderr, TEXT("ct_scram_init::CryptAcquireContext succeeded.\n"));
+		fprintf(stderr, TEXT("ca_scram_init::CryptAcquireContext succeeded.\n"));
 	}  
 	else
 	{
@@ -353,13 +353,13 @@ void ct_scram_init_rng_algorithm()
 			fprintf(stderr, "NTE_BAD_KEYSET\n");
 			// No default container was found. Attempt to create it.
 			if(CryptAcquireContext(
-				&ct_scramCryptProv, 
+				&ca_scramCryptProv, 
 				NULL, 
 				NULL, 
 				PROV_RNG, 
 				CRYPT_NEWKEYSET)) 
 			{
-				fprintf(stderr, TEXT("ct_scram_init::CryptAcquireContext succeeded.\n"));
+				fprintf(stderr, TEXT("ca_scram_init::CryptAcquireContext succeeded.\n"));
 			}
 			else
 			{
@@ -376,7 +376,7 @@ void ct_scram_init_rng_algorithm()
 	// Read the name of the CSP.
 	cbData = 1000;
 	if(CryptGetProvParam(
-		ct_scramCryptProv, 
+		ca_scramCryptProv, 
 		PP_NAME, 
 		(BYTE*)pszName, 
 		&cbData, 
@@ -394,7 +394,7 @@ void ct_scram_init_rng_algorithm()
 	// Read the name of the key container.
 	cbData = 1000;
 	if(CryptGetProvParam(
-		ct_scramCryptProv, 
+		ca_scramCryptProv, 
 		PP_CONTAINER, 
 		(BYTE*)pszName, 
 		&cbData, 
@@ -411,7 +411,7 @@ void ct_scram_init_rng_algorithm()
 }
 */
 
-void ct_scram_init_hmac_algorithm()
+void ca_scram_init_hmac_algorithm()
 {
 	DWORD cbData = 0;
 	//Init BCrypt Algorithm Handle
@@ -425,7 +425,7 @@ void ct_scram_init_hmac_algorithm()
         NULL,
         BCRYPT_ALG_HANDLE_HMAC_FLAG | BCRYPT_HASH_REUSABLE_FLAG)))
     {
-        fprintf(stderr, "ct_scram_hmac_init::**** Error 0x%x returned by BCryptOpenAlgorithmProvider\n", g_bcryptStatus);
+        fprintf(stderr, "ca_scram_hmac_init::**** Error 0x%x returned by BCryptOpenAlgorithmProvider\n", g_bcryptStatus);
 
     }
 
@@ -438,7 +438,7 @@ void ct_scram_init_hmac_algorithm()
         &cbData,
         0)))
     {
-        fprintf(stderr, "ct_scram_hmac_init::**** Error 0x%x returned by BCryptGetProperty\n", g_bcryptStatus);
+        fprintf(stderr, "ca_scram_hmac_init::**** Error 0x%x returned by BCryptGetProperty\n", g_bcryptStatus);
         return;
     }
 
@@ -446,13 +446,13 @@ void ct_scram_init_hmac_algorithm()
     g_pbHMACHashObject = (PBYTE)HeapAlloc(GetProcessHeap(), 0, g_cbHMACHashObject);
     if (NULL == g_pbHMACHashObject)
     {
-        fprintf(stderr, "ct_scram_hmac_init::**** memory allocation failed\n");
+        fprintf(stderr, "ca_scram_hmac_init::**** memory allocation failed\n");
         return;
     }
 }
 
 
-void ct_scram_init_hash_algorithm()
+void ca_scram_init_hash_algorithm()
 {
 	DWORD cbData = 0;
 	//Init BCrypt Algorithm Handle
@@ -466,7 +466,7 @@ void ct_scram_init_hash_algorithm()
         NULL,
         BCRYPT_HASH_REUSABLE_FLAG)))
     {
-        fprintf(stderr, "ct_scram_hash_init::**** Error 0x%x returned by BCryptOpenAlgorithmProvider\n", g_bcryptStatus);
+        fprintf(stderr, "ca_scram_hash_init::**** Error 0x%x returned by BCryptOpenAlgorithmProvider\n", g_bcryptStatus);
 
     }
 
@@ -479,7 +479,7 @@ void ct_scram_init_hash_algorithm()
         &cbData,
         0)))
     {
-        fprintf(stderr, "ct_scram_hash_init::**** Error 0x%x returned by BCryptGetProperty\n", g_bcryptStatus);
+        fprintf(stderr, "ca_scram_hash_init::**** Error 0x%x returned by BCryptGetProperty\n", g_bcryptStatus);
         return;
     }
 
@@ -487,7 +487,7 @@ void ct_scram_init_hash_algorithm()
     g_pbHashObject = (PBYTE)HeapAlloc(GetProcessHeap(), 0, g_cbHashObject);
     if (NULL == g_pbHashObject)
     {
-        fprintf(stderr, "ct_scram_hash_init::**** memory allocation failed\n");
+        fprintf(stderr, "ca_scram_hash_init::**** memory allocation failed\n");
         return;
     }
 
@@ -501,20 +501,20 @@ void ct_scram_init_hash_algorithm()
         0,//sizeof(key)-1,
         BCRYPT_HASH_REUSABLE_FLAG )))
     {
-        fprintf(stderr, "ct_scram_hmac::**** Error 0x%x returned by BCryptCreateHash\n", g_bcryptStatus);
+        fprintf(stderr, "ca_scram_hmac::**** Error 0x%x returned by BCryptCreateHash\n", g_bcryptStatus);
         return;
     }
 }
 
 
-CT_SCRAM_API CT_SCRAM_INLINE void ct_scram_init()
+CA_SCRAM_API CA_SCRAM_INLINE void ca_scram_init()
 {
-	//ct_scram_init_rng_algorithm();
-	ct_scram_init_hmac_algorithm();
-	ct_scram_init_hash_algorithm();
+	//ca_scram_init_rng_algorithm();
+	ca_scram_init_hmac_algorithm();
+	ca_scram_init_hash_algorithm();
 }
 
-void ct_scram_cleanup()
+CA_SCRAM_API CA_SCRAM_INLINE void ca_scram_cleanup()
 {
 	//TO DO:  Crypt API Cleanup
 
@@ -540,7 +540,7 @@ void ct_scram_cleanup()
 
 }
 
-CT_SCRAM_API CT_SCRAM_INLINE OSStatus ct_scram_gen_rand_bytes(char * byteBuffer, size_t numBytes)
+CA_SCRAM_API CA_SCRAM_INLINE OSStatus ca_scram_gen_rand_bytes(char * byteBuffer, size_t numBytes)
 {
 	OSStatus status;
 	size_t byteIndex=0;
@@ -549,11 +549,11 @@ CT_SCRAM_API CT_SCRAM_INLINE OSStatus ct_scram_gen_rand_bytes(char * byteBuffer,
 #ifdef __APPLE__
         status = SecRandomCopyBytes(kSecRandomDefault, 1, byteBuffer + byteIndex);
 #else
-		//status = !CryptGenRandom(ct_scramCryptProv, 1, (BYTE*)(byteBuffer + byteIndex));
+		//status = !CryptGenRandom(ca_scramCryptProv, 1, (BYTE*)(byteBuffer + byteIndex));
 		status = BCryptGenRandom(NULL, (BYTE*)(byteBuffer + byteIndex), 1, BCRYPT_USE_SYSTEM_PREFERRED_RNG); // Flags                  
 #endif
 		if (status != 0) { // Always test the status.
-            fprintf(stderr, "ct_scram_gen_rand_bytes failed with error:  %d\n", status);
+            fprintf(stderr, "ca_scram_gen_rand_bytes failed with error:  %d\n", status);
             return status;
         }
         //Only fill buffer with valid alphanumeric UTF-8 bytes
@@ -567,7 +567,7 @@ CT_SCRAM_API CT_SCRAM_INLINE OSStatus ct_scram_gen_rand_bytes(char * byteBuffer,
 
 
 //extern unsigned char *CC_SHA256(const void *data, CC_LONG len, unsigned char *md)
-CT_SCRAM_API CT_SCRAM_INLINE void ct_scram_hash(const char * data, size_t dataLength, char * hashBuffer)
+CA_SCRAM_API CA_SCRAM_INLINE void ca_scram_hash(const char * data, size_t dataLength, char * hashBuffer)
 {
 #ifdef _WIN32
 	 //hash some data
@@ -577,7 +577,7 @@ CT_SCRAM_API CT_SCRAM_INLINE void ct_scram_hash(const char * data, size_t dataLe
         (ULONG)dataLength,
         0)))
     {
-        fprintf(stderr, "ct_scram_hmac::**** Error 0x%x returned by BCryptHashData\n", g_bcryptStatus);
+        fprintf(stderr, "ca_scram_hmac::**** Error 0x%x returned by BCryptHashData\n", g_bcryptStatus);
         return;
     }
 
@@ -588,7 +588,7 @@ CT_SCRAM_API CT_SCRAM_INLINE void ct_scram_hash(const char * data, size_t dataLe
         CC_SHA256_DIGEST_LENGTH,
         0)))
     {
-        fprintf(stderr, "ct_scram_hmac::**** Error 0x%x returned by BCryptFinishHash\n", g_bcryptStatus);
+        fprintf(stderr, "ca_scram_hmac::**** Error 0x%x returned by BCryptFinishHash\n", g_bcryptStatus);
         return;
     }
 #elif defined(__APPLE__)
@@ -599,7 +599,7 @@ CT_SCRAM_API CT_SCRAM_INLINE void ct_scram_hash(const char * data, size_t dataLe
 
 //HMAC SHA 256 on Darwin;  Input Must be UTF8
 //hexBuffer output must be allocated 64 bits or larger
-CT_SCRAM_API CT_SCRAM_INLINE void ct_scram_hmac(const char * secretKey, size_t secretKeyLen, const char * data, size_t dataLen, char * hmacBuffer)
+CA_SCRAM_API CA_SCRAM_INLINE void ca_scram_hmac(const char * secretKey, size_t secretKeyLen, const char * data, size_t dataLen, char * hmacBuffer)
 {
 #ifdef _WIN32
 	DWORD                   cbData = 0,cbHash = 0,cbHashObject = 0;
@@ -617,7 +617,7 @@ CT_SCRAM_API CT_SCRAM_INLINE void ct_scram_hmac(const char * secretKey, size_t s
         &cbData,
         0)))
     {
-        fprintf(stderr, "ct_scram_hmac::**** Error 0x%x returned by BCryptGetProperty\n", g_bcryptStatus);
+        fprintf(stderr, "ca_scram_hmac::**** Error 0x%x returned by BCryptGetProperty\n", g_bcryptStatus);
         return;
     }
 
@@ -625,7 +625,7 @@ CT_SCRAM_API CT_SCRAM_INLINE void ct_scram_hmac(const char * secretKey, size_t s
     pbHash = (PBYTE)HeapAlloc(GetProcessHeap(), 0, cbHash);
     if (NULL == pbHash)
     {
-        fprintf(stderr, "ct_scram_hmac::**** memory allocation failed\n");
+        fprintf(stderr, "ca_scram_hmac::**** memory allocation failed\n");
         return;
     }
 	*/
@@ -639,7 +639,7 @@ CT_SCRAM_API CT_SCRAM_INLINE void ct_scram_hmac(const char * secretKey, size_t s
         (ULONG)secretKeyLen,//sizeof(key)-1,
         BCRYPT_HASH_REUSABLE_FLAG )))
     {
-        fprintf(stderr, "ct_scram_hmac::**** Error 0x%x returned by BCryptCreateHash\n", g_bcryptStatus);
+        fprintf(stderr, "ca_scram_hmac::**** Error 0x%x returned by BCryptCreateHash\n", g_bcryptStatus);
         return;
     }
 
@@ -650,7 +650,7 @@ CT_SCRAM_API CT_SCRAM_INLINE void ct_scram_hmac(const char * secretKey, size_t s
         (ULONG)dataLen,
         0)))
     {
-        fprintf(stderr, "ct_scram_hmac::**** Error 0x%x returned by BCryptHashData\n", g_bcryptStatus);
+        fprintf(stderr, "ca_scram_hmac::**** Error 0x%x returned by BCryptHashData\n", g_bcryptStatus);
         return;
     }
 
@@ -661,7 +661,7 @@ CT_SCRAM_API CT_SCRAM_INLINE void ct_scram_hmac(const char * secretKey, size_t s
         CC_SHA256_DIGEST_LENGTH,
         0)))
     {
-        fprintf(stderr, "ct_scram_hmac::**** Error 0x%x returned by BCryptFinishHash\n", g_bcryptStatus);
+        fprintf(stderr, "ca_scram_hmac::**** Error 0x%x returned by BCryptFinishHash\n", g_bcryptStatus);
         return;
     }
 
@@ -678,7 +678,7 @@ CT_SCRAM_API CT_SCRAM_INLINE void ct_scram_hmac(const char * secretKey, size_t s
 }
 
 //SCRAM Hi Algorithm Step
-CT_SCRAM_API CT_SCRAM_INLINE void ct_scram_salt_password(char * pw, size_t pwLen, char * salt, size_t saltLen, int ni, char * saltedPassword)
+CA_SCRAM_API CA_SCRAM_INLINE void ca_scram_salt_password(char * pw, size_t pwLen, char * salt, size_t saltLen, int ni, char * saltedPassword)
 {
 	int i, charIndex;
     char hmacBuffer[2][CC_SHA256_DIGEST_LENGTH];    //a buffer to hold hmac at each iteration
@@ -701,7 +701,7 @@ CT_SCRAM_API CT_SCRAM_INLINE void ct_scram_salt_password(char * pw, size_t pwLen
 //#ifdef __APPLE__
     //From 1 to i...or 0 to i-1
     //Calculate a SHA-256 keyed HMAC for the salt, using the password as the secret key
-    ct_scram_hmac(pw, pwLen, saltMod, saltModLen, hmacBuffer[0]);
+    ca_scram_hmac(pw, pwLen, saltMod, saltModLen, hmacBuffer[0]);
 //#endif    
     
     //copy the hmac hex string to the xorbuffer
@@ -711,7 +711,7 @@ CT_SCRAM_API CT_SCRAM_INLINE void ct_scram_salt_password(char * pw, size_t pwLen
     //and xor the result in an accumulation buffer
     for(i = 1; i < ni; i++)
     {
-        ct_scram_hmac( pw, pwLen, hmacBuffer[(i-1)%2], CC_SHA256_DIGEST_LENGTH, hmacBuffer[i%2] );
+        ca_scram_hmac( pw, pwLen, hmacBuffer[(i-1)%2], CC_SHA256_DIGEST_LENGTH, hmacBuffer[i%2] );
         //each byte of the previous output must be XOR'd with that of the previous output
         for(charIndex=0; charIndex<CC_SHA256_DIGEST_LENGTH; charIndex++)
             saltedPassword[charIndex] = (char)(saltedPassword[charIndex] ^ hmacBuffer[i%2][charIndex]);
@@ -722,7 +722,7 @@ CT_SCRAM_API CT_SCRAM_INLINE void ct_scram_salt_password(char * pw, size_t pwLen
 
 
 //a hex function for convenience
-CT_SCRAM_API CT_SCRAM_INLINE void ct_scram_hex(unsigned char * in, size_t insz, char * out, size_t outsz)
+CA_SCRAM_API CA_SCRAM_INLINE void ca_scram_hex(unsigned char * in, size_t insz, char * out, size_t outsz)
 {
     unsigned char * pin = in;
     const char * hex = "0123456789ABCDEF";
