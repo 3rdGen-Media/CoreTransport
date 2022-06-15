@@ -9,9 +9,9 @@ CoreTransport is a no-compromise cross-platform pure C library (with wrapper API
 | Closures to delegate response buffers back to the caller when possible | C++ Lambdas | Clang Blocks | Clang Blocks |
 | Memory management that supports in-place processing and response caching where applicable | Memory Pools + Mapped Files | Memory Pools + Mapped Files | Memory Pools + Mapped Files |
 | Platform provided TLS encryption/decryption with fallback option to 3rd party lib when no platform option available | SCHANNEL, WolfSSL | SecureTransport, MBEDTLS | In Progress |
-| Conditional chaining of requests/queries from the same and other connections | ✔️ | ✔️ | In Progress |
-| Streaming downloads for consumption by an accelerated graphics pipeline or real-time hardware pipeline | ✔️ | ✔️ | In Progress |
-| Tunneling via proxy connections (HTTP, SOCKS5) | ✔️ | To Do | To Do |
+| Conditional chaining of requests/queries from the same and other connections | ✔️ | ✔️ | ✔️ |
+| Streaming downloads for consumption by an accelerated graphics pipeline or real-time hardware pipeline | ✔️ | ✔️ | ✔️ |
+| Tunneling via proxy connections (HTTP, SOCKS5) | ✔️ | To Do | In Progress |
 	
 *CoreTransport is the modular Network Transport Layer that operates in parallel with 3rdGen's Accelerated Graphics Layer, Core Render.  Together, CoreTransport and CoreRender's C libraries embody the foundational layer of 3rdGen's proprietary simulation engine and cross-platform application framework, Cobalt Rhenium.* 
 
@@ -20,7 +20,7 @@ CoreTransport is a no-compromise cross-platform pure C library (with wrapper API
 The general process for establishing and consuming from connections using CTransport and its wrapper interface libraries is the same:
 
 1.  Create a connection + cursor pool 
-2.  Create queues for async + non-blocking socket operations (CTThreadQueue)
+2.  Create queues for async + non-blocking socket operations (CTKernelQueue)
 3.  Create a pool of threads to dequeue socket operations
 4.  Define your target (CTTarget)
 5.  Create a socket connection + perform SSL Handshake (CTConnection)
@@ -40,9 +40,9 @@ The general process for establishing and consuming from connections using CTrans
 
 ####  Create Socket Queues
 ```	
-   CTThreadQueue cxQueue = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
-   CTThreadQueue txQueue = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
-   CTThreadQueue rxQueue = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
+   CTKernelQueue cxQueue = CTKernelQueueCreate();
+   CTKernelQueue txQueue = CTKernelQueueCreate();
+   CTKernelQueue rxQueue = CTKernelQueueCreate();
 ```
 
 ####  Create Thread Pool 
@@ -57,7 +57,8 @@ The general process for establishing and consuming from connections using CTrans
    CTTarget httpTarget = {0};
    httpTarget.host =     "learnopengl.com";
    httpTarget.port =     443;
-   httpTarget.ssl.ca =   NULL;    //CTransport will look for the certificate in the platform CA trust store
+   httpTarget.ssl.ca =   NULL;            //CTransport will look for the certificate in the platform CA trust store
+   httpTarget.ssl.method = CTSSL_TLS_1_2; //Optionally specify if TLS encryption is desired and what version
    httpTarget.cxQueue =  cxQueue; //If no connection queue is specified, the connection will be sync + blocking on the current thread
    httpTarget.txQueue =  txQueue; //If no send queue for the socket is specified one will be created internal to CTransport
    httpTarget.rxQueue =  rxQueue; //If no recv queue for the socket is specified one will be created internal to CTransport  
@@ -65,20 +66,18 @@ The general process for establishing and consuming from connections using CTrans
 
 ####  Connect with Closure/Callback
 ```
-   CTConnection _httpConnection;
-   //This is not a closure -- just a pure c callback for when we don't have support for closures
-   int _httpConnectionClosure(CTError *err, CTConnection * conn)
+   CTConnection _httpConn;
+   CTConnectionClosure _httpConnectionClosure = ^int(CTError * err, CTConnection * conn)   
    {
-   	//Parse error status
-    	assert(err->id == CTSuccess);
+	//Parse error status
+	assert(err->id == CTSuccess);
 
-	//Copy CTConnection object memory from coroutine stack to application memory 
-    	//(because the connection ptr will go out of scope when this function exits)
-    	_httpConn = *conn;
-
+	//Copy CTConnection struct memory from coroutine stack to application memory 
+	//(because connection will go out of scope when this funciton exits)
+	_httpConn = *conn;
+	
 	return err->id;
-   }	
-  
+   };	
    CTransport.connect(&httpTarget, _httpConnectionClosure);
 ```
 
@@ -87,33 +86,45 @@ The general process for establishing and consuming from connections using CTrans
    //the purpose of this callback is to return the end of the header to CTransport so it can continue processing
    char * httpHeaderLengthCallback(struct CTCursor * cursor, char * buffer, unsigned long length )
    {
-   	char * endOfHeader = strstr(buffer, "\r\n\r\n");
+	char* endOfHeader = strstr(buffer, "\r\n\r\n");
+	if (!endOfHeader) 
+	{
+	   pCursor->headerLength = 0;
+	   pCursor->contentLength = 0;
+	   return NULL;
+	}
 	//set ptr to end of http header
 	endOfHeader += sizeof("\r\n\r\n") - 1;
 
-	//The client can optionally set the cursor's contentLength property
-	//to aid CoreTransport in knowing when to stop reading from the socket
-	//cursor->contentLength = ...
+	//The client *must* set the cursor's contentLength property to aid CoreTransport 
+	//in knowing when to stop reading from the socket (CTransport layer is protocol agnostic) 
+	cursor->contentLength = ...
 
 	//The cursor headerLength is calculated as follows after this function returns
 	//cursor->headerLength = endOfHeader - buffer;
 	return endOfHeader;
    }
 
-   void httpResponseCallback(CTError * err, CTCursor *cursor)
+   CTCursorCompletionClosure httpResponseClosure = ^void(CTError * err, CTCursor* cursor)
    {
 	printf("httpResponseCallback header:  \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
 	printf("httpResponseCallback body:    \n\n%.*s\n\n", cursor->file.size, cursor->file.buffer);
-   }
+	
+	//Close the cursor's file buffer mapping if one was opened
+	CTCursorCloseMappingWithSize(cursor, cursor->contentLength); //overlappedResponse->buf - cursor->file.buffer);
+	CTCursorCloseFile(cursor);
+   };
 
    //Define a cursor which handles the buffers for sending a request and receiving an associated response
    //Each cursor request gets sent with a unique query token id
    CTCursor _httpCursor;
+   
+   //Optionally use a memory mapped file for cursor response caching if desired
    CTCursorCreateResponseBuffers(&_httpCursor, filepath);
 
    //define callbacks for client to process header and receive response
    _httpCursor.headerLengthCallback = httpHeaderLengthCallback;
-   _httpCursor.responseCallback = httpResponseCallback;
+   _httpCursor.responseCallback = httpResponseClosure;
 
    //define an HTTP GET request
    char * queryBuffer;
@@ -149,9 +160,9 @@ The general process for establishing and consuming from connections using CTrans
 
 ####  Create Socket Queues (same as CTransport)
 ```	
-   CTThreadQueue cxQueue = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
-   CTThreadQueue txQueue = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
-   CTThreadQueue rxQueue = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
+   CTKernelQueue cxQueue = CTKernelQueueCreate();
+   CTKernelQueue txQueue = CTKernelQueueCreate();
+   CTKernelQueue rxQueue = CTKernelQueueCreate();
 ```
 
 ####  Create Thread Pool 
@@ -166,7 +177,8 @@ The general process for establishing and consuming from connections using CTrans
    CTTarget httpTarget = {0};
    httpTarget.host =     "learnopengl.com";
    httpTarget.port =     443;
-   httpTarget.ssl.ca =   NULL;  //CTransport will look for the certificate in the platform CA trust store
+   httpTarget.ssl.ca =   NULL;            //CTransport will look for the certificate in the platform CA trust store
+   httpTarget.ssl.method = CTSSL_TLS_1_2; //Optionally specify if TLS encryption is desired and what version
    httpTarget.cxQueue =  cxQueue; //If no connection queue is specified, the connection will be sync + blocking on the current thread
    httpTarget.txQueue =  txQueue; //If no send queue for the socket is specified one will be created internal to CTransport
    httpTarget.rxQueue =  rxQueue; //If no recv queue for the socket is specified one will be created internal to CTransport  
