@@ -50,6 +50,14 @@ typedef enum CTErrorClass
 #define WSA_IO_PENDING -140
 #endif
 
+//XPLATFORM Socket error definitions
+
+#ifdef _WIN32
+#define CTEINPROGRESS WSAEINPROGRESS
+#else
+#define CTEINPROGRESS EINPROGRESS
+#endif
+
 typedef enum CTClientError
 {
 #ifdef CTRANSPORT_USE_MBED_TLS
@@ -60,11 +68,12 @@ typedef enum CTClientError
 #if defined(_WIN32)
 	CTSocketWouldBlock				= WSAEWOULDBLOCK,
 	CTSocketDisconnect				= WSAEDISCON,
+	CTSocketIOPending				 = WSA_IO_PENDING,	 //ReqlAsyncSend is sending in an async state
 #else
 	CTSocketWouldBlock				= EWOULDBLOCK,
-	CTSocketDisconnet				= EDISCON,
+	CTSocketDisconnect				=  -170, //EDISCON?
+	CTSocketIOPending				 = -160,	 //ReqlAsyncSend is sending in an async state
 #endif
-	CTSocketIOPending				 = WSA_IO_PENDING,	 //ReqlAsyncSend is sending in an async state
     CTDNSError                       = -150,
     CTRunLoopError					 = -140,
     CTSysCallError					 = -130,
@@ -87,7 +96,7 @@ typedef enum CTClientError
 
 typedef enum CTFileError
 {
-
+    CTFileTruncateError     = -40,
 	CTFileMapViewError		= -30,
 	CTFileMapError			= -20,
 	CTFileOpenError			= -10,

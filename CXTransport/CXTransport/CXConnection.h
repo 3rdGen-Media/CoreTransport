@@ -35,10 +35,10 @@ static unsigned long					CX_RESPONSE_BUFF_SIZE  = 0;	//Response buffer size will
 	class CXTRANSPORT_API CXConnection// : public Microsoft::WRL::RuntimeClass<ABI::Windows::ApplicationModel::Core::IFrameworkView>
 	{
 		public:
-			CXConnection(CTConnection *conn, CTThreadQueue rxQueue, CTThreadQueue txQueue);
+			CXConnection(CTConnection *conn, CTKernelQueue rxQueue, CTKernelQueue txQueue);
 			~CXConnection(void);
-			CTThreadQueue queryQueue();
-			CTThreadQueue responseQueue();
+			CTKernelQueue queryQueue();
+			CTKernelQueue responseQueue();
 
 			//template<typename CXRequestClosure>
 			void addRequestCallbackForKey(std::function<void(CTError* error, std::shared_ptr<CXCursor> cxCursor)> const callback, uint64_t requestToken) {_queries.insert(std::make_pair(requestToken, callback));}
@@ -90,12 +90,12 @@ static unsigned long					CX_RESPONSE_BUFF_SIZE  = 0;	//Response buffer size will
 	private:
 			CTConnection	_conn;
 			//void reserveConnectionMemory();
-			CTDispatchSource startConnectionThreadQueues(CTThreadQueue rxQueue, CTThreadQueue txQueue);
+			CTDispatchSource startConnectionThreadQueues(CTKernelQueue rxQueue, CTKernelQueue txQueue);
 			//unsigned long __stdcall EncryptQueryCallback(LPVOID lpParameter);
 			//unsigned long __stdcall DecryptResponseCallback(LPVOID lpParameter);
 
 
-			CTThreadQueue _rxQueue, _txQueue;
+			CTKernelQueue _rxQueue, _txQueue;
 			//dispatch_source_t _source;
 
 			//template<typename CXQueryClosure>

@@ -3,7 +3,7 @@
 //  CTransort
 //
 //  Created by Joe Moulton on 2/9/19.
-//  Copyright © 2019 Abstract Embedded. All rights reserved.
+//  Copyright ï¿½ 2019 Abstract Embedded. All rights reserved.
 //
 
 #ifndef CTFILE_H
@@ -102,7 +102,8 @@ CTRANSPORT_API CTRANSPORT_INLINE const char* ct_file_extension(const char *fileN
 CTRANSPORT_API CTRANSPORT_INLINE int ct_file_open(const char * filepath);
 
 //ope file for mmap writing
-CTRANSPORT_API CTRANSPORT_INLINE int ct_file_create_w(const char * filepath);
+CTRANSPORT_API CTRANSPORT_INLINE int ct_file_create_w(char * filepath);
+
 CTRANSPORT_API CTRANSPORT_INLINE off_t ct_file_truncate(int fd, off_t size);
 
 CTRANSPORT_API CTRANSPORT_INLINE void ct_file_close(int fileDescriptor);
@@ -112,6 +113,7 @@ CTRANSPORT_API CTRANSPORT_INLINE void*  ct_file_map_to_buffer( char ** buffer, o
 CTRANSPORT_API CTRANSPORT_INLINE void ct_file_unmap(int fileDescriptor, char * fbuffer);
 
 //Win32 UTC .1 microsecond precision
+#ifdef __WIN32
 CTRANSPORT_API CTRANSPORT_INLINE uint64_t ct_system_utc();
-
+#endif
 #endif /* cr_file_h */

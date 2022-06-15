@@ -4,7 +4,7 @@ using namespace CoreTransport;
 
 std::function< void(CTError* err, CXConnection* conn) > CXConnectionLambdaFunc = [&](CTError* err, CXConnection* conn) {};
 
-CXConnection::CXConnection(CTConnection *conn, CTThreadQueue rxQueue, CTThreadQueue txQueue)
+CXConnection::CXConnection(CTConnection *conn, CTKernelQueue rxQueue, CTKernelQueue txQueue)
 {
 	//copy the from CTConnection CTC memory to CXConnection managed memory (because it will go out of scope)
 	//followup note:  this is no longer the case with connection pool feature + the nonblocking path
@@ -44,12 +44,12 @@ void CXConnection::close()
 	CTCloseConnection(&_conn);
 }
 
-CTThreadQueue CXConnection::queryQueue()
+CTKernelQueue CXConnection::queryQueue()
 {
 	return _txQueue;
 }
 
-CTThreadQueue CXConnection::responseQueue()
+CTKernelQueue CXConnection::responseQueue()
 {
 	return _rxQueue;
 }
@@ -112,7 +112,7 @@ std::shared_ptr<CXCursor> CXConnection::createRequestCursor(uint64_t queryToken)
 }
 	
 /*
-CTDispatchSource CXConnection::startConnectionThreadQueues(CTThreadQueue rxQueue, CTThreadQueue txQueue)
+CTDispatchSource CXConnection::startConnectionThreadQueues(CTKernelQueue rxQueue, CTKernelQueue txQueue)
 {
 #ifdef _WIN32
 	//set up the win32 iocp handler for the connection's socket here

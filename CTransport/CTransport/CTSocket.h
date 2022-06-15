@@ -8,10 +8,20 @@
 
 //Socket Includes
 #ifndef _WIN32
+#include <sys/event.h>
+#include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/ioctl.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h> //TCP_NODELAY sockopt
 #include <arpa/inet.h>
 #include <unistd.h>
+
+//create an alias for ioctl a la Win32
+#ifndef ioctlsocket
+#define ioctlsocket ioctl
+#endif
+
 #else
 //#include <windows.h>
 #define WIN32_LEAN_AND_MEAN
@@ -68,19 +78,33 @@ typedef NTSTATUS(WINAPI* pNtSetInformationFile)(HANDLE, PIO_STATUS_BLOCK, PVOID,
 
 //#include "ReqlCoroutine.h"
 #include "CTError.h"
-
 //Define REQL_SOCKET
 #ifdef _WIN32
-#define CTSocket SOCKET
-#define CTThreadQueue HANDLE
-#define CTDispatchSource void
-//#define SSLContextRef void*
+#define CTSocket 			SOCKET
+#define CTKernelQueue 		HANDLE
+#define CTDispatchSource 	void
+//#define SSLContextRef 	void*
+#define CTSocketError() (WSAGetLastError())
+#elif defined(__APPLE__) || defined(__FreeBSD__) //with libdispatch
+#define CTSocket 	  		int //sockets are just file descriptors
+#define CTKernelQueue 		int //kqueues are just file descriptors
+#define CT_INCOMING_PIPE	0
+#define CT_OUTGOING_PIPE	1
+#define CTDispatchSource 	dispatch_source_t
+typedef void (^CTDispatchSourceHandler)(void);
+#define CTSocketError() (errno)
 #else
-#define CTSocket int
-#define CTThreadQueue dispatch_queue_t
-#define CTDispatchSource dispatch_source_t
-
+#error "Unsupported Platform"
 #endif
+
+typedef struct CTKernelQueuePipePair
+{
+    CTKernelQueue q;
+	CTKernelQueue p[2];
+}CTKernelQueuePipePair;
+
+extern const uint32_t  CTSOCKET_MAX_TIMEOUT; //input to kqueue to indicate we want to wait forever
+extern const uintptr_t CTSOCKET_EVT_TIMEOUT; //custom return value from kqueue wait to indicate we received timeout from kqueue
 
 typedef struct CTSocketContext
 {
@@ -88,39 +112,35 @@ typedef struct CTSocketContext
 #ifdef CTRANSPORT_USE_MBED_TLS
 	union {
 		CTSocket socket;
-		mbedtls_net_context ctx;
+		mbedtls_net_context ctx; //TO DO: consider putting wolfssl socket context here?
 	};
 #else
 	CTSocket socket;
 #endif
-	CTThreadQueue			cxQueue;		//
-	CTThreadQueue			txQueue;		//an WIN32 iocp completion port
-	CTThreadQueue			rxQueue;
+	CTKernelQueue			cxQueue;		//
+	CTKernelQueue			txQueue;		//an WIN32 iocp completion port
+	CTKernelQueue			rxQueue;
+#ifndef _WIN32
+	CTKernelQueue			oxPipe[2];	//The desired kernel queue for the socket connection to post overlapped cursors to the rxQueue + thread pool
+#endif
+
 	char * host;
 }CTSocketContext;
-
 typedef CTSocketContext* CTSocketContextRef;
 
-//#pragma mark -- CTSocket API
+//#pragma mark -- CTKernelQueue Event API
+CTRANSPORT_API CTRANSPORT_INLINE int kqueue_wait_with_timeout(int kqueue, struct kevent * kev, int numEvents, uint32_t timeout);
+
+CTRANSPORT_API CTRANSPORT_INLINE CTKernelQueue CTKernelQueueCreate(void);
 
 /***
- *	CTSocketLInit
- *
- *	Load Socket Libraries on WIN32 platforms
+ *  Creates rx and tx kernel queues and associates them with the socket for reading and writing
+ *	(Not used in practice; only for development)
  ***/
-CTRANSPORT_API CTRANSPORT_INLINE void CTSocketInit(void);
-
-CTRANSPORT_API CTRANSPORT_INLINE CTSocket CTSocketCreate(void);
-CTRANSPORT_API CTRANSPORT_INLINE int CTSocketClose(CTSocket socketfd);
-
-/***
- *
- *
- ***/
-CTRANSPORT_API CTRANSPORT_INLINE int CTSocketCreateEventQueue(CTSocketContext * socketContext);
+CTRANSPORT_API CTRANSPORT_INLINE CTKernelQueue CTSocketCreateEventQueue(CTSocketContext * socketContext);
 
 /**
- *  CTSocketWait
+ *  CTKernelQueueWait
  *
  *  Wait for socket event on provided input kqueue event_queue
  *
@@ -129,9 +149,20 @@ CTRANSPORT_API CTRANSPORT_INLINE int CTSocketCreateEventQueue(CTSocketContext * 
  *
  *  TO DO:  Add timeout input
  ***/
-CTRANSPORT_API CTRANSPORT_INLINE coroutine uintptr_t CTSocketWait(CTSocket socketfd, int event_queue, int16_t eventFilter);
+CTRANSPORT_API CTRANSPORT_INLINE coroutine int CTKernelQueueWait(CTKernelQueue event_queue, int16_t eventFilter);
 
+//#pragma mark -- CTSocket API
 
-CTRANSPORT_API CTRANSPORT_INLINE coroutine int CTSocketGetError(CTSocket socketfd);
+/***
+ *	CTSocketInit
+ *
+ *	Load Socket Libraries on WIN32 platforms
+ ***/
+CTRANSPORT_API CTRANSPORT_INLINE void CTSocketInit(void);
+CTRANSPORT_API CTRANSPORT_INLINE int  CTSocketGetError(CTSocket socketfd);
+
+CTRANSPORT_API CTRANSPORT_INLINE CTSocket CTSocketCreate(int nonblocking);
+CTRANSPORT_API CTRANSPORT_INLINE int 	  CTSocketClose(CTSocket socketfd);
+
 
 #endif

@@ -88,6 +88,8 @@ extern "C" {
 //#define CTRANSPORT_USE_MBED_TLS
 
 //Core Headers/"Classes" Needed To Create a Secure Socket Connection
+
+#ifdef _WIN32
 #include "CTransport/CTSystem.h"
 #include "CTransport/CTEndian.h"
 #include "CTransport/CTFile.h"
@@ -104,7 +106,25 @@ extern "C" {
 #include "CTransport/CTReQL.h"
 #include "CTransport/CTransportAPI.h"
 
+#else
 
+#include "CTransport/CTSystem.h"
+#include "CTransport/CTEndian.h"
+#include "CTransport/CTFile.h"
+#include "CTransport/CTCoroutine.h"
+#include "CTransport/CTError.h"
+#include "CTransport/CTDNS.h"
+#include "CTransport/CTSocket.h"
+//#include "CTransport/CTSSL.h"
+#include "CTransport/CTURL.h"
+#include "CTransport/CTConnection.h"
+#include "CTransport/CTQueue.h"
+
+//Exposed API and Protocols extensions
+//#include "CTransport/CTReQL.h"
+#include "CTransport/CTransportAPI.h"
+
+#endif
 
 #ifdef __cplusplus
 }

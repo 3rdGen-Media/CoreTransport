@@ -196,7 +196,7 @@ typedef struct ReqlQueryCtx
 typedef CTError ReqlError;
 typedef CTTarget ReqlService;
 typedef CTClientError ReqlDriverError;
-typedef CTThreadQueue ReqlThreadQueue;
+typedef CTKernelQueue ReqlThreadQueue;
 typedef CTDispatchSource ReqlDispatchSource;
 typedef CTConnection ReqlConnection;
 

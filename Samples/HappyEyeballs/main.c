@@ -46,19 +46,25 @@ CTConnection HAPPYEYEBALLS_CONNECTION_POOL[HAPPYEYEBALLS_MAX_INFLIGHT_CONNECTION
 CTCursor _httpCursor[CT_MAX_INFLIGHT_CURSORS];
 CTCursor _reqlCursor;
 
+static const char* aws_access_key = "AKIA267MLRQDRJ2IIARW";
+static const char* aws_access_secrt = "0SakIbVLOM2E+ck7xPw1tlJSN519ev2mcMx2KTG/";
 /***
  * Start CTransport (CTConnection) C API Example
  ***/
 
 //Define a CTransport API CTTarget C style struct to initiate an HTTPS connection with a CTransport API CTConnection
-static const char* http_server = "example.com";//"mineralism.s3 - us - west - 2.amazonaws.com";
+static const char* http_server = "example.com";// "vtransport - assets.s3.us - west - 1.amazonaws.com";//"example.com";//"mineralism.s3 - us - west - 2.amazonaws.com";
 static const unsigned short	http_port = 443;
 
+//Proxies use a prefix to specify the proxy protocol, defaulting to HTTP Proxy
+static const char* proxy_server = "socks5://172.20.10.1";// "54.241.100.168";
+static const unsigned short		proxy_port = 443;// 1080;
+
 //Define a CTransport API ReqlService (ie CTTarget) C style struct to initiate a RethinkDB TLS connection with a CTransport API CTConnection
-static const char *			rdb_server = "RETHINKDB_SERVER";
-static const unsigned short rdb_port = 18773;
-static const char *			rdb_user = "RETHINKDB_USERNAME";
-static const char *			rdb_pass = "RETHINKDB_PASSWORD";
+static const char* rdb_server = "rdb.3rd-gen.net";
+static const unsigned short rdb_port = 28015;
+static const char* rdb_user = "admin";
+static const char* rdb_pass = "3rdgen.rdb.4.$";
 
 //Define SSL Certificate for ReqlService construction:
 //	a)  For xplatform MBEDTLS support: The SSL certificate can be defined in a buffer OR a file AS a .cer in PEM format
@@ -69,7 +75,7 @@ static const char *			rdb_pass = "RETHINKDB_PASSWORD";
 const char * certStr = "RETHINKDB_CERT_PATH_OR_STR\0";
 
 //Predefine ReQL query to use with CTransport C Style API (because message support is not provided at the CTransport/C level)
-char * paintingTableQuery = "[1,[15,[[14,[\"MastryDB\"]],\"Paintings\"]]]\0";
+char * paintingTableQuery = "[1,[15,[[14,[\"GameState\"]],\"Scene\"]]]\0";
 
 //Define pointers and/or structs to keep reference to our secure CTransort HTTPS and RethinkDB connections, respectively
 CTConnection _httpConn;
@@ -80,7 +86,8 @@ void createCursorResponseBuffers(CTCursor* cursor, const char* filepath)
 {
 #ifdef _WIN32
 	//recv
-	LPVOID queryPtr, responsePtr;
+	LPVOID queryPtr;
+	LPVOID responsePtr;
 	unsigned long ctBufferSize = ct_system_allocation_granularity(); //+ sizeof(CTOverlappedResponse); 
 
 	if (!filepath)
@@ -146,7 +153,7 @@ uint64_t CTCursorSendRequestOnQueue(CTCursor * cursor, uint64_t requestToken)
 	requestLength = strlen(requestBuffer);//requestBuffer-baseBuffer;//queryMsgBuffer - queryBuffer - sizeof(ReqlQueryMessageHeader);// (int32_t)strlen(queryMsgBuffer);// jsonQueryStr.length();
 
 	//print the request for debuggin
-	printf("CXURLSendRequestWithTokenOnQueue::request (%d) = %.*s\n", (int)requestLength, (int)requestLength, baseBuffer);
+	printf("CTCursorSendRequestOnQueue::request (%d) = %.*s\n", (int)requestLength, (int)requestLength, baseBuffer);
 
 	//cursor->overlappedResponse.cursor = cursor;
 	cursor->conn = &_httpConn;
@@ -165,16 +172,19 @@ char* httpHeaderLengthCallback(struct CTCursor* pCursor, char* buffer, unsigned 
 	//connection's tcp stream to CoreTransport decrypt/recv thread
 	char* endOfHeader = strstr(buffer, "\r\n\r\n");
 #ifdef _DEBUG
-	if (!endOfHeader)
-		assert(1 == 0);
+	//if (!endOfHeader)
+	//	assert(1 == 0);
 #endif
 	//set ptr to end of http header
-	endOfHeader += sizeof("\r\n\r\n") - 1;
+	if (endOfHeader)
+	{
+		endOfHeader += sizeof("\r\n\r\n") - 1;
+		pCursor->contentLength = 1256;// 1641845;
+	}
 
 	//The client *must* set the cursor's contentLength property
 	//to aid CoreTransport in knowing when to stop reading from the socket
-	pCursor->contentLength = 1256;// 1641845;
-
+	
 	//The cursor headerLength is calculated as follows after this function returns
 	//cursor->headerLength = endOfHeader - buffer;
 	return endOfHeader;
@@ -190,27 +200,96 @@ char* reqlHeaderLengthCallback(struct CTCursor* cursor, char* buffer, unsigned l
 	//The client *must* set the cursor's contentLength property
 	//to aid CoreTransport in knowing when to stop reading from the socket
 	cursor->contentLength = ((ReqlQueryMessageHeader*)buffer)->length;
-	assert(((ReqlQueryMessageHeader*)buffer)->token == cursor->queryToken);
+	uint64_t token = ((ReqlQueryMessageHeader*)buffer)->token;
+	assert(token== cursor->queryToken);
 
 	//The cursor headerLength is calculated as follows after this function returns
 	//cursor->headerLength = endOfHeader - buffer;
 	return endOfHeader;
 }
 
+char* wtf = "<!doctype html>\n\
+<html>\n\
+<head>\n\
+    <title>Example Domain</title>\n\
+\n\
+    <meta charset=\"utf-8\" />\n\
+    <meta http-equiv=\"Content-type\" content=\"text/html; charset=utf-8\" />\n\
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n\
+    <style type=\"text/css\">\n\
+    body {\n\
+        background-color: #f0f0f2;\n\
+        margin: 0;\n\
+        padding: 0;\n\
+        font-family: -apple-system, system-ui, BlinkMacSystemFont, \"Segoe UI\", \"Open Sans\", \"Helvetica Neue\", Helvetica, Arial, sans-serif;\n\
+        \n\
+    }\n\
+    div {\n\
+        width: 600px;\n\
+        margin: 5em auto;\n\
+        padding: 2em;\n\
+        background-color: #fdfdff;\n\
+        border-radius: 0.5em;\n\
+        box-shadow: 2px 3px 7px 2px rgba(0,0,0,0.02);\n\
+    }\n\
+    a:link, a:visited {\n\
+        color: #38488f;\n\
+        text-decoration: none;\n\
+    }\n\
+    @media (max-width: 700px) {\n\
+        div {\n\
+            margin: 0 auto;\n\
+            width: auto;\n\
+        }\n\
+    }\n\
+    </style>    \n\
+</head>\n\
+\n\
+<body>\n\
+<div>\n\
+    <h1>Example Domain</h1>\n\
+    <p>This domain is for use in illustrative examples in documents. You may use this\n\
+    domain in literature without prior coordination or asking for permission.</p>\n\
+    <p><a href=\"https://www.iana.org/domains/example\">More information...</a></p>\n\
+</div>\n\
+</body>\n\
+</html>\n";
+
+
+
 void httpResponseCallback(CTError* err, CTCursor* cursor)
 {
+	
+	char* end = cursor->file.buffer + 0;
+	char* end2 = wtf + 0;
+	size_t wtfLen = strlen(wtf);
+	assert(cursor->contentLength == wtfLen);
+	//assert(strcmp(end, end2) == 0);
+	
+	for (int i = 0; i < (int)wtfLen; i++)
+	{
+		char one = cursor->file.buffer[i];
+		char two = wtf[i];
+		if (one != two)
+		{
+			assert(1 == 0);
+		}
+
+	}
+
+	
 	CTCursorCloseMappingWithSize(cursor, cursor->contentLength); //overlappedResponse->buf - cursor->file.buffer);
 	//CTCursorMapFileR(cursor);
-	printf("httpResponseCallback header:  \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
+	//printf("httpResponseCallback header:  \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
 	CTCursorCloseFile(cursor);
 }
 
 
 void reqlResponseCallback(CTError* err, CTCursor* cursor)
 {
-	CTCursorMapFileR(cursor);
-	printf("reqlCompletionCallback body:  \n\n%.*s\n\n", cursor->file.size, cursor->file.buffer);
-	CTCursorCloseFile(cursor);
+	printf("reqlCompletionCallback body:  \n\n%.*s\n\n", cursor->contentLength, cursor->file.buffer);
+	//CTCursorCloseMappingWithSize(cursor, cursor->contentLength);// cursor->contentLength); //overlappedResponse->buf - cursor->file.buffer);
+	//CTCursorCloseFile(cursor);
 }
 
 static int httpRequestCount = 0;
@@ -225,8 +304,8 @@ void sendHTTPRequest(CTCursor* cursor)
 	unsigned long queryStrLength;
 
 	//send request
-	char GET_REQUEST[1024] = "GET /index.html HTTP/1.1\r\nHost: example.com\r\nUser-Agent: CoreTransport\r\nAccept: */*\r\n\r\n\0";
-	//char GET_REQUEST[1024] = "GET /index.html HTTP/1.1\r\nHost: example.com\r\nUser-Agent: CoreTransport\r\nAccept: */*\r\n\r\n\0";
+	//char GET_REQUEST[1024] = "GET /img/wood.png HTTP/1.1\r\nHost: vtransport-assets.s3.us-west-1.amazonaws.com\r\nUser-Agent: CoreTransport\r\nAccept: */*\r\n\r\n\0";
+	char GET_REQUEST[1024] = "GET /hello HTTP/1.1\r\nHost: example.com\r\nUser-Agent: CoreTransport\r\nAccept: */*\r\n\r\n\0";
 
 	//file path to open
 	char filepath[1024] = "C:\\3rdGen\\CoreTransport\\Samples\\HappyEyeballs\\https\0";
@@ -273,6 +352,37 @@ void sendReqlQuery(CTCursor * cursor)
 	char * queryBuffer;
 	unsigned long queryStrLength;
 
+	//send request
+	//char GET_REQUEST[1024] = "GET /index.html HTTP/1.1\r\nHost: example.com\r\nUser-Agent: CoreTransport\r\nAccept: */*\r\n\r\n\0";
+	//char GET_REQUEST[1024] = "GET /index.html HTTP/1.1\r\nHost: example.com\r\nUser-Agent: CoreTransport\r\nAccept: */*\r\n\r\n\0";
+
+	//file path to open
+	char filepath[1024] = "C:\\3rdGen\\CoreTransport\\Samples\\HappyEyeballs\\reql\0";
+
+	memset(cursor, 0, sizeof(CTCursor));
+
+	_itoa(httpRequestCount, filepath + strlen(filepath), 10);
+
+	strcat(filepath, ".txt");
+	httpRequestCount++;
+
+	//CoreTransport provides support for each cursor to read responses into memory mapped files
+	//however, if this is not desired, simply cursor's file.buffer slot to your own memory
+	//createCursorResponseBuffers(cursor, filepath);
+	
+	cursor->file.buffer = cursor->requestBuffer;
+	//cursor->file.buffer = &(responseBuffers[httpRequestCount - 1][0]);
+
+	assert(cursor->file.buffer);
+	//if (!cursor->file.buffer)
+	//	return;
+
+	cursor->headerLengthCallback = reqlHeaderLengthCallback;
+	cursor->responseCallback = reqlResponseCallback;
+
+	//printf("_conn.sslContextRef->Sizes.cbHeader = %d\n", _conn.sslContext->Sizes.cbHeader);
+	//printf("_conn.sslContextRef->Sizes.cbTrailer = %d\n", _conn.sslContext->Sizes.cbTrailer);
+
 	//send query
 	for( queryIndex = 0; queryIndex < 1; queryIndex++ )
 	{
@@ -281,8 +391,11 @@ void sendReqlQuery(CTCursor * cursor)
 		memcpy(queryBuffer + sizeof(ReqlQueryMessageHeader), paintingTableQuery, queryStrLength);
 		queryBuffer[sizeof(ReqlQueryMessageHeader) + queryStrLength] = '\0';  //It is critical for SSL encryption that the emessage be capped with null terminator
 		printf("queryBuffer = %s\n", queryBuffer+sizeof(ReqlQueryMessageHeader));
+		
+		//CTCursorSendRequestOnQueue(cursor, _reqlConn.queryCount++);
+
 		CTCursorRunQueryOnQueue(cursor, _reqlConn.queryCount++);
-		//CTReQLRunQueryOnQueue(&_reqlConn, (const char**)&queryBuffer, queryStrLength, _reqlConn.queryCount++);
+		////CTReQLRunQueryOnQueue(&_reqlConn, (const char**)&queryBuffer, queryStrLength, _reqlConn.queryCount++);
 	}
 
 }
@@ -330,11 +443,27 @@ int _httpConnectionClosure(CTError* err, CTConnection* conn)
 	return err->id;
 }
 
+
+int _reqlHandshakeClosure(CTError* err, ReqlConnection* conn)
+{
+	assert(conn == &_reqlConn);
+	if (err->id == 0 && conn) { /*_reqlConn = conn;*/ }
+	else
+	{
+		printf("CTReQLAsyncLHandshake failed!\n");
+		CTCloseConnection(&_reqlConn);
+		CTSSLCleanup();
+		err->id = CTSASLHandshakeError;
+		return err->id;
+	}
+	//createConnectionResponsBufferQueue(_reqlConn);
+	printf("CTReQLAsyncLHandshake Success\n");
+
+	return err->id;
+}
+
 int _reqlConnectionClosure(CTError *err, CTConnection * conn)
 {
-	//file path to open
-	char *filepath = "ReQLQuery.txt\0";
-
 	//thread
 	HANDLE hThread;
 	DWORD i;
@@ -352,11 +481,19 @@ int _reqlConnectionClosure(CTError *err, CTConnection * conn)
 	//Copy CTConnection object memory from coroutine stack
 	//to appplication memory (or the connection will go out of scope when this funciton exits)
 	//FYI, do not use the pointer memory after this!!!
-	 _reqlConn = *conn;
+	_reqlConn.response_overlap_buffer_length = 0;
+	_reqlConn = *conn;
 
 	//  Now Perform RethinkDB ReQL SASL Layer Auth Handshake (using SCRAM HMAC SHA-256 Auth) over TCP
-    if( (status = CTReQLSASLHandshake(&_reqlConn, _reqlConn.target)) != CTSuccess )
-    {
+	if (_reqlConn.service->cxQueue)
+	{
+		if((status = CTReQLAsyncHandshake(&_reqlConn, _reqlConn.target, _reqlHandshakeClosure)) != CTSuccess )
+		{
+			assert(1 == 0);
+		}
+	}
+	else if ((status = CTReQLHandshake(&_reqlConn, _reqlConn.target)) != CTSuccess )
+	{
         printf("CTReQLSASLHandshake failed!\n");
 		CTCloseConnection(&_reqlConn);
 		CTSSLCleanup();
@@ -364,6 +501,7 @@ int _reqlConnectionClosure(CTError *err, CTConnection * conn)
 		return err->id;
 	}
 
+	/*
 	 createCursorResponseBuffers(&_reqlCursor, filepath);
 	 _reqlCursor.headerLengthCallback = reqlHeaderLengthCallback;	
 	 _reqlCursor.responseCallback = reqlResponseCallback;
@@ -383,6 +521,7 @@ int _reqlConnectionClosure(CTError *err, CTConnection * conn)
 		hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CT_Dequeue_Encrypt_Send, _reqlConn.socketContext.txQueue, 0, NULL);
 		CloseHandle(hThread);
 	}
+	*/
 
 	printf("REQL Connection Success\n");
 	return err->id;
@@ -451,6 +590,8 @@ void SystemKeyboardEventLoop()
 		getconchar(&key);
 		if (key.uChar.AsciiChar == 's')
 			sendHTTPRequest(&_httpCursor[httpRequestCount % CT_MAX_INFLIGHT_CURSORS]);
+		if(key.uChar.AsciiChar == 'r')
+			sendReqlQuery(CTGetNextPoolCursor());// &_httpCursor[httpRequestCount % CT_MAX_INFLIGHT_CURSORS]);
 		else if (key.uChar.AsciiChar == 'q')
 			break;
 	}
@@ -463,13 +604,13 @@ int main(int argc, char **argv)
 	int i;
 
 	HANDLE cxThread, txThread, rxThread;
-	CTThreadQueue cxQueue, txQueue, rxQueue;
+	CTKernelQueue cxQueue, txQueue, rxQueue;
 
 	ULONG_PTR dwCompletionKey = (ULONG_PTR)NULL;
-	
+
 	CTTarget httpTarget = { 0 };
 	CTTarget reqlService = { 0 };	
-	char* caPath = (char*)certStr;//"C:\\Development\\git\\CoreTransport\\bin\\Keys\\ComposeSSLCertficate.der";// .. / Keys / ComposeSSLCertificate.der";// MSComposeSSLCertificate.cer";
+	char* caPath = NULL;// (char*)certStr;//"C:\\Development\\git\\CoreTransport\\bin\\Keys\\ComposeSSLCertficate.der";// .. / Keys / ComposeSSLCertificate.der";// MSComposeSSLCertificate.cer";
 
 	//These are only relevant for custom DNS resolution, which has not been implemented yet for WIN32 platforms
 	//char * resolvConfPath = "../Keys/resolv.conf";
@@ -499,51 +640,61 @@ int main(int argc, char **argv)
 	//Define https connection target
 	//We aren't doing any authentication via http
 	//SCHANNEL can find the certficate in the system CA keychain for us, MBEDTLS cannot
-	httpTarget.host = (char*)http_server;
-	httpTarget.port = http_port;
+	httpTarget.url.host = (char*)http_server;
+	httpTarget.url.port = http_port;
+	httpTarget.proxy.host = (char*)proxy_server;
+	httpTarget.proxy.port = proxy_port;
 	httpTarget.ssl.ca = NULL;//(char*)caPath;
+	httpTarget.ssl.method = CTSSL_TLS_1_2;
 	//httpTarget.dns.resconf = (char*)resolvConfPath;
 	//httpTarget.dns.nssconf = (char*)nsswitchConfPath;
 	httpTarget.txQueue = txQueue;// CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
 	httpTarget.rxQueue = rxQueue;
-	httpTarget.cxQueue = cxQueue;// CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
+	httpTarget.cxQueue = cxQueue;
+	//httpTarget.cxQueue = cxQueue;// CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
+	
 	//CloseHandle(cxThread);
 
 	//Define RethinkDB service connection target
 	//We are doing SCRAM authentication over TLS required by RethinkDB
 	//For SCHANNEL SSL Cert Verification, the certficate needs to be installed in the system CA trusted authorities store
 	//For WolfSSL, MBEDTLS and SecureTransport Cert Verification, the path to the certificate can be passed 
-	reqlService.host = (char*)rdb_server;
-	reqlService.port = rdb_port;
+	reqlService.url.host = (char*)rdb_server;
+	reqlService.url.port = rdb_port;
+	reqlService.proxy.host = (char*)proxy_server;
+	reqlService.proxy.port = proxy_port;
 	reqlService.user = (char*)rdb_user;
 	reqlService.password = (char*)rdb_pass;
 	reqlService.ssl.ca = (char*)caPath;
+	reqlService.ssl.method = CTSSL_TLS_1_2;
+	reqlService.txQueue = txQueue;
+	reqlService.rxQueue = rxQueue;
+	reqlService.cxQueue = cxQueue;
 	//reqlService.dns.resconf = (char*)resolvConfPath;
 	//reqlService.dns.nssconf = (char*)nsswitchConfPath;
 
 	//Demonstrate CTransport CT C API Connection (No JSON support)
 	//On Darwin platforms, the Core Transport connection routine operates asynchronously on a single thread to by integrating libdill coroutines with a thread's CFRunLoop operation (so the connection can be started from the main thread before cocoa app starts)
 	//On WIN32, we only have synchronous/blocking connection support, but this can be easily thrown onto a background thread at startup (even in a UWP app?)
-	CTransport.connect(&httpTarget, _httpConnectionClosure);
-	//CTransport.connect(&reqlService, _reqlConnectionClosure);
+	//CTransport.connect(&httpTarget, _httpConnectionClosure);
+	CTransport.connect(&reqlService, _reqlConnectionClosure);
 
-	//for(i=0;i<10000;i++)	
-	//	sendHTTPRequest(&_httpCursor[httpRequestCount % CT_MAX_INFLIGHT_CURSORS]);
+	//for(int i = 0; i<1;i++)
+	//	sendReqlQuery(&_httpCursor[httpRequestCount % CT_MAX_INFLIGHT_CURSORS]);
 
 	SystemKeyboardEventLoop();
 
-	
 	//Clean up socket connections
-	CTCloseConnection(&_httpConn);
-	//CTCloseConnection(&_reqlConn);
+	//CTCloseConnection(&_httpConn);
+	CTCloseConnection(&_reqlConn);
 
 	//Clean  Up Auth Memory
-	ct_scram_cleanup();
+	ca_scram_cleanup();
 
 	//Clean Up SSL Memory
 	CTSSLCleanup();
 
-	//TO DO:  Shutdown threads
+	//TO DO:  Shutdown threads \
 
 	//Cleanup Thread Handles
 	if (cxThread && cxThread != INVALID_HANDLE_VALUE)

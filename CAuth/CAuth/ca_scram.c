@@ -413,6 +413,8 @@ void ca_scram_init_rng_algorithm()
 
 void ca_scram_init_hmac_algorithm()
 {
+
+#if defined(_WIN32)
 	DWORD cbData = 0;
 	//Init BCrypt Algorithm Handle
 	//Beginning with Windows 8 and Windows Server 2012, you can create a reusable hashing object for scenarios 
@@ -449,11 +451,13 @@ void ca_scram_init_hmac_algorithm()
         fprintf(stderr, "ca_scram_hmac_init::**** memory allocation failed\n");
         return;
     }
+#endif
 }
 
 
 void ca_scram_init_hash_algorithm()
 {
+#if defined(_WIN32)
 	DWORD cbData = 0;
 	//Init BCrypt Algorithm Handle
 	//Beginning with Windows 8 and Windows Server 2012, you can create a reusable hashing object for scenarios 
@@ -504,6 +508,7 @@ void ca_scram_init_hash_algorithm()
         fprintf(stderr, "ca_scram_hmac::**** Error 0x%x returned by BCryptCreateHash\n", g_bcryptStatus);
         return;
     }
+#endif
 }
 
 
@@ -517,7 +522,7 @@ CA_SCRAM_API CA_SCRAM_INLINE void ca_scram_init()
 CA_SCRAM_API CA_SCRAM_INLINE void ca_scram_cleanup()
 {
 	//TO DO:  Crypt API Cleanup
-
+#if defined(_WIN32)
 	//BCrypt SHA256 Hash clenaup
     if (g_bcryptHashAlg)
         BCryptCloseAlgorithmProvider(g_bcryptHashAlg, 0);
@@ -537,32 +542,80 @@ CA_SCRAM_API CA_SCRAM_INLINE void ca_scram_cleanup()
         HeapFree(GetProcessHeap(), 0, g_pbHMACHashObject);
     if (g_pbHMACHash)
         HeapFree(GetProcessHeap(), 0, g_pbHMACHash);
-
+#endif
 }
 
 CA_SCRAM_API CA_SCRAM_INLINE OSStatus ca_scram_gen_rand_bytes(char * byteBuffer, size_t numBytes)
 {
 	OSStatus status;
-	size_t byteIndex=0;
-    for (byteIndex=0; byteIndex<numBytes;)
+    size_t byteIndex = 0;
+
+    //char *drbg = "drbg_nopr_sha256"; /* Hash DRBG with SHA-256, no PR */
+    //uint8_t *seed = NULL;
+    //uint32_t seedlen = 0;
+    
+    //Linux Kernel Crypto API example
+    /*
+    struct crypto_rng *rng = NULL;
+    rng = crypto_alloc_rng(drbg, 0, 0);
+    if (IS_ERR(rng)) {
+        pr_debug("could not allocate RNG handle for %s\n", drbg);
+        return PTR_ERR(rng);
+    }
+    */
+
+    //libkcapi RNG example
+    /*
+    struct kcapi_handle *rng = NULL;
+    status = kcapi_rng_init(&rng, drbg, 0);
+	if (status) {
+        printf("va_scram_gen_rand_bytes::Allocation of cipher %s failed\n", "va_rng_cipher");
+        return status;
+    }
+
+	// invocation of seeding is mandatory even when seed is NuLL
+	status = kcapi_rng_seed(rng, seed, seedlen);
+	if (0 > status) {
+		printf("va_scram_gen_rand_bytes::Failure to seed RNG %d\n", (int)status);
+		kcapi_rng_destroy(rng);
+		return 1;
+	}
+    */
+
+    for (byteIndex = 0; byteIndex < numBytes;)
     {
-#ifdef __APPLE__
+//#ifdef VAUTH_OPENSSL
+//        status = !RAND_bytes(byteBuffer + byteIndex, 1); //RAND_bytes results in 10 memory leaks for OpenSSL 1.1.1f!!!
+#if defined(__APPLE__)
         status = SecRandomCopyBytes(kSecRandomDefault, 1, byteBuffer + byteIndex);
-#else
-		//status = !CryptGenRandom(ca_scramCryptProv, 1, (BYTE*)(byteBuffer + byteIndex));
-		status = BCryptGenRandom(NULL, (BYTE*)(byteBuffer + byteIndex), 1, BCRYPT_USE_SYSTEM_PREFERRED_RNG); // Flags                  
+#elif defined(_WIN32) 
+        //status = !CryptGenRandom(va_scramCryptProv, 1, (BYTE*)(byteBuffer + byteIndex));
+#ifndef BCRYPT_USE_SYSTEM_PREFERRED_RNG
+#define BCRYPT_USE_SYSTEM_PREFERRED_RNG     0x00000002
 #endif
-		if (status != 0) { // Always test the status.
-            fprintf(stderr, "ca_scram_gen_rand_bytes failed with error:  %d\n", status);
+        status = BCryptGenRandom(NULL, (BYTE*)(byteBuffer + byteIndex), 1, BCRYPT_USE_SYSTEM_PREFERRED_RNG); // Flags                  
+#else
+        //TO DO:  more work to be done here using HAVE_RANDOM preprocessor define
+        status = getrandom(byteBuffer + byteIndex, 1, 0) != 1;               //call getrandom c call
+        //status = syscall(SYS_getrandom, byteBuffer+bytesIndex, numBytes);  //call getrandom as system call
+        //status = crypto_rng_get_bytes(rng, byteBuffer+byteIndex, 1) != 1;  //Linux Kernel Crypto API
+        //statuse= kcapi_rng_generate(rng, byteBuffer+byteIndex, 1) != 1;    //LibKCAPI
+#endif
+        if (status != 0) { // Always test the status.
+            printf("ca_scram_gen_rand_bytes failed with error:  %d\n", errno);
+            //crypto_free_rng(rng);
+            //kcapi_rng_destroy(rng);
             return status;
         }
         //Only fill buffer with valid alphanumeric UTF-8 bytes
-        if((byteBuffer[byteIndex] > 47 && byteBuffer[byteIndex] < 58)
-           || (byteBuffer[byteIndex] > 64 && byteBuffer[byteIndex] < 91)
-           || (byteBuffer[byteIndex] > 96 && byteBuffer[byteIndex] < 123 ))
+        if ((byteBuffer[byteIndex] > 47 && byteBuffer[byteIndex] < 58)
+            || (byteBuffer[byteIndex] > 64 && byteBuffer[byteIndex] < 91)
+            || (byteBuffer[byteIndex] > 96 && byteBuffer[byteIndex] < 123))
             byteIndex++;
     }
-	return noErr;
+    //crypto_free_rng(rng);     //Linux Kernel Crypto API RNG Destroy
+    //kcapi_rng_destroy(rng);   //LibKCAPI RNG Destroy
+    return noErr;
 }
 
 

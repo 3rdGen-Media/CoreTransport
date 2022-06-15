@@ -2423,8 +2423,8 @@ void SSLSecondMessageResponseCallback(CTError* err, CTCursor* cursor)
 {
 	fprintf(stderr, "SSLSecondMessageResponseCallback header:  \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
 
-	int ret = 0;
-	if ((ret = CTSSLHandshakeProcessSecondResponse(cursor, cursor->conn->socket, cursor->conn->sslContext)) != noErr)
+	SECURITY_STATUS ret = 0;
+	if ((ret = CTSSLHandshakeProcessSecondResponse(cursor, cursor->conn->socket, cursor->conn->sslContext)) != SEC_E_OK)
 	{
 #ifdef CTRANSPORT_WOLFSSL
 
@@ -2439,11 +2439,14 @@ void SSLSecondMessageResponseCallback(CTError* err, CTCursor* cursor)
 			return CTSuccess;
 		}
 #endif
+
+		if (ret == SEC_E_INCOMPLETE_MESSAGE || ret == SEC_I_CONTINUE_NEEDED)
+			return CTSuccess;
+
 		fprintf(stderr, "SSLSecondMessageResponseCallback::CTSSLHandshakeProcessSecondResponse failed with status:  %d\n", ret);
 		err->id = CTSSLHandshakeError;
 		CTCloseSSLSocket(cursor->conn->sslContext, cursor->conn->socket);
 	}
-
 
 	if ((ret = CTVerifyServerCertificate(cursor->conn->sslContext, cursor->conn->target->url.host)) != noErr)
 	{
@@ -2953,7 +2956,7 @@ CTSSLContextRef CTSSLContextCreate(CTSocket *socketfd, CTSecCertificateRef * cer
 
 static int count = 0;
 
-int CTSSLHandshakeProcessFirstResponse(CTCursor * cursor, CTSocket socketfd, CTSSLContextRef sslContextRef)
+SECURITY_STATUS CTSSLHandshakeProcessFirstResponse(CTCursor * cursor, CTSocket socketfd, CTSSLContextRef sslContextRef)
 {
 	int ret = 0;
 	int err = 0;
@@ -3104,7 +3107,7 @@ int CTSSLHandshakeProcessFirstResponse(CTCursor * cursor, CTSocket socketfd, CTS
 	}
 	*/
 
-	dwSSPIFlags = ISC_REQ_CONFIDENTIALITY | ISC_REQ_STREAM | ISC_REQ_ALLOCATE_MEMORY | ISC_RET_EXTENDED_ERROR  /*   | ISC_REQ_REPLAY_DETECT     | ISC_REQ_CONFIDENTIALITY   |
+	dwSSPIFlags = ISC_REQ_STREAM | ISC_REQ_ALLOCATE_MEMORY | ISC_RET_EXTENDED_ERROR  /*   | ISC_REQ_REPLAY_DETECT     | ISC_REQ_CONFIDENTIALITY   |
 				  ISC_RET_EXTENDED_ERROR    | | ISC_REQ_STREAM */;
 
 				  // Allocate data buffer.
@@ -3204,7 +3207,8 @@ int CTSSLHandshakeProcessFirstResponse(CTCursor * cursor, CTSocket socketfd, CTS
 			FAILED(scRet) && (dwSSPIOutFlags & ISC_RET_EXTENDED_ERROR))
 		{
 			// Check for fatal error.
-			if (FAILED(scRet)) { fprintf(stderr, "**** Error 0x%x returned by InitializeSecurityContext (2)\n", scRet); }
+			//if (FAILED(scRet)) { fprintf(stderr, "**** Error 0x%x returned by InitializeSecurityContext (2)\n", scRet); }
+			fprintf(stderr, "**** Error 0x%x returned by InitializeSecurityContext (2)\n", scRet);
 
 			assert((LONG)scRet != 2148074278);
 
@@ -3230,7 +3234,21 @@ int CTSSLHandshakeProcessFirstResponse(CTCursor * cursor, CTSocket socketfd, CTS
 			*/
 			if (OutBuffers[0].cbBuffer != 0 && OutBuffers[0].pvBuffer != NULL)
 				break;
-			else if (scRet == SEC_E_INCOMPLETE_MESSAGE)
+
+			if (scRet == SEC_I_CONTINUE_NEEDED && InBuffers[1].BufferType == SECBUFFER_EXTRA)
+			{
+				// Copy any leftover data from the "extra" buffer, and go around again.
+				//if (InBuffers[1].BufferType == SECBUFFER_EXTRA)
+				//{
+					MoveMemory(IoBuffer, IoBuffer + (cbIoBuffer - InBuffers[1].cbBuffer), InBuffers[1].cbBuffer);
+					cbIoBuffer = InBuffers[1].cbBuffer;
+				//}
+				//else
+				//	cbIoBuffer = 0;
+
+				continue;
+			}
+			else if (scRet == SEC_E_INCOMPLETE_MESSAGE || scRet == SEC_I_CONTINUE_NEEDED)
 			{
 
 				/*
@@ -3248,14 +3266,23 @@ int CTSSLHandshakeProcessFirstResponse(CTCursor * cursor, CTSocket socketfd, CTS
 				return CTSuccess;
 				*/
 
-				//fprintf(stderr, " CTSSLHandhsakeProcessFirstResponse:: recvd %d bytes of handshake data \n\n", cursor->overlappedResponse.buf - cursor->file.buffer);
-				unsigned long NumBytesRemaining = cbIoBuffer + ct_system_allocation_granularity();// 32768;   //request exactly the amount to complete the message NumBytesRemaining 
-												   //populated by CTSSLDecryptMessage2 above or request more if desired
 				CTOverlappedResponse* olResponse = &(cursor->overlappedResponse);
-				if ((scRet = CTCursorAsyncRecv(&olResponse, cursor->file.buffer, cbIoBuffer, &NumBytesRemaining)) != CTSocketIOPending)
+				unsigned long NumBytesRemaining = ct_system_allocation_granularity();// 32768;   //request exactly the amount to complete the message NumBytesRemaining 
+								   //populated by CTSSLDecryptMessage2 above or request more if desired
+
+				//char* buffer = olResponse->buf;
+
+				//if (scRet == SEC_E_INCOMPLETE_MESSAGE)
+				//	NumBytesRemaining -= cbIoBuffer;
+				if (scRet == SEC_I_CONTINUE_NEEDED)
+					cbIoBuffer = 0;
+					//buffer = cursor->file.buffer;;
+
+				//fprintf(stderr, " CTSSLHandhsakeProcessFirstResponse:: recvd %d bytes of handshake data \n\n", cursor->overlappedResponse.buf - cursor->file.buffer);
+				if ((ret = CTCursorAsyncRecv(&olResponse, cursor->file.buffer, cbIoBuffer, &NumBytesRemaining)) != CTSocketIOPending)
 				{
 					//the async operation returned immediately
-					if (scRet == CTSuccess)
+					if (ret == CTSuccess)
 					{
 						//fprintf(stderr, "CTConnection::DecryptResponseCallback::CTAsyncRecv returned immediate with %lu bytes\n", NumBytesRemaining);
 						//scRet = CTSSLDecryptMessage(overlappedResponse->conn->sslContext, overlappedResponse->wsaBuf.buf, &NumBytesRecv);
@@ -3270,15 +3297,17 @@ int CTSSLHandshakeProcessFirstResponse(CTCursor * cursor, CTSocket socketfd, CTS
 				return scRet;
 
 			}
+			
 		}
 
 		// If InitializeSecurityContext returned SEC_E_INCOMPLETE_MESSAGE,
 		// then we need to read more data from the server and try again.
-		if (scRet == SEC_E_INCOMPLETE_MESSAGE ) { fprintf(stderr, "SEC_E_INCOMPLETE_MESSAGE"); continue; }
+		if (scRet == SEC_E_INCOMPLETE_MESSAGE ) { fprintf(stderr, "SEC_E_INCOMPLETE_MESSAGE"); assert(1==0); }
 
 		// Copy any leftover data from the "extra" buffer, and go around again.
 		if (InBuffers[1].BufferType == SECBUFFER_EXTRA)
 		{
+			assert(1 == 0);
 			MoveMemory(IoBuffer, IoBuffer + (cbIoBuffer - InBuffers[1].cbBuffer), InBuffers[1].cbBuffer);
 			cbIoBuffer = InBuffers[1].cbBuffer;
 		}
@@ -3327,11 +3356,10 @@ int CTSSLHandshakeProcessFirstResponse(CTCursor * cursor, CTSocket socketfd, CTS
 	}
 
 #endif
-
-		return CTSuccess;
+	return SEC_E_OK;
 }
 
-int CTSSLHandshakeProcessSecondResponse(CTCursor * cursor, CTSocket socketfd, CTSSLContextRef sslContextRef)
+SECURITY_STATUS CTSSLHandshakeProcessSecondResponse(CTCursor * cursor, CTSocket socketfd, CTSSLContextRef sslContextRef)
 {
 	int ret = 0;
 	int err = 0;
@@ -3450,7 +3478,6 @@ int CTSSLHandshakeProcessSecondResponse(CTCursor * cursor, CTSocket socketfd, CT
 	SECURITY_STATUS scRet;
 	PUCHAR          IoBuffer;
 	BOOL            fDoRead;
-
 	/*
 	PSecurityFunctionTable pSSPI = NULL;
 	// Retrieve a data pointer for the current thread's security function table
@@ -3550,6 +3577,104 @@ int CTSSLHandshakeProcessSecondResponse(CTCursor * cursor, CTSocket socketfd, CT
 			NULL);
 
 
+		if (scRet == SEC_E_OK ||
+			scRet == SEC_I_CONTINUE_NEEDED ||
+			FAILED(scRet) && (dwSSPIOutFlags & ISC_RET_EXTENDED_ERROR))
+		{
+			// Check for fatal error.
+			//if (FAILED(scRet)) { fprintf(stderr, "**** Error 0x%x returned by InitializeSecurityContext (2)\n", scRet); }
+			fprintf(stderr, "**** Error 0x%x returned by InitializeSecurityContext (2)\n", scRet);
+
+			assert((LONG)scRet != 2148074278);
+
+			//assert(scRet != SEC_I_CONTINUE_NEEDED);
+			/*
+			if (OutBuffers[0].cbBuffer != 0 && OutBuffers[0].pvBuffer != NULL)
+			{
+				cbData = send(socketfd, (const char*)OutBuffers[0].pvBuffer, OutBuffers[0].cbBuffer, 0);
+				if (cbData == SOCKET_ERROR || cbData == 0)
+				{
+					fprintf(stderr, "**** Error %d sending data to server (2)\n", WSAGetLastError());
+					FreeContextBuffer(OutBuffers[0].pvBuffer);
+					DeleteSecurityContext(&(sslContextRef->hCtxt));
+					return SEC_E_INTERNAL_ERROR;
+				}
+				fprintf(stderr, "%d bytes of handshake data sent\n", cbData);
+				if (fVerbose) { PrintHexDump(cbData, (PBYTE)OutBuffers[0].pvBuffer); fprintf(stderr, "\n"); }
+
+				// Free output buffer.
+				FreeContextBuffer(OutBuffers[0].pvBuffer);
+				OutBuffers[0].pvBuffer = NULL;
+			}
+			*/
+			if (OutBuffers[0].cbBuffer != 0 && OutBuffers[0].pvBuffer != NULL)
+				break;
+
+			if (scRet == SEC_I_CONTINUE_NEEDED && InBuffers[1].BufferType == SECBUFFER_EXTRA)
+			{
+				// Copy any leftover data from the "extra" buffer, and go around again.
+				//if (InBuffers[1].BufferType == SECBUFFER_EXTRA)
+				//{
+					MoveMemory(IoBuffer, IoBuffer + (cbIoBuffer - InBuffers[1].cbBuffer), InBuffers[1].cbBuffer);
+					cbIoBuffer = InBuffers[1].cbBuffer;
+				//}
+				//else
+				//	cbIoBuffer = 0;
+
+				continue;
+			}
+			else if (scRet == SEC_E_INCOMPLETE_MESSAGE || scRet == SEC_I_CONTINUE_NEEDED)
+			{
+
+				/*
+				cursor->headerLengthCallback = SSLFirstMessageHeaderLengthCallback;
+				cursor->responseCallback = SSLFirstMessageResponseCallback;
+
+				cursor->file.buffer = cursor->requestBuffer;
+				cursor->overlappedResponse.buf = (char*)(sslFirstMessageBuffer);
+				handshakeCursor->overlappedResponse.len = sslFirstMessageLen;
+
+				handshakeCursor->conn = conn; //assume conn is permanent memory from core transport connection pool
+				handshakeCursor->overlappedResponse.stage = CT_OVERLAPPED_SEND; //we need to bypass encrypt bc sthis is the ssl handshake
+				assert(handshakeCursor->overlappedResponse.buf);
+				CTCursorSendOnQueue(handshakeCursor, (char**)&(handshakeCursor->overlappedResponse.buf), handshakeCursor->overlappedResponse.len);
+				return CTSuccess;
+				*/
+
+				CTOverlappedResponse* olResponse = &(cursor->overlappedResponse);
+				unsigned long NumBytesRemaining = ct_system_allocation_granularity();// 32768;   //request exactly the amount to complete the message NumBytesRemaining 
+								   //populated by CTSSLDecryptMessage2 above or request more if desired
+
+				//char* buffer = olResponse->buf;
+
+				//if (scRet == SEC_E_INCOMPLETE_MESSAGE)
+				//	NumBytesRemaining -= cbIoBuffer;
+				if (scRet == SEC_I_CONTINUE_NEEDED)
+					cbIoBuffer = 0;
+					//buffer = cursor->file.buffer;;
+
+				//fprintf(stderr, " CTSSLHandhsakeProcessFirstResponse:: recvd %d bytes of handshake data \n\n", cursor->overlappedResponse.buf - cursor->file.buffer);
+				if ((ret = CTCursorAsyncRecv(&olResponse, cursor->file.buffer, cbIoBuffer, &NumBytesRemaining)) != CTSocketIOPending)
+				{
+					//the async operation returned immediately
+					if (ret == CTSuccess)
+					{
+						//fprintf(stderr, "CTConnection::DecryptResponseCallback::CTAsyncRecv returned immediate with %lu bytes\n", NumBytesRemaining);
+						//scRet = CTSSLDecryptMessage(overlappedResponse->conn->sslContext, overlappedResponse->wsaBuf.buf, &NumBytesRecv);
+					}
+					else //failure
+					{
+						fprintf(stderr, "CTConnection::DecryptResponseCallback::CTAsyncRecv failed with CTDriverError = %d\n", scRet);
+						break;
+					}
+
+				}
+				return scRet;
+
+			}
+			
+		}
+
 		// If InitializeSecurityContext returned SEC_E_INCOMPLETE_MESSAGE,
 		// then we need to read more data from the server and try again.
 		if (scRet == SEC_E_INCOMPLETE_MESSAGE) { fprintf(stderr, "SEC_E_INCOMPLETE_MESSAGE"); continue; }
@@ -3630,7 +3755,7 @@ int CTSSLHandshakeProcessSecondResponse(CTCursor * cursor, CTSocket socketfd, CT
 		DeleteSecurityContext(&(sslContextRef->hCtxt)); return scRet;
 	}
 #endif
-	return CTSuccess;
+	return SEC_E_OK;
 }
 
 /***
@@ -3761,18 +3886,18 @@ int CTSSLHandshake(CTSocket socketfd, CTSSLContextRef sslContextRef, CTSecCertif
 
 
         // Call InitializeSecurityContext.
-        scRet = InitializeSecurityContextA(														&(sslContextRef->hCred),
-                                                                                                            &(sslContextRef->hCtxt),
+		scRet = InitializeSecurityContextA(	&(sslContextRef->hCred),
+			&(sslContextRef->hCtxt),
 			(SEC_CHAR*)(serverName),
-                                                                                                            dwSSPIFlags,
-                                                                                                            0,
-                                                                                                            SECURITY_NATIVE_DREP,
-                                                                                                            &InBuffer,
-                                                                                                            0,
-                                                                                                            &(sslContextRef->hCtxt),
-                                                                                                            &OutBuffer,
-                                                                                                            &dwSSPIOutFlags,
-                                                                                                            NULL);
+			dwSSPIFlags,
+			0,
+			SECURITY_NATIVE_DREP,
+			&InBuffer,
+			0,
+			&(sslContextRef->hCtxt),
+			&OutBuffer,
+			&dwSSPIOutFlags,
+			NULL);
 
 
         // If InitializeSecurityContext was successful (or if the error was
@@ -3782,7 +3907,8 @@ int CTSSLHandshake(CTSocket socketfd, CTSSLContextRef sslContextRef, CTSecCertif
            scRet == SEC_I_CONTINUE_NEEDED   ||
            FAILED(scRet) && (dwSSPIOutFlags & ISC_RET_EXTENDED_ERROR))
         {
-			if (FAILED(scRet)) { fprintf(stderr, "**** Error 0x%x returned by InitializeSecurityContext (2)\n", scRet); }
+			//if (FAILED(scRet)) { fprintf(stderr, "**** Error 0x%x returned by InitializeSecurityContext (2)\n", scRet); }
+			fprintf(stderr, "**** Error 0x%x returned by InitializeSecurityContext (2)\n", scRet);
 
             if(OutBuffers[0].cbBuffer != 0 && OutBuffers[0].pvBuffer != NULL)
             {

@@ -2,7 +2,7 @@
 //  ctHypertextAPI.h
 //
 //  Created by Joe Moulton on 5/24/19.
-//  Copyright © 2019 3rdGen Multimedia. All rights reserved.
+//  Copyright ï¿½ 2019 3rdGen Multimedia. All rights reserved.
 //
 
 #ifndef CTSOCKETAPI_H
@@ -67,7 +67,7 @@ typedef unsigned __int64 uint64_t;
 #include "CTError.h"
 #include "CTCoroutine.h"
 #include "CTConnection.h"
-#include "CTReQL.h"
+//#include "CTReQL.h"
 
 //#include "tls_api.h"
 
@@ -77,6 +77,9 @@ typedef unsigned __int64 uint64_t;
 #if defined(__cplusplus) //|| defined(__OBJC__)
 extern "C" {
 #endif
+
+//#pragma mark -- Utility/Helper Methods
+CTRANSPORT_API CTRANSPORT_INLINE unsigned long CTPageSize();
 
 //#pragma mark -- CTCursor API methods
 
@@ -107,8 +110,9 @@ CTRANSPORT_API CTRANSPORT_INLINE CTCursor* CTGetNextPoolCursor();
 
 CTRANSPORT_API CTRANSPORT_INLINE void CTSetCursorPoolIndex(int index);
 
+
 //#pragma mark -- CTConnect API Methods
-//Connect to a RethinkDB Service + Init/Alloc ReØMQL [ReqlConnection] object
+//Connect to a RethinkDB Service + Init/Alloc Reï¿½MQL [ReqlConnection] object
 CTRANSPORT_API CTRANSPORT_INLINE int CTConnect(  CTTarget * service, CTConnectionClosure callback);
 CTRANSPORT_API CTRANSPORT_INLINE coroutine int CTSSLRoutine(CTConnection* conn, char* hostname, char* caPath);
 CTRANSPORT_API CTRANSPORT_INLINE coroutine int CTProxyHandshake(CTConnection* conn);
@@ -117,24 +121,28 @@ CTRANSPORT_API CTRANSPORT_INLINE coroutine int CTTargetResolveHost(CTTarget* tar
 CTRANSPORT_API CTRANSPORT_INLINE int CTReQLHandshake( CTConnection * r, CTTarget * service);
 CTRANSPORT_API CTRANSPORT_INLINE int CTReQLAsyncHandshake(CTConnection* conn, CTTarget* service, CTConnectionClosure callback);
 CTRANSPORT_API CTRANSPORT_INLINE int CTCloseConnection( CTConnection * conn );
-CTRANSPORT_API CTRANSPORT_INLINE int CTCloseSSLSocket(CTSSLContextRef sslContextRef, CTSocket socketfd);
 
-CTRANSPORT_API CTRANSPORT_INLINE unsigned long CTPageSize();
+#ifdef _WIN32
+CTRANSPORT_API CTRANSPORT_INLINE int CTCloseSSLSocket(CTSSLContextRef sslContextRef, CTSocket socketfd);
+#endif
 
 //Blocking Send/Receive network buffer over CTConnection dedicated platform TCP socket
-CTRANSPORT_API CTRANSPORT_INLINE int	 CTSend(CTConnection * conn, void * msg, unsigned long msgLength );
-CTRANSPORT_API CTRANSPORT_INLINE void* CTRecv(     CTConnection * conn, void * msg, unsigned long * msgLength );
+CTRANSPORT_API CTRANSPORT_INLINE int   CTSend(CTConnection * conn, void * msg, unsigned long * msgLength );
+CTRANSPORT_API CTRANSPORT_INLINE void* CTRecv(CTConnection * conn, void * msg, unsigned long * msgLength );
 
+#ifdef _WIN32
 //Async Send/Receive network buffer over CTConnection dedicated platform TCP socket (and tag with a queryToken)
 //CTRANSPORT_API CTRANSPORT_INLINE CTClientError CTSendWithQueue(CTConnection* conn, void * msg, unsigned long * msgLength);
 CTRANSPORT_API CTRANSPORT_INLINE uint64_t CTSendOnQueue(CTConnection * conn, char ** queryBufPtr, unsigned long queryStrLength, uint64_t queryToken);
 CTRANSPORT_API CTRANSPORT_INLINE uint64_t CTSendOnQueue2(CTConnection * conn, char ** queryBufPtr, unsigned long queryStrLength, uint64_t queryToken, CTOverlappedResponse* overlappedResponse);
+#endif
 
 //Queue a cursor's request buffer to asynchronously send it's contents on the cursor's connection 
 CTRANSPORT_API CTRANSPORT_INLINE uint64_t CTCursorSendOnQueue(CTCursor*, char ** queryBufPtr, unsigned long queryStrLength);
 CTRANSPORT_API CTRANSPORT_INLINE CTClientError CTCursorRecvOnQueue(CTOverlappedResponse** overlappedResponsePtr, void* msg, unsigned long offset, unsigned long* msgLength);
 
 CTRANSPORT_API CTRANSPORT_INLINE CTClientError CTAsyncRecv(CTConnection* conn, void * msg, unsigned long offset, unsigned long * msgLength);
+#ifdef _WIN32
 CTRANSPORT_API CTRANSPORT_INLINE CTClientError CTAsyncRecv2(CTConnection* conn, void * msg, unsigned long offset, unsigned long * msgLength, uint64_t queryToken, CTOverlappedResponse** overlappedResponsePtr);
 
 //Request [more] data  
@@ -143,6 +151,7 @@ CTRANSPORT_API CTRANSPORT_INLINE CTClientError CTCursorAsyncRecv(CTOverlappedRes
 //Reql Send/Receive wrappers
 CTRANSPORT_API CTRANSPORT_INLINE uint64_t CTReQLRunQueryOnQueue(CTConnection * conn, const char ** queryBufPtr, unsigned long queryStrLength, uint64_t queryToken);
 
+#endif 
 
 //#pragma mark -- Global ReqlClientDriver Object
 typedef struct CTClientDriver
@@ -163,4 +172,4 @@ static const CTClientDriver CTransport = {CTConnect};//, ReqlDatabaseQuery};
 #endif
 //PROTOBUF_C__END_DECLS
 
-#endif /* ReØMQL_h */
+#endif /* Reï¿½MQL_h */

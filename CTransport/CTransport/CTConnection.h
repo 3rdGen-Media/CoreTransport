@@ -4,7 +4,7 @@
 #include "CTError.h"
 #include "CTFile.h"
 #include "CTSocket.h"
-#include "CTSSL.h"
+//#include "CTSSL.h"
 
 
 #if defined(__cplusplus) //|| defined(__OBJC__)
@@ -28,7 +28,11 @@ extern "C" {
 typedef struct CTRANSPORT_PACK_ATTRIBUTE CTSSL
 {
     char * ca;
+#ifdef _WIN32
 	CTSSLMethod method;
+#else
+	int method;
+#endif
 }CTSSL;
 
 //#pragma mark -- CTDNS Struct
@@ -49,8 +53,9 @@ typedef struct CTRANSPORT_PACK_ATTRIBUTE CTDNS
 {
     char * resconf;
     char * nssconf;
+#ifdef _WIN32
 	WORD wID;// = GetTickCount() % 65536;
-
+#endif
 }CTDNS;
 
 //#pragma mark -- HTTPConnection Struct
@@ -60,6 +65,7 @@ typedef struct CTTarget;
 
 typedef enum CTOverlappedStage
 {
+	CT_OVERLAPPED_STAGE_NULL	= -1,
 	CT_OVERLAPPED_SCHEDULE,
 	CT_OVERLAPPED_SCHEDULE_RECV,			//TCP
 	CT_OVERLAPPED_SCHEDULE_RECV_DECRYPT,	//TCP + TLS
@@ -72,6 +78,7 @@ typedef enum CTOverlappedStage
 	CT_OVERLAPPED_ENCRYPT_SEND,				//TLS + TCP
 }CTOverlappedStage;
 
+#ifdef _WIN32
 
 typedef struct CTOverlappedTarget
 {
@@ -87,7 +94,7 @@ typedef struct CTOverlappedTarget
 
 	//struct CTOverlappedResponse *overlappedResponse;	//ptr to the next overlapped
 }CTOverlappedTarget;
-
+#endif
 /* * *
  *  CTConnection [ReqlConnection]
  *
@@ -96,9 +103,10 @@ typedef struct CTOverlappedTarget
 typedef struct CTConnection
 {
     //BSD Socket TLS Connection
+#ifdef _WIN32
     CTSSLContextRef sslContext;
     //SSLContextRef sslWriteContext;
-
+#endif
 	//BSD Socket TCP Connection
     union{
 		CTSocketContext socketContext;
@@ -114,7 +122,7 @@ typedef struct CTConnection
 		volatile uint64_t requestCount;
 	};
 
-	volatile uint64_t responseCount;
+	volatile int64_t responseCount;
 
 	//char response_overlap_buffer[65536L];
 	size_t response_overlap_buffer_length;
@@ -146,15 +154,18 @@ typedef void (*CTConnectionCallback)(struct CTError* err, struct CTConnection* c
 //A completion block handler that returns the HTTP(S) status code
 //and the relevant JSON documents from the database store associated with the request
 //typedef void (^ReqlConnectionClosure)(ReqlError * err, ReqlConnection * conn);
+#ifndef _WIN32
+typedef int (^CTConnectionClosure)(struct CTError * err, struct CTConnection* conn);
+#else
 typedef int (*CTConnectionClosure)(struct CTError* err, struct CTConnection* conn);
-
+#endif
 
 //#pragma mark -- HTTPTarget [ReqlConnectionOptions]
 /* * *
  *  ReqlService [alias: ReqlConnectionOptions]
  *
  *  Generally, an ReqlService object's lifetime is shortlived
- *  as it is only used to create an ReØMQL [ReqlConnection] object
+ *  as it is only used to create an Reï¿½MQL [ReqlConnection] object
  *
  *  --Property names will mimic those of NodeJS API, where appropriate
  *  --Properties are ordered from largest to smallest with variable length buffers placed at the end
@@ -182,13 +193,17 @@ typedef struct CTTarget     //TO DO:  calculate size and alignment
 	//UDP/TCP Socket Connection Options
 	int64_t		timeout;        //-1 indicates wait forever
 
-	CTThreadQueue	cxQueue;	//The desired kernel queue for the socket connection to async connect AND async recv on 
-	CTThreadQueue	txQueue;	//The desired kernel queue for the socket connection to async send on
-	CTThreadQueue	rxQueue;	//The desired kernel queue for the socket connection to async send on
-		
-	CTConnectionClosure				callback;
-	struct CTOverlappedTarget		overlappedTarget;
+	CTKernelQueue	cxQueue;	//The desired kernel queue for the socket connection to async connect AND async recv on 
+	CTKernelQueue	txQueue;	//The desired kernel queue for the socket connection to async send on
+	CTKernelQueue	rxQueue;	//The desired kernel queue for the socket connection to async send on
+#ifndef _WIN32
+	CTKernelQueue	oxPipe[2];	//The desired kernel queue for the socket connection to post overlapped cursors to the rxQueue + thread pool
+#endif
 
+	CTConnectionClosure				callback;
+#ifdef _WIN32
+	struct CTOverlappedTarget		overlappedTarget;
+#endif
 	void* ctx;
 
 	//RethinkDB SASL SCRAM SHA-256 Handshake Credentials; 
@@ -203,7 +218,6 @@ typedef struct CTTarget     //TO DO:  calculate size and alignment
 typedef CTTarget CTConnectionOptions;
 
 
-#ifdef _WIN32
 
 /*
 typedef enum CTOverlappedConnectionStage
@@ -213,11 +227,24 @@ typedef enum CTOverlappedConnectionStage
 }CTOverlappedResponseType;
 */
 
+#ifndef _WIN32
+typedef int DWORD;
+typedef struct WSABUF
+{
+	unsigned long len;
+	char* 		  buf;
+}WSABUF;
+typedef struct WSAOVERLAPPED{
+	struct kevent hEvent;
+}WSAOVERLAPPED;
+#define ZeroMemory(x, y) memset(x, 0, y)
+#endif
+
 
 typedef struct CTOverlappedResponse
 {
 	WSAOVERLAPPED		Overlapped;
-	CTConnection *		conn;
+	CTConnection *		conn;  //TO DO:  connection is already on cursor this is unnecessary
 	char *				buf;
 	DWORD				Flags;
 	unsigned long		len;
@@ -228,6 +255,12 @@ typedef struct CTOverlappedResponse
 
 	//struct CTOverlappedResponse *overlappedResponse;	//ptr to the next overlapped
 }CTOverlappedResponse;
+
+typedef enum CTQueueEventID
+{
+ 	CTQUEUE_ACTIVE_CURSOR
+}CTKernelQueueEventID;
+
 /*
 typedef struct CTOverlappedRequest
 {
@@ -239,13 +272,15 @@ typedef struct CTOverlappedRequest
 	uint64_t			queryToken;
 }CTOverlappedRequest;
 */
-#endif
-
 
 //client must provide a callback to return pointer to end of callback when requested
 //this also notifies the client when the cursor has been read, before the end of the message has been read
 typedef char* (*CTCursorHeaderLengthFunc)(struct CTCursor * cursor, char * buffer, unsigned long bufferLength);
-typedef char* (*CTCursorCompletionFunc)(CTError * err, struct CTCursor* cursor);
+#ifndef _WIN32
+typedef void (^CTCursorCompletionClosure)(CTError * err, struct CTCursor* cursor);
+#else
+typedef void (*CTCursorCompletionClosure)(CTError * err, struct CTCursor* cursor);
+#endif
 
 typedef struct CTCursor
 {
@@ -262,12 +297,12 @@ typedef struct CTCursor
 	unsigned long				contentLength;
     CTConnection*				conn;
 	CTTarget*					target;
-	CTOverlappedResponse		overlappedResponse;
+	struct CTOverlappedResponse		overlappedResponse;
 	char						requestBuffer[65536L];
 	uint64_t					queryToken;
 	CTCursorHeaderLengthFunc	headerLengthCallback;
-	CTCursorCompletionFunc		responseCallback;
-	CTCursorCompletionFunc		queryCallback;
+	CTCursorCompletionClosure	responseCallback;
+	CTCursorCompletionClosure	queryCallback;
 
 	//Reql
 }CTCursor;

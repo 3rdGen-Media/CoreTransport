@@ -34,6 +34,7 @@
 #define _CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES         1       // use the new secure functions in the CRT
 #define _CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES_COUNT   1       // use the new secure functions in the CRT
 
+
 #include <windows.h>            // fundamental Windows header file
 #define GLDECL WINAPI
 
@@ -41,6 +42,13 @@
 #include <math.h>
 
 #define THREADPROC WINAPI   //What does this do again?
+
+#elif defined(__FreeBSD__)
+#include <sys/ioctl.h>
+#include <sys/time.h>
+#include <sys/random.h>
+#include <crypto/cryptodev.h>
+#include <errno.h>
 
 #endif
 

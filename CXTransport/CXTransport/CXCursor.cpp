@@ -44,7 +44,8 @@ void CXCursor::createResponseBuffers(const char * filepath)
 
 #ifdef _WIN32
 	//recv
-	LPVOID queryPtr, responsePtr;
+	LPVOID queryPtr;
+	LPVOID responsePtr;
 	unsigned long cxBufferSize = ct_system_allocation_granularity(); //+ sizeof(CTOverlappedResponse); 
 	
 	if( !filepath )

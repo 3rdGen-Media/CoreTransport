@@ -3,11 +3,14 @@
 //  CRViewer
 //
 //  Created by Joe Moulton on 2/9/19.
-//  Copyright © 2019 Abstract Embedded. All rights reserved.
+//  Copyright ï¿½ 2019 Abstract Embedded. All rights reserved.
 //
 
 #include "../CTransport.h"
 
+#ifndef _WIN32
+#include <assert.h>
+#endif
 
 CTRANSPORT_API CTRANSPORT_INLINE unsigned long ct_system_allocation_granularity()
 {
@@ -16,6 +19,8 @@ CTRANSPORT_API CTRANSPORT_INLINE unsigned long ct_system_allocation_granularity(
 	GetSystemInfo(&systemInfo);     // Initialize the structure.
 	//printf (TEXT("This computer has allocation granularity %d.\n"), systemInfo.dwAllocationGranularity);
 	return (unsigned long)systemInfo.dwAllocationGranularity/2;
+#else
+	return (unsigned long)(4096UL * 16UL) / 2UL;
 #endif
 }
 
@@ -59,12 +64,12 @@ CTRANSPORT_API CTRANSPORT_INLINE int ct_file_open(const char * filepath)
     //printf("\nfile size = %lld\n", filesize);
     
     //disabling disk caching will allow zero performance reads
-    //According to John Carmack:  I am pleased to report that fcntl( fd, F_NOCACHE ) works exactly as desired on iOS – I always worry about behavior of historic unix flags on Apple OSs. Using
+    //According to John Carmack:  I am pleased to report that fcntl( fd, F_NOCACHE ) works exactly as desired on iOS ï¿½ I always worry about behavior of historic unix flags on Apple OSs. Using
     //this and page aligned target memory will bypass the file cache and give very repeatable performance ranging from the page fault bandwidth with 32k reads up to 30 mb/s for one meg reads (22
-    //mb/s for the old iPod). This is fractionally faster than straight reads due to the zero copy, but the important point is that it won’t evict any other buffer data that may have better
+    //mb/s for the old iPod). This is fractionally faster than straight reads due to the zero copy, but the important point is that it wonï¿½t evict any other buffer data that may have better
     //temporal locality.
     
-#ifndef _WIN32
+#ifdef __APPLE__
     //this takes care preventing caching, but we also need to ensure that "target memory" is page aligned
     if ( fcntl( fileDescriptor, F_NOCACHE ) < 0 )
     {
@@ -108,21 +113,29 @@ CTRANSPORT_API CTRANSPORT_INLINE int ct_file_create_w(char * filepath)
 		fileDescriptor = errno;
         
     }
-#endif
-    //printf("\nfile size = %lld\n", filesize);
-    
-    //disabling disk caching will allow zero performance reads
-    //According to John Carmack:  I am pleased to report that fcntl( fd, F_NOCACHE ) works exactly as desired on iOS – I always worry about behavior of historic unix flags on Apple OSs. Using
-    //this and page aligned target memory will bypass the file cache and give very repeatable performance ranging from the page fault bandwidth with 32k reads up to 30 mb/s for one meg reads (22
-    //mb/s for the old iPod). This is fractionally faster than straight reads due to the zero copy, but the important point is that it won’t evict any other buffer data that may have better
-    //temporal locality.
-    
-#ifndef _WIN32
-    //this takes care preventing caching, but we also need to ensure that "target memory" is page aligned
-    if ( fcntl( fileDescriptor, F_NOCACHE ) < 0 )
-    {
-        printf("\nF_NOCACHE failed!\n");
-    }
+#else
+	fileDescriptor = open(filepath, O_RDWR | O_APPEND | O_CREAT | O_TRUNC | O_TEXT /*| O_SEQUENTIAL*/, 0700);
+	//check if the file descriptor is valid
+	if (fileDescriptor < 0) {
+
+		printf("\nUnable to open file: %s\n", filepath);
+		printf("errno is %d and fd is %d", errno, fileDescriptor);
+		fileDescriptor = errno;
+	}
+
+	//printf("\nfile size = %lld\n", filesize);
+
+	//disabling disk caching will allow zero performance reads
+	//According to John Carmack:  I am pleased to report that fcntl( fd, F_NOCACHE ) works exactly as desired on iOS ï¿½ I always worry about behavior of historic unix flags on Apple OSs. Using
+	//this and page aligned target memory will bypass the file cache and give very repeatable performance ranging from the page fault bandwidth with 32k reads up to 30 mb/s for one meg reads (22
+	//mb/s for the old iPod). This is fractionally faster than straight reads due to the zero copy, but the important point is that it wonï¿½t evict any other buffer data that may have better
+	//temporal locality.
+
+	//this takes care preventing caching, but we also need to ensure that "target memory" is page aligned
+	//if (fcntl(fileDescriptor, F_NOCACHE) < 0)
+	//{
+	//	printf("\nF_NOCACHE failed!\n");
+	//}
 #endif
     return fileDescriptor;
 
@@ -131,9 +144,9 @@ CTRANSPORT_API CTRANSPORT_INLINE int ct_file_create_w(char * filepath)
 
 CTRANSPORT_API CTRANSPORT_INLINE off_t ct_file_truncate(int fd, off_t size)
 {
-#ifdef _WIN32
-	DWORD dwErr;
 	off_t outSz = size;
+#ifdef _WIN32
+	DWORD dwErr = 0;
 	HANDLE hFile = (HANDLE)_get_osfhandle( fd );
 	SetFilePointer(hFile, size, 0, FILE_BEGIN);
 	SetEndOfFile(hFile);
@@ -143,8 +156,10 @@ CTRANSPORT_API CTRANSPORT_INLINE off_t ct_file_truncate(int fd, off_t size)
 		printf("ct_file_truncate::Error Code: %d\n", dwErr );
 		outSz = (off_t)dwErr;
 	}
-	return outSz;
+#else
+	
 #endif
+	return outSz;
 }
 
 
@@ -217,7 +232,7 @@ CTRANSPORT_API CTRANSPORT_INLINE void ct_file_allocate_storage(int fileDescripto
 {
     //first we need to preallocate a contiguous range of memory for the file
     //if this fails we won't have enough space to reliably map a file for zero copy lookup
-#ifndef _WIN32
+#ifdef __APPLE__
     fstore_t fst;
     fst.fst_flags = F_ALLOCATECONTIG;
     fst.fst_posmode = F_PEOFPOSMODE;
@@ -262,7 +277,7 @@ CTRANSPORT_API CTRANSPORT_INLINE void*  ct_file_map_to_buffer( char ** buffer, o
 		printf("cr_file_map_to_buffer failed:  OS Virtual Mapping failed");
 		if( !(*buffer = (char *)MapViewOfFileEx(mFile, FILE_MAP_ALL_ACCESS, 0, 0, filesize, NULL)) )
 		{
-			printf("cr_file_map_to_buffer failed:  OS Virtual Mapping failed2 ");
+			fprintf(stderr, "cr_file_map_to_buffer failed:  OS Virtual Mapping failed2 ");
 	    }
 
     }
@@ -273,11 +288,11 @@ CTRANSPORT_API CTRANSPORT_INLINE void*  ct_file_map_to_buffer( char ** buffer, o
     return (void*)*buffer;
 
 #else
-    return mmap(*buffer, (size_t)(filesize), filePrivelege, mapOptions, fileDescriptor, offset);
+    return (void*)mmap(*buffer, (size_t)(filesize), filePrivelege, mapOptions, fileDescriptor, offset);
 #endif
 }
 
-
+#ifdef __WIN32
 CTRANSPORT_API CTRANSPORT_INLINE uint64_t ct_system_utc()
 {
 	const uint64_t OA_ZERO_TICKS = 94353120000000000; //12/30/1899 12:00am in ticks
@@ -292,5 +307,5 @@ CTRANSPORT_API CTRANSPORT_INLINE uint64_t ct_system_utc()
 
 	return (dt.QuadPart - OA_ZERO_TICKS);
 }
-
+#endif
 

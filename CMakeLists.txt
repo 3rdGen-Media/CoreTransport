@@ -1,0 +1,70 @@
+# CMakeLists files in this project can
+# refer to the root source directory of the project as ${HELLO_SOURCE_DIR} and
+# to the root binary directory of the project as ${HELLO_BINARY_DIR}.
+cmake_minimum_required (VERSION 3.20)
+
+set (CMAKE_C_FLAGS "-fblocks")
+set (CMAKE_CXX_FLAGS "-fblocks")
+set (CMAKE_SHARED_LINKER_FLAGS "-lBlocksRuntime")
+
+message(STATUS "CoreTransport CMAKE_CXX_COMPILER_ID is ${CMAKE_CXX_COMPILER_ID}")
+message(STATUS "CoreTrasnport CMAKE_CXX_COMPILER_VERSION is ${CMAKE_CXX_COMPILER_VERSION}")
+
+#Define projects for top level CMakeLists.txt (ie Workspace CmakeList) to build
+#project(dill LANGUAGES CXX C)
+#project(CAuth LANGUAGES CXX C)
+#project(CTransport LANGUAGES CXX C)
+#project(CXTransport LANGUAGES CXX C)
+#project(HappyEyeballs LANGUAGES CXX C)
+
+#Set Build Config Post fixes to be added to the end of generated libraries and executables
+set(CMAKE_DEBUG_POSTFIX d)
+#set(CMAKE_RELEASE_POSTFIX R)
+
+#Create a /bin directory at top level of VitalTransport Dir (ie the VitalTransport Workspace Directory)
+file(MAKE_DIRECTORY ./bin)
+file(MAKE_DIRECTORY ./include)
+file(MAKE_DIRECTORY ./include/dill)
+file(MAKE_DIRECTORY ./include/CoreTransport)
+file(MAKE_DIRECTORY ./include/CoreTransport/CAuth)
+#file(MAKE_DIRECTORY ./include/CoreTransport/protobuf)
+file(MAKE_DIRECTORY ./include/CoreTransport/CTransport)
+#file(MAKE_DIRECTORY ./include/CoreTransport/CXTransport)
+#file(MAKE_DIRECTORY ./include/CoreTransport/CXURL)
+#file(MAKE_DIRECTORY ./include/CoreTransport/CXReQL)
+
+IF(CMAKE_BUILD_TYPE MATCHES Debug)
+  message("Debug build.")
+  add_definitions(-D_DEBUG)
+ELSEIF(CMAKE_BUILD_TYPE MATCHES Release)
+  message("Release build.")
+ELSE()
+  message("Some other build type.")
+ENDIF()
+
+#recurse into dill subdirectory to build
+add_subdirectory(dill)
+
+#copy libdill project binaries to CoreTransport bin
+
+#Set CoreTransport archive bin
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+#start CoreTransport project lib builds
+project(CoreTransport LANGUAGES CXX C)
+
+#recurse into CAuth subdirectory to build
+add_subdirectory (CAuth)
+
+#if( CAUTH_OPENSSL )
+#target_include_directories (VAuth PUBLIC ../../../ThirdParty/openssl-1.1.1l/include/openssl ${CMAKE_CURRENT_SOURCE_DIR})
+#target_link_libraries(VAuth PUBLIC OpenSSL::SSL OpenSSL::Crypto) 
+#endif()
+
+
+#recurse into CTransport directory to build
+add_subdirectory (CTransport)
+#add_subdirectory (CXTransport)
+add_subdirectory (Samples/HappyEyeballs)
