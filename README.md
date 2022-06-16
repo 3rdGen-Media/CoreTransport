@@ -2,17 +2,82 @@
 
 CoreTransport is a no-compromise cross-platform pure C library (with wrapper APIs in various languages) for establishing and consuming from persistent TCP socket client connections secured with SSL/TLS.  CoreTransport aims to implement the following non-standard features for all supported platforms:
 
-| Motivating Feature | Win32, Xbox | Darwin | FreeBSD |
-| ------------------ | ----------- | ------ | ------- |
+<table width="100%">
+  <tr width ="100%">
+    <td align="center" width="49%"><strong>Motivating Feature</strong></td>
+    <td align="center" width="17%"><strong>Win32, Xbox</strong></td>
+    <td align="center" width="17%"><strong>Darwin</strong></td>
+    <td align="center" width="17%"><strong>FreeBSD</strong></td>
+  </tr>
+  <tr width ="100%">
+    <td width="49%">Structured concurrency to promote simultaneous asynchronous non-blocking socket connections from a single thread</td>
+    <td width="17%">IOCP</td>
+    <td width="17%">Coroutines</td>
+    <td width="17%">Coroutines</td>
+  </tr>
+  <tr width ="100%">
+    <td width="49%">Lock-Free, Wait-Free Tx/Rx scheduling & completion operation dequeuing with fewest userspace context switches</td>
+    <td width="17%">IOCP,<br/>PeekMessage</td>
+    <td width="17%">kqueue,<br/>Cursor pipe</td>
+    <td width="17%"> kqueue,<br/>Cursor pipe</td>
+  </tr>
+  <tr width ="100%">
+    <td width="49%">Closures to delegate response buffers back to caller</td>
+    <td width="17%">Clang Blocks, C++ Lambdas</td>
+    <td width="17%">Clang Blocks, C++ Lambdas</td>
+    <td width="17%">Clang Blocks, C++ Lambdas</td>
+  </tr>
+  <tr width ="100%">
+    <td width="49%">Memory management that supports in-place processing and optional response caching</td>
+    <td width="17%">Memory Pools, Mapped Files</td>
+    <td width="17%">Memory Pools, Mapped Files</td>
+    <td width="17%">Memory Pools, Mapped Files</td>
+  </tr>
+  <tr width ="100%">
+    <td width="49%">Async non-blocking TLS negotiation via platform provided encryption with fallback to 3rd party embedded support</td>
+    <td width="17%">SCHANNEL,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>WolfSSL</td>
+    <td width="17%">SecureTransport,<br/>MBEDTLS</td>
+    <td width="17%">In&nbsp;Progress&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
+  </tr>
+  <tr width ="100%">
+    <td width="49%">Conditional chaining of requests/queries from the same and other connections</td>
+    <td width="17%">Completion<br/>Closures</td>
+    <td width="17%">Completion<br/>Closures</td>
+    <td width="17%">Completion<br/>Closures</td>
+  </tr>
+  <tr width ="100%">
+    <td width="49%">Streaming downloads for consumption by an accelerated graphics pipeline or real-time hardware pipeline</td>
+    <td width="17%">Progress<br/>Closures&nbsp;&nbsp;</td>
+    <td width="17%">Progress<br/>Closures&nbsp;&nbsp;</td>
+    <td width="17%">Progress<br/>Closures&nbsp;&nbsp;</td>
+  </tr>
+  <tr width ="100%">
+    <td width="49%">Numa Siloing</td>
+    <td width="17%">&cross;</td>
+    <td width="17%">&cross;</td>
+    <td width="17%">&cross;</td>
+  </tr>
+  <tr width ="100%">
+    <td width="49%">Tunneling via proxy connections</td>
+    <td width="17%">HTTP, SOCKS5</td>
+    <td width="17%">To Do</td>
+    <td width="17%">In Progress</td>
+  </tr>
+</table>
+
+<!---
+| <div style="width:49%">Motivating Feature</div> | <div style="width:17%">Win32, Xbox</div> | <div style="width:17%">Darwin</div> | <div style="width:17%">FreeBSD</div> |
+| --------------------------------------------------- | ----------------- | ----------------- | ----------------- |
 | Structured concurrency to promote simultaneous asynchronous non-blocking socket connections from a single thread | IOCP | Coroutines | Coroutines |
-| Lock-Free, Wait-Free Tx/Rx scheduling & completion operation dequeuing implemented as closest-to-kernel option with fewest userspace context switches | IOCP,<br/>PeekMessage | kqueue,<br/>Cursor pipe | kqueue,<br/>Cursor pipe |
+| Lock-Free, Wait-Free Tx/Rx scheduling & completion operation dequeuing with fewest userspace context switches | IOCP,<br/>PeekMessage | kqueue,<br/>Cursor pipe | kqueue,<br/>Cursor pipe |
 | Closures to delegate response buffers back to caller | Clang Blocks,<br/>C++ Lambdas | Clang Blocks,<br/>C++ Lambdas | Clang Blocks,<br/>C++ Lambdas |
 | Memory management that supports in-place processing and optional response caching | Memory Pools, Mapped Files | Memory Pools, Mapped Files | Memory Pools, Mapped Files |
-| Asynchronous TLS negotiation via platform provided encryption with fallback to 3rd party lib for embedded support | SCHANNEL, WolfSSL | SecureTransport, MBEDTLS | In Progress &nbsp; |
+| Asynchronous TLS negotiation via platform provided encryption with fallback to 3rd party embedded support | SCHANNEL,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>WolfSSL | SecureTransport,<br/>MBEDTLS | In&nbsp;Progress&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |
 | Conditional chaining of requests/queries from the same and other connections | Completion<br/>Closures | Completion<br/>Closures | Completion<br/>Closures |
 | Streaming downloads for consumption by an accelerated graphics pipeline or real-time hardware pipeline | Progress<br/>Closures | Progress<br/>Closures | Progress<br/>Closures |
 | Numa Siloing | &cross; | &cross; | &cross; |
 | Tunneling via proxy connections | HTTP, SOCKS5 | To Do | In Progress |	
+--->
 
 *CoreTransport is the modular Network Transport Layer that operates in parallel with 3rdGen's Accelerated Graphics Layer, Core Render.  Together, CoreTransport and CoreRender's C libraries embody the foundational layer of 3rdGen's proprietary simulation engine and cross-platform application framework, Cobalt Rhenium.* 
 
