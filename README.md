@@ -2,7 +2,7 @@
 
 CoreTransport is a no-compromise cross-platform pure C library (with wrapper APIs in various languages) for establishing and consuming from persistent TCP socket client connections secured with SSL/TLS.  CoreTransport aims to implement the following non-standard features for all supported platforms:
 
-| Motivating Feature | &nbsp; &nbsp; &nbsp; &nbsp; Win32 &nbsp; &nbsp; &nbsp; &nbsp; | Darwin | &nbsp; &nbsp; &nbsp; FreeBSD &nbsp; &nbsp; &nbsp; |
+| Motivating Feature | Win32, Xbox | Darwin | &nbsp; &nbsp; &nbsp; FreeBSD &nbsp; &nbsp; &nbsp; |
 | ------------------ | ----- | ------ | ------- |
 | Structured concurrency to promote simultaneous asynchronous non-blocking socket connections from a single thread | IOCP | Coroutines | Coroutines |
 | Lock-Free, Wait-Free Tx/Rx scheduling & completion operation dequeuing implemented as closest-to-kernel option with fewest userspace context switches | IOCP,<br/>PeekMessage | kqueue,<br/>Cursor pipe | kqueue,<br/>Cursor pipe |
