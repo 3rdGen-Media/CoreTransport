@@ -2,8 +2,8 @@
 
 CoreTransport is a no-compromise cross-platform pure C library (with wrapper APIs in various languages) for establishing and consuming from persistent TCP socket client connections secured with SSL/TLS.  CoreTransport aims to implement the following non-standard features for all supported platforms:
 
-| Motivating Feature | Win32, Xbox | Darwin | &nbsp; &nbsp; &nbsp; FreeBSD &nbsp; &nbsp; &nbsp; |
-| ------------------ | ----- | ------ | ------- |
+| Motivating Feature | Win32, Xbox | Darwin | FreeBSD |
+| ------------------ | ----------- | ------ | ------- |
 | Structured concurrency to promote simultaneous asynchronous non-blocking socket connections from a single thread | IOCP | Coroutines | Coroutines |
 | Lock-Free, Wait-Free Tx/Rx scheduling & completion operation dequeuing implemented as closest-to-kernel option with fewest userspace context switches | IOCP,<br/>PeekMessage | kqueue,<br/>Cursor pipe | kqueue,<br/>Cursor pipe |
 | Closures to delegate response buffers back to caller | Clang Blocks,<br/>C++ Lambdas | Clang Blocks,<br/>C++ Lambdas | Clang Blocks,<br/>C++ Lambdas |
@@ -12,8 +12,8 @@ CoreTransport is a no-compromise cross-platform pure C library (with wrapper API
 | Conditional chaining of requests/queries from the same and other connections | Completion Closures | Completion Closures | Completion Closures |
 | Streaming downloads for consumption by an accelerated graphics pipeline or real-time hardware pipeline | Progress Closures | Progress Closures | Progress Closures |
 | Numa Siloing | &cross; | &cross; | &cross; |
-| Tunneling via proxy connections | HTTP, SOCKS5 | To Do | In Progress |
-	
+| Tunneling via proxy connections | HTTP, SOCKS5 | To Do | In Progress |	
+
 *CoreTransport is the modular Network Transport Layer that operates in parallel with 3rdGen's Accelerated Graphics Layer, Core Render.  Together, CoreTransport and CoreRender's C libraries embody the foundational layer of 3rdGen's proprietary simulation engine and cross-platform application framework, Cobalt Rhenium.* 
 
 ## Usage
