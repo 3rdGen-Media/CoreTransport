@@ -6,7 +6,7 @@ CoreTransport is a no-compromise cross-platform pure C library (with wrapper API
 | ------------------ | ----- | ------ | ------- |
 | Structured concurrency to promote simultaneous asynchronous non-blocking socket connections from a single thread | IOCP | Coroutines | Coroutines |
 | Dedicated Tx/Rx queues for dequeuing socket [completion] operations implemented as closest-to-kernel option with fewest userspace context switches | IOCP | kqueue | kqueue |
-| Closures to delegate response buffers back to caller | C-Style Callbacks,<br/>C++11 Lambdas | Clang Blocks,<br/>Obj-C Blocks | Clang Blocks,<br/>C++11 Lambdas |
+| Closures to delegate response buffers back to caller | Clang Blocks,<br/>C++ Lambdas | Clang Blocks,<br/>C++ Lambdas | Clang Blocks,<br/>C++ Lambdas |
 | Memory management that supports in-place processing and optional response caching | Memory Pools, Mapped Files | Memory Pools, Mapped Files | Memory Pools, Mapped Files |
 | Asynchronous TLS negotiation via platform provided encryption with fallback to 3rd party lib for embedded support | SCHANNEL, WolfSSL | SecureTransport, MBEDTLS | In Progress &nbsp; |
 | Conditional chaining of requests/queries from the same and other connections | ✔️ | ✔️ | ✔️ |
