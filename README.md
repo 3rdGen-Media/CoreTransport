@@ -9,8 +9,8 @@ CoreTransport is a no-compromise cross-platform pure C library (with wrapper API
 | Closures to delegate response buffers back to caller | Clang Blocks,<br/>C++ Lambdas | Clang Blocks,<br/>C++ Lambdas | Clang Blocks,<br/>C++ Lambdas |
 | Memory management that supports in-place processing and optional response caching | Memory Pools, Mapped Files | Memory Pools, Mapped Files | Memory Pools, Mapped Files |
 | Asynchronous TLS negotiation via platform provided encryption with fallback to 3rd party lib for embedded support | SCHANNEL, WolfSSL | SecureTransport, MBEDTLS | In Progress &nbsp; |
-| Conditional chaining of requests/queries from the same and other connections | Completion Closures | Completion Closures | Completion Closures |
-| Streaming downloads for consumption by an accelerated graphics pipeline or real-time hardware pipeline | Progress Closures | Progress Closures | Progress Closures |
+| Conditional chaining of requests/queries from the same and other connections | Completion<br/>Closures | Completion<br/>Closures | Completion<br/>Closures |
+| Streaming downloads for consumption by an accelerated graphics pipeline or real-time hardware pipeline | Progress<br/>Closures | Progress<br/>Closures | Progress<br/>Closures |
 | Numa Siloing | &cross; | &cross; | &cross; |
 | Tunneling via proxy connections | HTTP, SOCKS5 | To Do | In Progress |	
 
