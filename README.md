@@ -2,13 +2,13 @@
 
 CoreTransport is a no-compromise cross-platform pure C library (with wrapper APIs in various languages) for establishing and consuming from persistent TCP socket client connections secured with SSL/TLS.  CoreTransport aims to implement the following non-standard features for all supported platforms:
 
-| Motivating Feature | Win32 | Darwin | FreeBSD |
+| Motivating Feature | &nbsp; &nbsp; &nbsp; &nbsp; Win32 &nbsp; &nbsp; &nbsp; &nbsp; | Darwin | &nbsp; &nbsp; &nbsp; FreeBSD &nbsp; &nbsp; &nbsp; |
 | ------------------ | ----- | ------ | ------- |
 | Structured concurrency to promote simultaneous asynchronous non-blocking socket connections from a single thread | IOCP | Coroutines | Coroutines |
 | Dedicated Tx/Rx queues for dequeuing socket [completion] operations implemented as closest-to-kernel option with fewest userspace context switches | IOCP | kqueue | kqueue |
-| Closures to delegate response buffers back to caller | C-Style Callbacks,<br/>C++ Lambdas | Clang Blocks,<br/>C++ Lambdas | Clang Blocks,<br/>C++ Lambdas |
+| Closures to delegate response buffers back to caller | C-Style Callbacks,<br/>C++11 Lambdas | Clang Blocks,<br/>Obj-C Blocks | Clang Blocks,<br/>C++11 Lambdas |
 | Memory management that supports in-place processing and optional response caching | Memory Pools, Mapped Files | Memory Pools, Mapped Files | Memory Pools, Mapped Files |
-| Asynchronous TLS negotiation via platform provided encryption with fallback to 3rd party lib for embedded support | SCHANNEL, WolfSSL | SecureTransport, MBEDTLS | In Progress |
+| Asynchronous TLS negotiation via platform provided encryption with fallback to 3rd party lib for embedded support | SCHANNEL, WolfSSL | SecureTransport, MBEDTLS | In Progress &nbsp; |
 | Conditional chaining of requests/queries from the same and other connections | ✔️ | ✔️ | ✔️ |
 | Streaming downloads for consumption by an accelerated graphics pipeline or real-time hardware pipeline | ✔️ | ✔️ | ✔️ |
 | Tunneling via proxy connections | HTTP, SOCKS5 | To Do | In Progress |
