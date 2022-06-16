@@ -3,32 +3,16 @@
   <ItemGroup>
     <Filter Include="Source Files">
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
     <Filter Include="Header Files">
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
     </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="CTransport\CTransportAPI.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CTransport\CTReQL.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CTransport\CTSocket.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CTransport\CTSSL.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CTransport\CTFile.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CTransport\CTQueue.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CTransport\CTConnection.h">
@@ -37,7 +21,19 @@
     <ClInclude Include="CTransport\CTCoroutine.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CTransport\CTDNS.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CTransport\CTEndian.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="CTransport\CTError.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CTransport\CTFile.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CTransport\CTQueue.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CTransport\CTransportAPI.h">
@@ -55,26 +51,34 @@
     <ClInclude Include="CTransport\CTSSLKey.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CTransport.h">
+    <ClInclude Include="CTransport\CTSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CTransport\CTURL.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CTransport\CTSystem.h">
+    <ClInclude Include="CTransport.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CTransport\CTFile.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CTransport\CTDNS.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CTransport\CTQueue.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CTransport\CTEndian.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="CTransport\CTQueue.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CTransport\CTransportAPI.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CTransport\CTReQL.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CTransport\CTSocket.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CTransport\CTSSL.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CTransport\CTFile.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

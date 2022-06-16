@@ -113,7 +113,7 @@ namespace CoreTransport
 				//if the client didn't supply tx/rx thread queues, create them now because CXConnection object requires them for initialization
 				if (!conn->socketContext.txQueue)
 				{
-					if (CTSocketCreateEventQueue(&(conn->socketContext)) < 0)
+					if (CTSocketCreateEventQueue(&(conn->socketContext)) < (CTKernelQueue)0)
 					{
 						fprintf(stderr, "_CXURLSessionConnectionCallback::CTSocketCreateEventQueue failed\n");
 						err->id = (int)conn->event_queue;

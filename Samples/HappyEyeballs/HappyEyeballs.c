@@ -1,4 +1,8 @@
 
+//#ifndef __BLOCKS__
+//#error must be compiled with -fblocks option enabled
+//#endif
+
 
 #ifdef _WIN32
 
@@ -12,10 +16,10 @@
 #include "assert.h"
 
 //CoreTransport can be optionally built with native SSL encryption OR against MBEDTLS
+//#pragma comment(lib, "BlocksRuntime.lib")
 #pragma comment(lib, "crypt32.lib")
-//#pragma comment(lib, "user32.lib")
 #pragma comment(lib, "secur32.lib")
-
+//#pragma comment(lib, "ntdll.lib")
 #else
 
 /* blocks-test.c */
@@ -29,7 +33,6 @@
 #include <assert.h>
 
 #endif
-
 
 
 //Keyboard Event Loop Includes and Definitions (TO DO: Move this to its own header file)
@@ -113,7 +116,7 @@ static const char* aws_access_secrt = "0SakIbVLOM2E+ck7xPw1tlJSN519ev2mcMx2KTG/"
 
 //Define a CTransport API CTTarget C style struct to initiate an HTTPS connection with a CTransport API CTConnection
 static const char* http_server = "3rdgen-sandbox-html-resources.s3.us-west-1.amazonaws.com";//"example.com";// "vtransport - assets.s3.us - west - 1.amazonaws.com";//"example.com";//"mineralism.s3 - us - west - 2.amazonaws.com";
-static const unsigned short	http_port = 80;
+static const unsigned short	http_port = 443;
 
 //Proxies use a prefix to specify the proxy protocol, defaulting to HTTP Proxy
 static const char* proxy_server = "socks5://172.20.10.1";// "54.241.100.168";
@@ -265,7 +268,6 @@ char* httpHeaderLengthCallback(struct CTCursor* pCursor, char* buffer, unsigned 
 	return endOfHeader;
 }
 
-#ifndef _WIN32
 CTCursorCompletionClosure httpResponseClosure = ^void(CTError * err, CTCursor* cursor)
 {
 	//CTCursorCloseMappingWithSize(cursor, cursor->contentLength); //overlappedResponse->buf - cursor->file.buffer);
@@ -274,15 +276,6 @@ CTCursorCompletionClosure httpResponseClosure = ^void(CTError * err, CTCursor* c
 	CTCursorCloseMappingWithSize(cursor, cursor->contentLength); //overlappedResponse->buf - cursor->file.buffer);
 	CTCursorCloseFile(cursor);
 };
-#else
-void httpResponseClosure(CTError* err, CTCursor* cursor)
-{
-	fprintf(stderr, "httpResponseCallback (%d) header:  \n\n%.*s\n\n", (int)cursor->queryToken, (int)cursor->headerLength, cursor->requestBuffer);
-	CTCursorCloseMappingWithSize(cursor, cursor->contentLength); //overlappedResponse->buf - cursor->file.buffer);
-	CTCursorCloseFile(cursor);
-
-}
-#endif
 
 
 uint64_t CTCursorSendRequestOnQueue(CTCursor * cursor, uint64_t requestToken)	
@@ -406,13 +399,9 @@ void sendHTTPRequest(CTCursor* cursor)
 
 }
 
-#ifndef _WIN32
-CTConnectionClosure _httpConnectionClosure = ^int(CTError * err, CTConnection * conn)
-#else
-int _httpConnectionClosure(CTError* err, CTConnection* conn)
-#endif
-{
-    
+//int _httpConnectionClosure(CTError* err, CTConnection* conn) {
+CTConnectionClosure _httpConnectionClosure = ^int(CTError * err, CTConnection * conn) {
+	int i = 0;
 	//TO DO:  Parse error status
 	assert(err->id == CTSuccess);
 
@@ -427,7 +416,7 @@ int _httpConnectionClosure(CTError* err, CTConnection* conn)
 	fprintf(stderr, "HTTP Connection Success\n");
 	
 
-	for(int i =0; i<100; i++)
+	for(i =0; i<100; i++)
 		sendHTTPRequest(&_httpCursor[httpRequestCount % CT_MAX_INFLIGHT_CURSORS]);
 
 	return err->id;
@@ -519,7 +508,7 @@ CTKernelQueuePipePair g_kQueuePipePair;
 int main(void) {
 
 	//Declare intermediate variables
-	int i;
+	int index;
 
 	//Declare Coroutine Bundle Handle (Needed for dill global couroutine malloc cleanup on application exit)
 #ifdef CTRoutine //check for coroutine support
@@ -576,7 +565,7 @@ int main(void) {
 
 	//Initialize Thread Pool for dequeing socket operations on associated kernel queues
 	
-	for (i = 0; i < 1; ++i)
+	for (index = 0; index < 1; ++index)
 	{
 		//On Darwin Platforms we utilize a thread pool implementation through GCD that listens for available data on the socket
 		//and provides us with a dispatch_queue on a dedicated pool thread for reading
@@ -605,7 +594,7 @@ int main(void) {
 	httpTarget.proxy.host = NULL;//(char*)proxy_server;
 	httpTarget.proxy.port = 0;//proxy_port;
 	httpTarget.ssl.ca = NULL;//(char*)caPath;
-	httpTarget.ssl.method = 0;// CTSSL_TLS_1_2;
+	httpTarget.ssl.method = CTSSL_TLS_1_2;
 	httpTarget.dns.resconf = (char*)resolvConfPath;
 	httpTarget.dns.nssconf = (char*)nsswitchConfPath;
 	httpTarget.cxQueue = cxQueue;

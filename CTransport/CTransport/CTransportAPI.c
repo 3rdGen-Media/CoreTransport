@@ -738,7 +738,7 @@ uint64_t CTSendOnQueue2(CTConnection * conn, char ** queryBufPtr, unsigned long 
 //CTOverlappedTarget CT_INFLIGHT_CONNECTION_TARGETS[CT_MAX_INFLIGHT_CONNECTION_TARGETS];
 //static int CT_INFLIGHT_CONNECTION_COUNT = 0;
 
-uint64_t CTTargetConnectOnQueue(CTTarget* target, CTConnectionCallback callback)// char** queryBufPtr, unsigned long queryStrLength)
+uint64_t CTTargetConnectOnQueue(CTTarget* target, CTConnectionClosure callback)// char** queryBufPtr, unsigned long queryStrLength)
 {
 #ifdef _WIN32
 	ULONG_PTR dwCompletionKey = (ULONG_PTR)NULL;
@@ -1353,7 +1353,7 @@ CTClientError CTCursorRecvOnQueue(CTOverlappedResponse** overlappedResponsePtr, 
 #ifdef _WIN32
 //#pragma comment(lib, "ws2_32.lib")
 
-int CTSocketConnectOnQueue(CTSocket socketfd, CTTarget* service, CTConnectionCallback callback)
+int CTSocketConnectOnQueue(CTSocket socketfd, CTTarget* service, CTConnectionClosure callback)
 {
 
 
@@ -1910,15 +1910,16 @@ char* ReQLHandshakeHeaderLengthCallback(struct CTCursor* cursor, char* buffer, u
 }
 
 
-void ReQLMagicNumberResponseCallback(CTError* err, CTCursor* cursor)
-{
+//void ReQLMagicNumberResponseCallback(CTError* err, CTCursor* cursor){
+CTCursorCompletionClosure ReQLMagicNumberResponseCallback = ^ void(CTError * err, CTCursor * cursor) {
+
 	fprintf(stderr, "ReQLFirstMessageResponseCallback header:  \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
 
 	//TO DO:  parse any existing errors first
 	struct CTError error = { (CTErrorClass)0,0,0 };    //Reql API client functions will generally return ints as errors
 
 	//if ((ret = CTSSLHandshakeProcessFirstResponse(cursor, cursor->conn->socket, cursor->conn->sslContext)) != noErr)
-	if( error.id = CTReQLHandshakeProcessMagicNumberResponse(cursor->requestBuffer, strlen(cursor->requestBuffer)) != noErr )
+	if (error.id = CTReQLHandshakeProcessMagicNumberResponse(cursor->requestBuffer, strlen(cursor->requestBuffer)) != noErr)
 	{
 #ifdef CTRANSPORT_WOLFSSL
 		if (ret == SSL_ERROR_WANT_READ)
@@ -1938,11 +1939,12 @@ void ReQLMagicNumberResponseCallback(CTError* err, CTCursor* cursor)
 		//CTCloseSSLSocket(cursor->conn->sslContext, cursor->conn->socket);
 		cursor->conn->target->callback(&error, cursor->conn);
 	}
-}
+};
 
 
-void ReQLFinalMessageResponseCallback(CTError* err, CTCursor* cursor)
-{
+//void ReQLFinalMessageResponseCallback(CTError* err, CTCursor* cursor)
+CTCursorCompletionClosure ReQLFinalMessageResponseCallback = ^ void(CTError * err, CTCursor * cursor) {
+
 	fprintf(stderr, "ReQLSecondMessageResponseCallback header:  \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
 	
 	//TO DO:  parse any existing errors first
@@ -1974,10 +1976,11 @@ void ReQLFinalMessageResponseCallback(CTError* err, CTCursor* cursor)
 	cursor->conn->queryCount = 0;
 	CT_CURSOR_INDEX = 0;
 	cursor->conn->target->callback(&error, cursor->conn);
-}
+};
 
-void ReQLFirstMessageResponseCallback(CTError* err, CTCursor* cursor)
-{
+//void ReQLFirstMessageResponseCallback(CTError* err, CTCursor* cursor)
+CTCursorCompletionClosure ReQLFirstMessageResponseCallback = ^ void(CTError * err, CTCursor * cursor) {
+
 	fprintf(stderr, "ReQLFirstMessageResponseCallback header:  \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
 	
 	//TO DO:  parse any existing errors first
@@ -2023,7 +2026,7 @@ void ReQLFirstMessageResponseCallback(CTError* err, CTCursor* cursor)
 	cursor->overlappedResponse.stage = CT_OVERLAPPED_SCHEDULE; //we need to bypass encrypt bc sthis is the ssl handshake
 	//assert(->->overlappedResponse.buf);
 	CTCursorSendOnQueue(cursor, (char**)&(cursor->overlappedResponse.buf), cursor->overlappedResponse.len);
-}
+};
 
 //CTRANSPORT_ALIGN(8) char MAGIC_NUMBER_RESPONSE_JSON[256];
 //CTRANSPORT_ALIGN(8) char SERVER_FIRST_MESSAGE_JSON[256];
@@ -2124,9 +2127,9 @@ int CTReQLAsyncHandshake(CTConnection* conn, CTTarget* service, CTConnectionClos
 	firstMsgCursor->queryToken = 1;
 	assert(firstMsgCursor->overlappedResponse.buf);
 	CTCursorSendOnQueue(firstMsgCursor, (char**)&(firstMsgCursor->overlappedResponse.buf), firstMsgCursor->overlappedResponse.len);
-	
+
 	return CTSuccess;
-}
+};
 
 coroutine int CTSSLRoutineSendFirstMessage(CTConnection* conn, char* hostname, char* caPath)
 {
@@ -2215,8 +2218,9 @@ char* SSLFirstMessageHeaderLengthCallback(struct CTCursor* cursor, char* buffer,
 
 
 
-void SSLFirstMessageResponseCallback(CTError* err, CTCursor* cursor)
-{
+//void SSLFirstMessageResponseCallback(CTError* err, CTCursor* cursor) {
+CTCursorCompletionClosure SSLFirstMessageResponseCallback = ^ void(CTError * err, CTCursor * cursor) {
+
 	fprintf(stderr, "SSLFirstMessageResponseCallback header:  \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
 	SECURITY_STATUS scRet = 0;
 	if ((scRet = CTSSLHandshakeProcessFirstResponse(cursor, cursor->conn->socket, cursor->conn->sslContext)) != SEC_E_OK)
@@ -2243,18 +2247,19 @@ void SSLFirstMessageResponseCallback(CTError* err, CTCursor* cursor)
 		CTCloseSSLSocket(cursor->conn->sslContext, cursor->conn->socket);
 		cursor->conn->target->callback(err, cursor->conn);
 	}
-}
+};
 
-void SSLFirstMessageQueryCallback(CTError* err, CTCursor* cursor)
-{
+//void SSLFirstMessageQueryCallback(CTError* err, CTCursor* cursor){
+CTCursorCompletionClosure SSLFirstMessageQueryCallback = ^ void(CTError * err, CTCursor * cursor) {
+
+	fprintf(stderr, "SSLFirstMessageQueryCallback len:  \n\n%.*s\n\n", (int)cursor->headerLength, cursor->requestBuffer);
+
+#ifdef CTRANSPORT_WOLFSSL
+
 	int ret = 0;
 	int wolfErr = 0;
 	char buffer[80];
 	CTClientError scRet;
-
-	fprintf(stderr, "SSLFirstMessageQueryCallback len:  \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
-
-#ifdef CTRANSPORT_WOLFSSL
 
 	CTSSLDecryptTransient dTransient = { 0, 0, 0, cursor->file.buffer };
 	CTSSLEncryptTransient eTransient = { 0, cursor->overlappedResponse.len, NULL };
@@ -2321,8 +2326,8 @@ void SSLFirstMessageQueryCallback(CTError* err, CTCursor* cursor)
 		*/
 	}
 	//wolf_handshake_complete = 1;
-#endif(_WIN32)
-}
+#endif //(_WIN32)
+};
 
 
 typedef struct CTSocks4ConnectMessage {
@@ -2416,8 +2421,9 @@ char* HTTPProxyHeaderLengthCallback(struct CTCursor* cursor, char* buffer, unsig
 }
 
 
-void HTTPProxyResponseCallback(CTError* err, CTCursor* cursor)
-{
+//void HTTPProxyResponseCallback(CTError* err, CTCursor* cursor) {
+CTCursorCompletionClosure HTTPProxyResponseCallback = ^ void(CTError * err, CTCursor * cursor) {
+
 	fprintf(stderr, "ProxyHandshakeMessageResponseCallback header:  \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
 	int status = 0;
 
@@ -2464,7 +2470,7 @@ void HTTPProxyResponseCallback(CTError* err, CTCursor* cursor)
 	CT_CURSOR_INDEX = 0;
 	cursor->conn->target->callback(err, cursor->conn);
 
-}
+};
 
 
 char* Socks5ProxyHeaderLengthCallback(struct CTCursor* cursor, char* buffer, unsigned long length)
@@ -2530,8 +2536,9 @@ char* Socks5ClientConnectHeaderLengthCallback(struct CTCursor* cursor, char* buf
 }
 
 
-void Socks5ClientConnectResponseCallback(CTError* err, CTCursor* cursor)
-{
+//void Socks5ClientConnectResponseCallback(CTError* err, CTCursor* cursor){
+CTCursorCompletionClosure Socks5ClientConnectResponseCallback = ^ void(CTError * err, CTCursor * cursor) {
+
 	fprintf(stderr, "Socks5ClientConnectResponseCallback response:  \n\n%.*s\n\n", cursor->contentLength, cursor->file.buffer);
 	int status = 0;
 
@@ -2566,10 +2573,11 @@ void Socks5ClientConnectResponseCallback(CTError* err, CTCursor* cursor)
 	CT_CURSOR_INDEX = 0;
 	cursor->conn->target->callback(err, cursor->conn);
 
-}
+};
 
-void Socks5ClientAuthResponseCallback(CTError* err, CTCursor* cursor)
-{
+//void Socks5ClientAuthResponseCallback(CTError* err, CTCursor* cursor) {
+CTCursorCompletionClosure Socks5ClientAuthResponseCallback = ^ void(CTError * err, CTCursor * cursor) {
+
 	fprintf(stderr, "Socks5ProxyClientAuthResponseCallback response:  \n\n%.*s\n\n", cursor->contentLength, cursor->file.buffer);
 	int status = 0;
 
@@ -2598,7 +2606,7 @@ void Socks5ClientAuthResponseCallback(CTError* err, CTCursor* cursor)
 	//cursor->queryCallback = SSLSecondMessageQueryCallback;
 
 	memcpy(cursor->requestBuffer, &clientConnect, 4);
-	memcpy(cursor->requestBuffer+4, &hostLen, 1);
+	memcpy(cursor->requestBuffer + 4, &hostLen, 1);
 	memcpy(cursor->requestBuffer + 5, cursor->conn->target->url.host, hostLen);
 	memcpy(cursor->requestBuffer + 5 + hostLen, &(clientConnect.PORT), 2);
 	cursor->requestBuffer[5 + hostLen + 2] = '\0';
@@ -2611,10 +2619,10 @@ void Socks5ClientAuthResponseCallback(CTError* err, CTCursor* cursor)
 	CTCursorSendOnQueue(cursor, (char**)&(cursor->overlappedResponse.buf), cursor->overlappedResponse.len);
 
 
-}
+};
 
-void Socks5ClientGreetingReponseCallback(CTError* err, CTCursor* cursor)
-{
+//void Socks5ClientGreetingReponseCallback(CTError* err, CTCursor* cursor){
+CTCursorCompletionClosure Socks5ClientGreetingReponseCallback = ^ void(CTError * err, CTCursor * cursor) {
 
 	fprintf(stderr, "Socks5ClientGreetingReponseCallback response:  \n\n%.*s\n\n", cursor->contentLength, cursor->file.buffer);
 
@@ -2677,7 +2685,7 @@ void Socks5ClientGreetingReponseCallback(CTError* err, CTCursor* cursor)
 	CTCursorSendOnQueue(cursor, (char**)&(cursor->overlappedResponse.buf), cursor->overlappedResponse.len);
 
 
-}
+};
 
 coroutine int CTProxyHandshake(CTConnection* conn)
 {
@@ -3323,8 +3331,9 @@ char* DNSResolveHeaderLengthCallback(struct CTCursor* cursor, char* buffer, unsi
 }
 
 
-void DNSResolveResponseCallback(CTError* err, CTCursor* cursor)
-{
+//void DNSResolveResponseCallback(CTError* err, CTCursor* cursor)
+CTCursorCompletionClosure DNSResolveResponseCallback = ^ void(CTError * err, CTCursor * cursor) {
+
 	fprintf(stderr, "DNSResolveResponseCallback header:  \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
 
 	int ret = 0;
@@ -3420,7 +3429,7 @@ CONN_CALLBACK:
 	//conn.target = target;
 	cursor->target->callback(&error, NULL);
 	return;// error.id;
-}
+};
 
 #endif 
 
@@ -3799,6 +3808,10 @@ CONN_CALLBACK:
  ***/
 int CTConnect(CTTarget * target, CTConnectionClosure callback)
 {
+	//-------------------------------------------------------------------
+	//  Call a dummy export function from Clang Blocks Runtime Library so it will link
+	CBlockInit();
+
 	//-------------------------------------------------------------------
     //  Initialize the socket libraries (ie Winsock 2)
 	CTSocketInit();

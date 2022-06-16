@@ -2,7 +2,7 @@
 
 using namespace CoreTransport;
 
-std::function< void(CTError* err, CXConnection* conn) > CXConnectionLambdaFunc = [&](CTError* err, CXConnection* conn) {};
+std::function< void(CTError* err, CXConnection* conn) > CXConnectionLambdaFunc = [](CTError* err, CXConnection* conn) {};
 
 CXConnection::CXConnection(CTConnection *conn, CTKernelQueue rxQueue, CTKernelQueue txQueue)
 {

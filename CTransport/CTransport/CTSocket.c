@@ -295,7 +295,7 @@ CTSocket CTSocketCreate(int nonblocking)
 }
 
 #ifndef socklen_t
-typedef unsigned int socklen_t;
+typedef int socklen_t;
 #endif
 /**
  *  CTSocketGetError
@@ -304,6 +304,8 @@ typedef unsigned int socklen_t;
  ***/
 int CTSocketGetError(CTSocket socketfd)
 {
+    fprintf(stderr, "CTSocketGetError\n\n");
+
     //fprintf(stderr, "ReqlGetSocketError\n");
     int result = 0;
     //get the result of the socket connection

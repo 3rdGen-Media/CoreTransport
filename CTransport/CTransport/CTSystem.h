@@ -11,4 +11,12 @@
 
 #endif
 
+
+//#ifndef __BLOCKS__
+//#error must be compiled with -fblocks option enabled
+//#endif
+
+#include <stdio.h>
+#include <Block.h>
+
 #endif //CTSYSTEM_H

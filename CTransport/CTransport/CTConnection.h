@@ -6,7 +6,6 @@
 #include "CTSocket.h"
 //#include "CTSSL.h"
 
-
 #if defined(__cplusplus) //|| defined(__OBJC__)
 extern "C" {
 #endif
@@ -149,16 +148,9 @@ typedef struct CTConnection
  *  A callback for receiving asynchronous connection results
  *  that gets scheduled back to the calling event loop on completion
  * * */
-typedef void (*CTConnectionCallback)(struct CTError* err, struct CTConnection* conn);
 
-//A completion block handler that returns the HTTP(S) status code
-//and the relevant JSON documents from the database store associated with the request
-//typedef void (^ReqlConnectionClosure)(ReqlError * err, ReqlConnection * conn);
-#ifndef _WIN32
+//typedef int (*CTConnectionClosure)(struct CTError* err, struct CTConnection* conn);
 typedef int (^CTConnectionClosure)(struct CTError * err, struct CTConnection* conn);
-#else
-typedef int (*CTConnectionClosure)(struct CTError* err, struct CTConnection* conn);
-#endif
 
 //#pragma mark -- HTTPTarget [ReqlConnectionOptions]
 /* * *
@@ -276,11 +268,8 @@ typedef struct CTOverlappedRequest
 //client must provide a callback to return pointer to end of callback when requested
 //this also notifies the client when the cursor has been read, before the end of the message has been read
 typedef char* (*CTCursorHeaderLengthFunc)(struct CTCursor * cursor, char * buffer, unsigned long bufferLength);
-#ifndef _WIN32
-typedef void (^CTCursorCompletionClosure)(CTError * err, struct CTCursor* cursor);
-#else
-typedef void (*CTCursorCompletionClosure)(CTError * err, struct CTCursor* cursor);
-#endif
+//typedef void (*CTCursorCompletionClosure)(CTError* err, struct CTCursor* cursor);
+typedef void (^CTCursorCompletionClosure)(struct CTError * err, struct CTCursor* cursor);
 
 typedef struct CTCursor
 {

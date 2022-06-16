@@ -994,6 +994,8 @@ unsigned long __stdcall CT_Dequeue_Connect(LPVOID lpParameter)
 					goto CONN_CALLBACK;
 				}
 
+				fprintf(stderr, "After CTSocketGetError\n\n");
+
 				/* Make the socket more well-behaved.
 			   int rc = setsockopt(overlappedTarget->target->socket, SOL_SOCKET, SO_UPDATE_CONNECT_CONTEXT, NULL, 0);
 			   if (rc != 0) {
@@ -1028,14 +1030,28 @@ unsigned long __stdcall CT_Dequeue_Connect(LPVOID lpParameter)
 				//		return 0;
 				//	}
 
+				fprintf(stderr, "Before GetProcAddress\n\n");
+
+				/*
+				HINSTANCE hDll = LoadLibrary("ntdll.dll");
+				if (!hDll) {
+					fprintf(stderr, "ntdll.dll failed to load!\n");
+					assert(1 == 0);
+				}
+				fprintf(stderr, "ntdll.dll loaded successfully...\n");
+				*/
+
 				//LoadNtSetInformation function ptr from ntdll.lib
+
 				NtSetInformationFile = (pNtSetInformationFile)GetProcAddress(GetModuleHandle("ntdll.dll"), "NtSetInformationFile");
 				if (NtSetInformationFile == NULL) {
+					assert(1 == 0);
 					return 0;
 				}
 
 				//remove the existing completion port attache to socket handle used for connection
 				if (NtSetInformationFile(conn->socket, &iostatus, &socketCompletionInfo, sizeof(FILE_COMPLETION_INFORMATION), FileReplaceCompletionInformation) < 0) {
+					assert(1 == 0);
 					return 0;
 				}
 
@@ -1044,6 +1060,8 @@ unsigned long __stdcall CT_Dequeue_Connect(LPVOID lpParameter)
 				conn->socketContext.txQueue = overlappedTarget->target->txQueue;// CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
 				conn->socketContext.rxQueue = overlappedTarget->target->rxQueue;// CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
 				CreateIoCompletionPort((HANDLE)conn->socket, conn->socketContext.rxQueue, dwCompletionKey, 1);
+
+				fprintf(stderr, "After CreateIoCompletionPort\n\n");
 
 
 				//There is some short order work that would be good to parallelize regarding loading the cert and saving it to keychain

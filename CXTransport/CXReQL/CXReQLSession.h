@@ -76,7 +76,8 @@ namespace CoreTransport
 
 
 		//template<typename CXConnectionClosure>
-		static int _CXReQLSessionHandshakeCallback(CTError* err, ReqlConnection* conn)
+		CTConnectionClosure _CXReQLSessionHandshakeCallback = ^ int(CTError * err, ReqlConnection * conn)
+			//static int _CXReQLSessionHandshakeCallback(CTError* err, ReqlConnection* conn)
 		{
 			//conn should always exist, so it can contain the input CTTarget pointer
 			//which contains the client context
@@ -130,9 +131,10 @@ namespace CoreTransport
 
 			return err->id;
 
-		}
+		};
 
-		static int _CXReQLSessionConnectionCallback(CTError* err, CTConnection* conn)
+		CTConnectionClosure _CXReQLSessionConnectionCallback = ^int(CTError * err, ReqlConnection * conn)
+			//static int _CXReQLSessionConnectionCallback(CTError* err, CTConnection* conn)
 		{
 			//conn should always exist, so it can contain the input CTTarget pointer
 			//which contains the client context
@@ -207,7 +209,7 @@ namespace CoreTransport
 			callback(err, cxConnection);
 
 			return err->id;
-		}
+		};
 
 
 		template<typename CXConnectionClosure>

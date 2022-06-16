@@ -38,9 +38,11 @@
 #define _LARGEFILE64_SOURCE
 #define _FILE_OFFSET_BITS 64 //define off_t to be 64 bits
 #include <sys/types.h>
-
 #include <errno.h>
 
+#ifndef off_t
+typedef _off_t off_t;
+#endif
 
 #ifndef O_BINARY
 #define O_BINARY 0
