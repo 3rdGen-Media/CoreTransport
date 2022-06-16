@@ -5,12 +5,13 @@ CoreTransport is a no-compromise cross-platform pure C library (with wrapper API
 | Motivating Feature | &nbsp; &nbsp; &nbsp; &nbsp; Win32 &nbsp; &nbsp; &nbsp; &nbsp; | Darwin | &nbsp; &nbsp; &nbsp; FreeBSD &nbsp; &nbsp; &nbsp; |
 | ------------------ | ----- | ------ | ------- |
 | Structured concurrency to promote simultaneous asynchronous non-blocking socket connections from a single thread | IOCP | Coroutines | Coroutines |
-| Dedicated Tx/Rx queues for dequeuing socket [completion] operations implemented as closest-to-kernel option with fewest userspace context switches | IOCP | kqueue | kqueue |
+| Lock-Free, Wait-Free Tx/Rx scheduling & completion operation dequeuing implemented as closest-to-kernel option with fewest userspace context switches | IOCP,<br/>PeekMessage | kqueue,<br/>Cursor pipe | kqueue,<br/>Cursor pipe |
 | Closures to delegate response buffers back to caller | Clang Blocks,<br/>C++ Lambdas | Clang Blocks,<br/>C++ Lambdas | Clang Blocks,<br/>C++ Lambdas |
 | Memory management that supports in-place processing and optional response caching | Memory Pools, Mapped Files | Memory Pools, Mapped Files | Memory Pools, Mapped Files |
 | Asynchronous TLS negotiation via platform provided encryption with fallback to 3rd party lib for embedded support | SCHANNEL, WolfSSL | SecureTransport, MBEDTLS | In Progress &nbsp; |
-| Conditional chaining of requests/queries from the same and other connections | ✔️ | ✔️ | ✔️ |
-| Streaming downloads for consumption by an accelerated graphics pipeline or real-time hardware pipeline | ✔️ | ✔️ | ✔️ |
+| Conditional chaining of requests/queries from the same and other connections | Completion Closures | Completion Closures | Completion Closures |
+| Streaming downloads for consumption by an accelerated graphics pipeline or real-time hardware pipeline | Progress Closures | Progress Closures | Progress Closures |
+| Numa Siloing | &cross; | &cross; | &cross; |
 | Tunneling via proxy connections | HTTP, SOCKS5 | To Do | In Progress |
 	
 *CoreTransport is the modular Network Transport Layer that operates in parallel with 3rdGen's Accelerated Graphics Layer, Core Render.  Together, CoreTransport and CoreRender's C libraries embody the foundational layer of 3rdGen's proprietary simulation engine and cross-platform application framework, Cobalt Rhenium.* 
