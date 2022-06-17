@@ -19,14 +19,10 @@
 #include "stdlib.h"
 #include <process.h>            //threading routines for the CRT
 
-//Core Transport ReQL C API
-//#include <CoreTransport/CTransport.h>
-
 //ctReQL can be optionally built with native SSL encryption
 //or against MBEDTLS
 #ifndef CTRANSPORT_USE_MBED_TLS
 #pragma comment(lib, "crypt32.lib")
-//#pragma comment(lib, "user32.lib")
 #pragma comment(lib, "secur32.lib")
 #else
 // mbded tls
@@ -37,15 +33,9 @@
 #include "mbedtls/debug.h"
 #endif
 
-//CoreTransport CXURL and ReQL C++ APIs uses CTransport (CTConnection) API internally
+//CoreTransport CXURL and CXReQL C++ APIs use CTransport (CTConnection) API internally
 #include <CoreTransport/CXURL.h>
 #include <CoreTransport/CXReQL.h>
-
-//CXReQL uses RapidJSON for json serialization internally
-//#include "rapidjson/document.h"
-//#include "rapidjson/error/en.h"
-//#include "rapidjson/stringbuffer.h"
-//#include <rapidjson/writer.h>
 
 /***
  * Start CTransport (CTConnection) C API Example
@@ -58,12 +48,6 @@ static const unsigned short		http_port = 443;
 //Proxies use a prefix to specify the proxy protocol, defaulting to HTTP Proxy
 static const char* proxy_server = "socks5://172.20.10.1";
 static const unsigned short		proxy_port = 443;// 1080;tyle struct to initiate a RethinkDB TLS connection with a CTransport API CTConnection
-//static const char * rdb_server = "RETHINKDB_SERVER";
-//static const unsigned short rdb_port = 18773;
-//static const char * rdb_user = "RETHINKDB_USERNAME";
-//static const char * rdb_pass = "RETHINKDB_PASSWORD";
-
-//Define a CTransport API ReqlService (ie CTTarget) C s
 
 //Define a CTransport API ReqlService (ie CTTarget) C style struct to initiate a RethinkDB TLS connection with a CTransport API CTConnection
 static const char* rdb_server = "XXXXXXXX";
@@ -93,14 +77,6 @@ int _cxURLConnectionClosure(CTError *err, CXConnection * conn)
 	if (err->id == CTSuccess && conn) 
 	{
 		_httpCXConn = conn;
-		/*
-		if (CTSocketCreateEventQueue(&(conn->connection()->socketContext)) < 0)
-		{
-			printf("ReqlSocketCreateEventQueue failed\n");
-			err->id = (int)conn->connection()->event_queue;
-			//goto CONN_CALLBACK;
-		}
-		*/
 	}
 	else { assert(1 == 0); } //process errors
 

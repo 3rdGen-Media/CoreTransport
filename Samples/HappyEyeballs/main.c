@@ -24,7 +24,6 @@
 //CoreTransport can be optionally built with native SSL encryption OR against MBEDTLS
 #ifndef CTRANSPORT_USE_MBED_TLS
 #pragma comment(lib, "crypt32.lib")
-//#pragma comment(lib, "user32.lib")
 #pragma comment(lib, "secur32.lib")
 #else
 // mbded tls
@@ -36,7 +35,7 @@
 #endif
 
 
-//CoreTransport CXURL and ReQL C++ APIs uses CTransport (CTConnection) API internally
+//CTransport C API
 #include <CoreTransport/CTransport.h>
 
 #define HAPPYEYEBALLS_MAX_INFLIGHT_CONNECTIONS 1024
@@ -46,8 +45,6 @@ CTConnection HAPPYEYEBALLS_CONNECTION_POOL[HAPPYEYEBALLS_MAX_INFLIGHT_CONNECTION
 CTCursor _httpCursor[CT_MAX_INFLIGHT_CURSORS];
 CTCursor _reqlCursor;
 
-static const char* aws_access_key = "AKIA267MLRQDRJ2IIARW";
-static const char* aws_access_secrt = "0SakIbVLOM2E+ck7xPw1tlJSN519ev2mcMx2KTG/";
 /***
  * Start CTransport (CTConnection) C API Example
  ***/
