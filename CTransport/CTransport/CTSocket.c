@@ -294,9 +294,9 @@ CTSocket CTSocketCreate(int nonblocking)
     return socketfd;
 }
 
-#ifndef socklen_t
-typedef int socklen_t;
-#endif
+//#ifndef socklen_t
+//typedef int socklen_t;
+//#endif
 /**
  *  CTSocketGetError
  *

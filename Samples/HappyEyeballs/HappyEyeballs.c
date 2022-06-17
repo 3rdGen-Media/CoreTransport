@@ -116,7 +116,7 @@ static const char* aws_access_secrt = "0SakIbVLOM2E+ck7xPw1tlJSN519ev2mcMx2KTG/"
 
 //Define a CTransport API CTTarget C style struct to initiate an HTTPS connection with a CTransport API CTConnection
 static const char* http_server = "3rdgen-sandbox-html-resources.s3.us-west-1.amazonaws.com";//"example.com";// "vtransport - assets.s3.us - west - 1.amazonaws.com";//"example.com";//"mineralism.s3 - us - west - 2.amazonaws.com";
-static const unsigned short	http_port = 443;
+static const unsigned short	http_port = 80;
 
 //Proxies use a prefix to specify the proxy protocol, defaulting to HTTP Proxy
 static const char* proxy_server = "socks5://172.20.10.1";// "54.241.100.168";
@@ -416,7 +416,7 @@ CTConnectionClosure _httpConnectionClosure = ^int(CTError * err, CTConnection * 
 	fprintf(stderr, "HTTP Connection Success\n");
 	
 
-	for(i =0; i<100; i++)
+	for(i =0; i<30; i++)
 		sendHTTPRequest(&_httpCursor[httpRequestCount % CT_MAX_INFLIGHT_CURSORS]);
 
 	return err->id;
@@ -557,7 +557,7 @@ int main(void) {
 	rxQueue = CTKernelQueueCreate();//CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
 	txQueue = CTKernelQueueCreate();//CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
 #ifndef _WIN32
-	pipe(oxPipe);// = CTKernelQueueCreate();//CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);\
+	pipe(oxPipe);// = CTKernelQueueCreate();//CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
 	g_kQueuePipePair.q = rxQueue;
 	g_kQueuePipePair.p[0] = oxPipe[0];
 	g_kQueuePipePair.p[1] = oxPipe[1];
@@ -594,7 +594,7 @@ int main(void) {
 	httpTarget.proxy.host = NULL;//(char*)proxy_server;
 	httpTarget.proxy.port = 0;//proxy_port;
 	httpTarget.ssl.ca = NULL;//(char*)caPath;
-	httpTarget.ssl.method = CTSSL_TLS_1_2;
+	httpTarget.ssl.method = 0;
 	httpTarget.dns.resconf = (char*)resolvConfPath;
 	httpTarget.dns.nssconf = (char*)nsswitchConfPath;
 	httpTarget.cxQueue = cxQueue;

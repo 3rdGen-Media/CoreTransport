@@ -8,7 +8,7 @@
 #ifndef CTSOCKETAPI_H
 #define CTSOCKETAPI_H
 
-#include "ca_scram.h"
+#include "CAuth/ca_scram.h"
 
 //uint64_t includes
 #include <stdint.h>

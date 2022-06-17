@@ -88,7 +88,7 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 		//wait for active cursor and read events with zero timeout 
 		if( (ret = kqueue_wait_with_timeout(rxQueue, &(kev[0]), 2, 0)) < 0 )
 		{
-			fprintf(stderr, "\nCT_Dequeue_Recv_Decrypt::kqueue_wait_with_timeout 1 failed with ret (%d).\n", ret);
+			fprintf(stderr, "\nCT_Dequeue_Recv_Decrypt::kqueue_wait_with_timeout 1 failed with ret (%d) and errno (%d).\n", ret, errno);
 			assert(1==0);
 		}
 		else if(ret == 1)
@@ -149,7 +149,7 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 			assert(overlappedResponse);
 			cursor = (CTCursor*)overlappedResponse->cursor;
 			assert(cursor);
-			assert(cursor->queryToken == 0);
+			//assert(cursor->queryToken == 0);
 			fprintf(stderr, "\nCT_Dequeue_Recv_Decrypt::Read cursor (%lu) from oxPipe\n", cursor->queryToken);
 		}
 	
