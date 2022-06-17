@@ -56,20 +56,20 @@ static const char* http_server = "example.com";
 static const unsigned short		http_port = 443;
 
 //Proxies use a prefix to specify the proxy protocol, defaulting to HTTP Proxy
-static const char* proxy_server = "socks5://172.20.10.1";// "54.241.100.168";
-static const unsigned short		proxy_port = 443;// 1080;
-
-//Define a CTransport API ReqlService (ie CTTarget) C style struct to initiate a RethinkDB TLS connection with a CTransport API CTConnection
+static const char* proxy_server = "socks5://172.20.10.1";
+static const unsigned short		proxy_port = 443;// 1080;tyle struct to initiate a RethinkDB TLS connection with a CTransport API CTConnection
 //static const char * rdb_server = "RETHINKDB_SERVER";
 //static const unsigned short rdb_port = 18773;
 //static const char * rdb_user = "RETHINKDB_USERNAME";
 //static const char * rdb_pass = "RETHINKDB_PASSWORD";
 
+//Define a CTransport API ReqlService (ie CTTarget) C s
+
 //Define a CTransport API ReqlService (ie CTTarget) C style struct to initiate a RethinkDB TLS connection with a CTransport API CTConnection
-static const char* rdb_server = "rdb.3rd-gen.net";
+static const char* rdb_server = "XXXXXXXX";
 static const unsigned short rdb_port = 28015;
 static const char* rdb_user = "admin";
-static const char* rdb_pass = "3rdgen.rdb.4.$";
+static const char* rdb_pass = "XXXXXXXX";
 
 //Define SSL Certificate for ReqlService construction:
 //	a)  For xplatform MBEDTLS support: The SSL certificate can be defined in a buffer OR a file AS a .cer in PEM format
