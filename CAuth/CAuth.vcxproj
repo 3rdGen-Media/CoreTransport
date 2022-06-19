@@ -234,9 +234,9 @@ exit 0</Command>
       <ImportLibrary>$(SolutionDir)lib\x86\ctSCRAMd.lib</ImportLibrary>
     </Link>
     <PostBuildEvent>
-      <Command>if not exist ..\include\CoreTransport\ mkdir ..\include\CoreTransport\
+      <Command>if not exist ..\include\CoreTransport\CAuth mkdir ..\include\CoreTransport\CAuth
 
-copy .\CAuth\*.h ..\include\CoreTransport
+copy .\CAuth\*.h ..\include\CoreTransport\CAuth
 
 copy .\*.h ..\include\CoreTransport
 
@@ -325,9 +325,9 @@ exit 0</Command>
       <ImportLibrary>$(SolutionDir)lib\x86\ctSCRAM.lib</ImportLibrary>
     </Link>
     <PostBuildEvent>
-      <Command>if not exist ..\include\CoreTransport\ mkdir ..\include\CoreTransport\
+      <Command>if not exist ..\include\CoreTransport\CAuth mkdir ..\include\CoreTransport\CAuth
 
-copy .\CAuth\*.h ..\include\CoreTransport
+copy .\CAuth\*.h ..\include\CoreTransport\CAuth
 
 copy .\*.h ..\include\CoreTransport
 

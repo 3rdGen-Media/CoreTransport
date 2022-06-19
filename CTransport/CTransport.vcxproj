@@ -241,6 +241,8 @@
       <Command>if not exist ..\include\CoreTransport\CTransport mkdir ..\include\CoreTransport\CTransport 
 copy .\CTransport\*.h ..\include\CoreTransport\CTransport 
 copy .\*.h ..\include\CoreTransport
+if not exist ..\include\CoreTransport\protobuf mkdir ..\include\CoreTransport\protobuf
+copy .\protobuf\*.h ..\include\CoreTransport\protobuf
 exit 0</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>

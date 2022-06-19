@@ -116,6 +116,33 @@ coroutine int CTKernelQueueWait(CTKernelQueue event_queue, int16_t eventFilter)
 	//return ret_event;
 }
 
+//#pragma mark -- CTThread API
+
+CTThread CTThreadCreate(CTKernelQueue* threadPoolQueue, LPTHREAD_START_ROUTINE threadRoutine)
+{
+#ifdef _WIN32
+    return CreateThread(NULL, 0, threadRoutine, *threadPoolQueue, 0, NULL);
+#else
+    CTThread thread;
+    pthread_create(&thread, NULL, threadRoutine, (void*)threadPoolQueue)
+    return thread;
+    //if (pthread_create(&rxThread, NULL, CT_Dequeue_Recv_Decrypt, (void*)&g_kQueuePipePair) != 0)
+    //    assert(1 == 0);
+    //if (pthread_create(&txThread, NULL, CT_Dequeue_Encrypt_Send, (void*)&txQueue) != 0)
+    //    assert(1 == 0);
+#endif
+}
+
+
+void CTThreadClose(CTThread* thread)
+{
+#ifdef _WIN32
+    if (thread && *thread && *thread != INVALID_HANDLE_VALUE)
+        CloseHandle(*thread);
+#else
+    //pthread TO DO?
+#endif
+}
 
 //#pragma mark -- CTSocket API
 

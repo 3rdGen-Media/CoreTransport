@@ -1765,7 +1765,7 @@ int CTWolfSSLRecv(WOLFSSL* ssl, char* buff, int sz, void* ctx)
 		//	fprintf(stderr, "WSARecv succeeded\n");
 
 		//error encountered. Be responsible and report it in wolfSSL terms
-		ffprintf(stderr, stderr, "IO RECEIVE ERROR: ");
+		fprintf(stderr, stderr, "IO RECEIVE ERROR: ");
 
 		int ret = WSAGetLastError();
 #ifdef _WIN32
@@ -1778,29 +1778,29 @@ int CTWolfSSLRecv(WOLFSSL* ssl, char* buff, int sz, void* ctx)
 #endif
 		case EWOULDBLOCK:
 			if (!wolfSSL_dtls(ssl) || wolfSSL_get_using_nonblock(ssl)) {
-				ffprintf(stderr, stderr, "would block\n");
+				fprintf(stderr, stderr, "would block\n");
 				return WOLFSSL_CBIO_ERR_WANT_READ;
 			}
 			else {
-				ffprintf(stderr, stderr, "socket timeout\n");
+				fprintf(stderr, stderr, "socket timeout\n");
 				return WOLFSSL_CBIO_ERR_TIMEOUT;
 			}
 		case WSAEWOULDBLOCK:
 			assert(1 == 0);
 		case ECONNRESET:
-			ffprintf(stderr, stderr, "connection reset\n");
+			fprintf(stderr, stderr, "connection reset\n");
 			return WOLFSSL_CBIO_ERR_CONN_RST;
 		case EINTR:
-			ffprintf(stderr, stderr, "socket interrupted\n");
+			fprintf(stderr, stderr, "socket interrupted\n");
 			return WOLFSSL_CBIO_ERR_ISR;
 		case ECONNREFUSED:
-			ffprintf(stderr, stderr, "connection refused\n");
+			fprintf(stderr, stderr, "connection refused\n");
 			return WOLFSSL_CBIO_ERR_WANT_READ;
 		case ECONNABORTED:
-			ffprintf(stderr, stderr, "connection aborted\n");
+			fprintf(stderr, stderr, "connection aborted\n");
 			return WOLFSSL_CBIO_ERR_CONN_CLOSE;
 		default:
-			ffprintf(stderr, stderr, "general error\n");
+			fprintf(stderr, stderr, "general error\n");
 			return WOLFSSL_CBIO_ERR_GENERAL;
 		}
 	}
@@ -1880,25 +1880,25 @@ int CTWolfSSLSend(WOLFSSL* ssl, char* buff, int sz, void* ctx)
 		sent = send(sockfd, buff, sz, 0);
 		if (sent != sz)
 		{
-			//ffprintf(stderr, stderr, "IO SEND ERROR: ");
+			//fprintf(stderr, stderr, "IO SEND ERROR: ");
 			switch (WSAGetLastError()) {
 #if EAGAIN != EWOULDBLOCK
 			case EAGAIN: // EAGAIN == EWOULDBLOCK on some systems, but not others
 #endif
 			case EWOULDBLOCK:
-				//ffprintf(stderr, stderr, "would block\n");
+				//fprintf(stderr, stderr, "would block\n");
 				return WOLFSSL_CBIO_ERR_WANT_WRITE;
 			case ECONNRESET:
-				//ffprintf(stderr, stderr, "connection reset\n");
+				//fprintf(stderr, stderr, "connection reset\n");
 				return WOLFSSL_CBIO_ERR_CONN_RST;
 			case EINTR:
-				//ffprintf(stderr, stderr, "socket interrupted\n");
+				//fprintf(stderr, stderr, "socket interrupted\n");
 				return WOLFSSL_CBIO_ERR_ISR;
 			case EPIPE:
-				//ffprintf(stderr, stderr, "socket EPIPE\n");
+				//fprintf(stderr, stderr, "socket EPIPE\n");
 				return WOLFSSL_CBIO_ERR_CONN_CLOSE;
 			default:
-				//ffprintf(stderr, stderr, "general error\n");
+				//fprintf(stderr, stderr, "general error\n");
 				return WOLFSSL_CBIO_ERR_GENERAL;
 			}
 
@@ -1931,25 +1931,25 @@ int CTWolfSSLSend(WOLFSSL* ssl, char* buff, int sz, void* ctx)
 		// error encountered. Be responsible and report it in wolfSSL terms 
 
 		
-		//ffprintf(stderr, stderr, "IO SEND ERROR: ");
+		//fprintf(stderr, stderr, "IO SEND ERROR: ");
 		switch (errno) {
 #if EAGAIN != EWOULDBLOCK
 		case EAGAIN: // EAGAIN == EWOULDBLOCK on some systems, but not others
 #endif
 		case EWOULDBLOCK:
-			//ffprintf(stderr, stderr, "would block\n");
+			//fprintf(stderr, stderr, "would block\n");
 			return WOLFSSL_CBIO_ERR_WANT_WRITE;
 		case ECONNRESET:
-			//ffprintf(stderr, stderr, "connection reset\n");
+			//fprintf(stderr, stderr, "connection reset\n");
 			return WOLFSSL_CBIO_ERR_CONN_RST;
 		case EINTR:
-			//ffprintf(stderr, stderr, "socket interrupted\n");
+			//fprintf(stderr, stderr, "socket interrupted\n");
 			return WOLFSSL_CBIO_ERR_ISR;
 		case EPIPE:
-			//ffprintf(stderr, stderr, "socket EPIPE\n");
+			//fprintf(stderr, stderr, "socket EPIPE\n");
 			return WOLFSSL_CBIO_ERR_CONN_CLOSE;
 		default:
-			//ffprintf(stderr, stderr, "general error\n");
+			//fprintf(stderr, stderr, "general error\n");
 			return WOLFSSL_CBIO_ERR_GENERAL;
 		}
 		
@@ -2433,7 +2433,7 @@ SECURITY_STATUS CTSSLHandshakeProcessSecondResponse(CTCursor* cursor, CTSocket s
 
 		err = wolfSSL_get_error(sslContextRef->ctx, 0);
 		wolfSSL_ERR_error_string(err, buffer);
-		ffprintf(stderr, stderr, "CTSSLHandshakeProcessSecondResponse: wolfSSL_connect failed to read (%d): \n\n%s\n\n", wolfSSL_get_error(sslContextRef->ctx, 0), buffer);
+		fprintf(stderr, "CTSSLHandshakeProcessSecondResponse: wolfSSL_connect failed to read (%d): \n\n%s\n\n", wolfSSL_get_error(sslContextRef->ctx, 0), buffer);
 
 		//HANDLE INCOMPLETE MESSAGE: the buffer didn't have as many bytes as WolfSSL needed for decryption
 		if (err == WOLFSSL_ERROR_WANT_READ)
@@ -2497,17 +2497,18 @@ SECURITY_STATUS CTSSLHandshakeProcessSecondResponse(CTCursor* cursor, CTSocket s
 					assert(1 == 0);
 				}
 			}
-			return CTSuccess;
+			return SSL_ERROR_WANT_READ;// CTSuccess;
 		}
 		else if (err == SSL_ERROR_WANT_WRITE)
 		{
 			assert(1 == 0);
+			return SSL_ERROR_WANT_WRITE;
 		}
 		/*
 		err = wolfSSL_get_error(sslContextRef->ctx, ret);
 		if (err != SSL_ERROR_WANT_READ && err != SSL_ERROR_WANT_WRITE)
 		{
-			ffprintf(stderr, stderr, "ERROR: wolfSSL handshake failed!\n");
+			fprintf(stderr, stderr, "ERROR: wolfSSL handshake failed!\n");
 		}
 		return err;
 		*/
@@ -2830,18 +2831,19 @@ CTCursorCompletionClosure SSLSecondMessageResponseCallback = ^ void(CTError * er
 
 		if (ret == SSL_ERROR_WANT_READ)
 		{
-			assert(1 == 0);
-			return CTSuccess;
+			//assert(1 == 0);
+			return;// CTSuccess;
 		}
 		else if (ret == SSL_ERROR_WANT_WRITE)
 		{
 			assert(1 == 0);
-			return CTSuccess;
+			return;// CTSuccess;
 		}
-#endif
-
+#elif defined( _WIN32 )
 		if (ret == SEC_E_INCOMPLETE_MESSAGE || ret == SEC_I_CONTINUE_NEEDED)
 			return;// CTSuccess;
+#endif
+
 
 		fprintf(stderr, "SSLSecondMessageResponseCallback::CTSSLHandshakeProcessSecondResponse failed with status:  %d\n", ret);
 		err->id = CTSSLHandshakeError;
@@ -2890,7 +2892,7 @@ CTCursorCompletionClosure SSLSecondMessageQueryCallback = ^ void(CTError * err, 
 
 		wolfErr = wolfSSL_get_error(cursor->conn->sslContext->ctx, 0);
 		wolfSSL_ERR_error_string(wolfErr, buffer);
-		//ffprintf(stderr, stderr, "SSLSecondMessageQueryCallback: wolfSSL_connect failed to send/read handshake data (%d): \n\n%s\n\n", wolfSSL_get_error(cursor->conn->sslContext->ctx, 0), buffer);
+		//fprintf(stderr, stderr, "SSLSecondMessageQueryCallback: wolfSSL_connect failed to send/read handshake data (%d): \n\n%s\n\n", wolfSSL_get_error(cursor->conn->sslContext->ctx, 0), buffer);
 
 		//HANDLE INCOMPLETE MESSAGE: the buffer didn't have as many bytes as WolfSSL needed for decryption
 		if (wolfErr == WOLFSSL_ERROR_WANT_READ)
@@ -2899,7 +2901,7 @@ CTCursorCompletionClosure SSLSecondMessageQueryCallback = ^ void(CTError * err, 
 			//eTransient = (CTSSLEncryptTransient*)wolfSSL_GetIOWriteCtx(cursor->conn->sslContext->ctx);
 			//eTransient->ct_socket_fd = cursor->conn->socket;
 			wolfSSL_SetIOWriteCtx(cursor->conn->sslContext->ctx, &(cursor->conn->socket));
-			return CTSuccess;
+			return;// CTSuccess;
 		}
 		else if (wolfErr == SSL_ERROR_WANT_WRITE)
 		{
@@ -2932,7 +2934,7 @@ CTCursorCompletionClosure SSLSecondMessageQueryCallback = ^ void(CTError * err, 
 		err = wolfSSL_get_error(sslContextRef->ctx, ret);
 		if (err != SSL_ERROR_WANT_READ && err != SSL_ERROR_WANT_WRITE)
 		{
-			ffprintf(stderr, stderr, "ERROR: wolfSSL handshake failed!\n");
+			fprintf(stderr, stderr, "ERROR: wolfSSL handshake failed!\n");
 		}
 		return err;
 		*/
@@ -3055,14 +3057,14 @@ CTSSLContextRef CTSSLContextCreate(CTSocket *socketfd, CTSecCertificateRef * cer
 	wolfSSL_Debugging_ON();
 	/* Create and initialize WOLFSSL_CTX */
 	if ((sslContextRef->conf = wolfSSL_CTX_new(wolfTLSv1_2_client_method())) == NULL) {
-		ffprintf(stderr, stderr, "ERROR: failed to create WOLFSSL_CTX\n");
+		fprintf(stderr, stderr, "ERROR: failed to create WOLFSSL_CTX\n");
 		assert(sslContextRef->conf);
 	}
 
 	//Load client certificates into WOLFSSL_CTX
 	if (certRef && strlen(certRef) > 0 && wolfSSL_CTX_load_verify_locations(sslContextRef->conf, certRef, NULL) != WOLFSSL_SUCCESS)
 	{
-		ffprintf(stderr, stderr, "ERROR: failed to load %s, please check the file.\n", certRef);
+		fprintf(stderr, stderr, "ERROR: failed to load %s, please check the file.\n", certRef);
 		assert(1 == 0);
 	}
 
@@ -3074,7 +3076,7 @@ CTSSLContextRef CTSSLContextCreate(CTSocket *socketfd, CTSecCertificateRef * cer
 
 	// Create a WOLFSSL object
 	if ((sslContextRef->ctx = wolfSSL_new(sslContextRef->conf)) == NULL) {
-		ffprintf(stderr, stderr, "ERROR: failed to create WOLFSSL object\n");
+		fprintf(stderr, stderr, "ERROR: failed to create WOLFSSL object\n");
 		assert(sslContextRef->ctx);
 	}
 
@@ -3382,7 +3384,7 @@ SECURITY_STATUS CTSSLHandshakeProcessFirstResponse(CTCursor * cursor, CTSocket s
 
 		err = wolfSSL_get_error(sslContextRef->ctx, 0);
 		wolfSSL_ERR_error_string(err, buffer);
-		ffprintf(stderr, stderr, "CTSSLHandshakeProcessFirstResponse: wolfSSL_connect failed to read (%d): \n\n%s\n\n", wolfSSL_get_error(sslContextRef->ctx, 0), buffer);
+		fprintf(stderr, stderr, "CTSSLHandshakeProcessFirstResponse: wolfSSL_connect failed to read (%d): \n\n%s\n\n", wolfSSL_get_error(sslContextRef->ctx, 0), buffer);
 
 		//HANDLE INCOMPLETE MESSAGE: the buffer didn't have as many bytes as WolfSSL needed for decryption
 		if (err == WOLFSSL_ERROR_WANT_READ)
@@ -3470,7 +3472,7 @@ SECURITY_STATUS CTSSLHandshakeProcessFirstResponse(CTCursor * cursor, CTSocket s
 		err = wolfSSL_get_error(sslContextRef->ctx, ret);
 		if (err != SSL_ERROR_WANT_READ && err != SSL_ERROR_WANT_WRITE)
 		{
-			ffprintf(stderr, stderr, "ERROR: wolfSSL handshake failed!\n");
+			fprintf(stderr, stderr, "ERROR: wolfSSL handshake failed!\n");
 		}
 		return err;
 		*/
@@ -3781,7 +3783,8 @@ int CTSSLHandshake(CTSocket socketfd, CTSSLContextRef sslContextRef, CTSecCertif
 		err = wolfSSL_get_error(sslContextRef->ctx, ret);
 		if (err != SSL_ERROR_WANT_READ && err != SSL_ERROR_WANT_WRITE)
 		{
-			ffprintf(stderr, stderr, "ERROR: wolfSSL handshake failed!\n");
+			fprintf(stderr, stderr, "ERROR: wolfSSL handshake failed!\n");
+			assert(1 == 0);
 		}
 		return err;
 	}
@@ -4031,7 +4034,7 @@ int CTVerifyServerCertificate(CTSSLContextRef sslContextRef, char * pszServerNam
 	//Load client certificates into WOLFSSL_CTX
 	if (wolfSSL_CTX_load_verify_locations(sslContextRef->conf, certRef, NULL) != WOLFSSL_SUCCESS)
 	{
-		ffprintf(stderr, stderr, "ERROR: failed to load %s, please check the file.\n", certRef);
+		fprintf(stderr, stderr, "ERROR: failed to load %s, please check the file.\n", certRef);
 		assert(1 == 0);
 	}
 	*/

@@ -321,7 +321,7 @@ void* CTRecv(CTConnection* conn, void * msg, unsigned long * msgLength)
 				case EFAULT:
 					return NULL;
 				default:
-					//ffprintf(stderr, stderr, "general error\n");
+					//fprintf(stderr, stderr, "general error\n");
 					//return WOLFSSL_CBIO_ERR_GENERAL;
 					assert(1 == 0);
 					return NULL;
@@ -429,7 +429,7 @@ int CTSend(CTConnection* conn, void * msg, unsigned long * msgLength )
 			ret = send(conn->socket, msg_chunk, msg_chunk_size, 0);
 			if (ret != msg_chunk_size)
 			{
-				//ffprintf(stderr, stderr, "IO SEND ERROR: ");
+				//fprintf(stderr, stderr, "IO SEND ERROR: ");
 				switch (CTSocketError()) 
 				{	
 					assert(1 == 0);
@@ -437,19 +437,19 @@ int CTSend(CTConnection* conn, void * msg, unsigned long * msgLength )
 				case EAGAIN: // EAGAIN == EWOULDBLOCK on some systems, but not others
 #endif
 				case EWOULDBLOCK:
-					//ffprintf(stderr, stderr, "would block\n");
+					//fprintf(stderr, stderr, "would block\n");
 					//return WOLFSSL_CBIO_ERR_WANT_WRITE;
 				case ECONNRESET:
-					//ffprintf(stderr, stderr, "connection reset\n");
+					//fprintf(stderr, stderr, "connection reset\n");
 					//return WOLFSSL_CBIO_ERR_CONN_RST;
 				case EINTR:
-					//ffprintf(stderr, stderr, "socket interrupted\n");
+					//fprintf(stderr, stderr, "socket interrupted\n");
 					//return WOLFSSL_CBIO_ERR_ISR;
 				case EPIPE:
-					//ffprintf(stderr, stderr, "socket EPIPE\n");
+					//fprintf(stderr, stderr, "socket EPIPE\n");
 					//return WOLFSSL_CBIO_ERR_CONN_CLOSE;
 				default:
-					//ffprintf(stderr, stderr, "general error\n");
+					//fprintf(stderr, stderr, "general error\n");
 					//return WOLFSSL_CBIO_ERR_GENERAL;
 					return ret;
 				}
@@ -1922,15 +1922,15 @@ CTCursorCompletionClosure ReQLMagicNumberResponseCallback = ^ void(CTError * err
 	if (error.id = CTReQLHandshakeProcessMagicNumberResponse(cursor->requestBuffer, strlen(cursor->requestBuffer)) != noErr)
 	{
 #ifdef CTRANSPORT_WOLFSSL
-		if (ret == SSL_ERROR_WANT_READ)
+		if (error.id == SSL_ERROR_WANT_READ)
 		{
 			assert(1 == 0);
-			return CTSuccess;
+			return;// CTSuccess;
 		}
-		else if (ret == SSL_ERROR_WANT_WRITE)
+		else if (error.id == SSL_ERROR_WANT_WRITE)
 		{
 			assert(1 == 0);
-			return CTSuccess;
+			return;// CTSuccess;
 		}
 #endif
 		//ReqlSSLCertificateDestroy(&rootCertRef);
@@ -1958,12 +1958,12 @@ CTCursorCompletionClosure ReQLFinalMessageResponseCallback = ^ void(CTError * er
 		if (error.id == SSL_ERROR_WANT_READ)
 		{
 			assert(1 == 0);
-			return CTSuccess;
+			return;// CTSuccess;
 		}
 		else if (error.id == SSL_ERROR_WANT_WRITE)
 		{
 			assert(1 == 0);
-			return CTSuccess;
+			return;// CTSuccess;
 		}
 #endif
 		//ReqlSSLCertificateDestroy(&rootCertRef);
@@ -1996,16 +1996,20 @@ CTCursorCompletionClosure ReQLFirstMessageResponseCallback = ^ void(CTError * er
 	if (( base64SSPtr = CTReQLHandshakeProcessFirstMessageResponse(cursor->requestBuffer, strlen(cursor->requestBuffer), cursor->conn->service->password)) == NULL)
 	{
 #ifdef CTRANSPORT_WOLFSSL
+		//TO DO:  unimplmented for wolfssl, come back to this
+		assert(1 == 0);
+		/*
 		if (ret == SSL_ERROR_WANT_READ)
 		{
 			assert(1 == 0);
-			return CTSuccess;
+			return;// CTSuccess;
 		}
 		else if (ret == SSL_ERROR_WANT_WRITE)
 		{
 			assert(1 == 0);
-			return CTSuccess;
+			return;// CTSuccess;
 		}
+		*/
 #endif
 		//ReqlSSLCertificateDestroy(&rootCertRef);
 		fprintf(stderr, "CTReQLHandshakeProcessFirstMessageResponse failed\n");
@@ -2226,15 +2230,15 @@ CTCursorCompletionClosure SSLFirstMessageResponseCallback = ^ void(CTError * err
 	if ((scRet = CTSSLHandshakeProcessFirstResponse(cursor, cursor->conn->socket, cursor->conn->sslContext)) != SEC_E_OK)
 	{
 #ifdef CTRANSPORT_WOLFSSL
-		if (ret == SSL_ERROR_WANT_READ)
+		if (scRet == SSL_ERROR_WANT_READ)
 		{
 			assert(1 == 0);
-			return CTSuccess;
+			return;// CTSuccess;
 		}
-		else if (ret == SSL_ERROR_WANT_WRITE)
+		else if (scRet == SSL_ERROR_WANT_WRITE)
 		{
 			assert(1 == 0);
-			return CTSuccess;
+			return;// CTSuccess;
 		}
 #endif
 
@@ -2278,7 +2282,7 @@ CTCursorCompletionClosure SSLFirstMessageQueryCallback = ^ void(CTError * err, C
 
 		wolfErr = wolfSSL_get_error(cursor->conn->sslContext->ctx, 0);
 		wolfSSL_ERR_error_string(wolfErr, buffer);
-		ffprintf(stderr, stderr, "SSLFirstMessageQueryCallback: wolfSSL_connect failed to send/read handshake data (%d): \n\n%s\n\n", wolfSSL_get_error(cursor->conn->sslContext->ctx, 0), buffer);
+		fprintf(stderr, stderr, "SSLFirstMessageQueryCallback: wolfSSL_connect failed to send/read handshake data (%d): \n\n%s\n\n", wolfSSL_get_error(cursor->conn->sslContext->ctx, 0), buffer);
 
 		//HANDLE INCOMPLETE MESSAGE: the buffer didn't have as many bytes as WolfSSL needed for decryption
 		if (wolfErr == WOLFSSL_ERROR_WANT_READ)
@@ -2287,7 +2291,7 @@ CTCursorCompletionClosure SSLFirstMessageQueryCallback = ^ void(CTError * err, C
 			//eTransient = (CTSSLEncryptTransient*)wolfSSL_GetIOWriteCtx(cursor->conn->sslContext->ctx);
 			//eTransient->ct_socket_fd = cursor->conn->socket;
 			//wolfSSL_SetIOWriteCtx(cursor->conn->sslContext->ctx, &(cursor->conn->socket));
-			return CTSuccess;
+			return;// CTSuccess;
 		}
 		else if (wolfErr == SSL_ERROR_WANT_WRITE)
 		{
@@ -2320,7 +2324,7 @@ CTCursorCompletionClosure SSLFirstMessageQueryCallback = ^ void(CTError * err, C
 		err = wolfSSL_get_error(sslContextRef->ctx, ret);
 		if (err != SSL_ERROR_WANT_READ && err != SSL_ERROR_WANT_WRITE)
 		{
-			ffprintf(stderr, stderr, "ERROR: wolfSSL handshake failed!\n");
+			fprintf(stderr, stderr, "ERROR: wolfSSL handshake failed!\n");
 		}
 		return err;
 		*/
@@ -2427,7 +2431,7 @@ CTCursorCompletionClosure HTTPProxyResponseCallback = ^ void(CTError * err, CTCu
 	fprintf(stderr, "ProxyHandshakeMessageResponseCallback header:  \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
 	int status = 0;
 
-
+	/*
 	if (0) //((ret = CTSSLHandshakeProcessFirstResponse(cursor, cursor->conn->socket, cursor->conn->sslContext)) != noErr)
 	{
 
@@ -2450,7 +2454,7 @@ CTCursorCompletionClosure HTTPProxyResponseCallback = ^ void(CTError * err, CTCu
 		cursor->conn->target->callback(err, cursor->conn);
 		return;
 	}
-	else if (cursor->conn->target->ssl.method > CTSSL_NONE)
+	else */if (cursor->conn->target->ssl.method > CTSSL_NONE)
 	{
 		//Initate the Async SSL Handshake scheduling from this thread (ie cxQueue) to rxQueue and txQueue threads
 		if ((status = CTSSLRoutine(cursor->conn, cursor->conn->socketContext.host, cursor->conn->target->ssl.ca)) != 0)
@@ -2846,8 +2850,6 @@ coroutine int CTSSLRoutine(CTConnection *conn, char * hostname, char * caPath)
 	
 	fprintf(stderr, "----- Credentials Initialized\n");
 
-
-
 	//ReqlSSLContextRef sslContext = NULL;
 	//  Create an SSL/TLS Context using a 3rd Party Framework such as Apple SecureTransport, OpenSSL or mbedTLS
 	//  THEN send the first message in a synchronous fashion
@@ -2940,6 +2942,7 @@ coroutine int CTSSLRoutine(CTConnection *conn, char * hostname, char * caPath)
 			else if (ret == SSL_ERROR_WANT_WRITE)
 			{
 
+				CTCursor* handshakeCursor = CTGetNextPoolCursor();
 
 				//send the TLS Handshake first message in an async non-blocking fashion
 				handshakeCursor->headerLengthCallback = SSLFirstMessageHeaderLengthCallback;
@@ -3182,6 +3185,7 @@ coroutine int CTConnectRoutine(CTTarget * service, CTConnectionClosure callback)
 	fprintf(stderr, "Before CTSSLRoutine Host = %s\n", conn.socketContext.host);
 	fprintf(stderr, "Before CTSSLRoutine Host = %s\n", service->url.host);
 
+	conn.target = service;
 #ifdef _WIN32 //skip on linux while we develop
 	if (service->proxy.host)
 	{

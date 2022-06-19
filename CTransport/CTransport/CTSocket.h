@@ -81,12 +81,14 @@ typedef NTSTATUS(WINAPI* pNtSetInformationFile)(HANDLE, PIO_STATUS_BLOCK, PVOID,
 //Define REQL_SOCKET
 #ifdef _WIN32
 #define CTSocket 			SOCKET
+#define CTThread			HANDLE
 #define CTKernelQueue 		HANDLE
 #define CTDispatchSource 	void
 //#define SSLContextRef 	void*
 #define CTSocketError() (WSAGetLastError())
 #elif defined(__APPLE__) || defined(__FreeBSD__) //with libdispatch
 #define CTSocket 	  		int //sockets are just file descriptors
+#define CTThread			pthread_t
 #define CTKernelQueue 		int //kqueues are just file descriptors
 #define CT_INCOMING_PIPE	0
 #define CT_OUTGOING_PIPE	1
@@ -150,6 +152,11 @@ CTRANSPORT_API CTRANSPORT_INLINE CTKernelQueue CTSocketCreateEventQueue(CTSocket
  *  TO DO:  Add timeout input
  ***/
 CTRANSPORT_API CTRANSPORT_INLINE coroutine int CTKernelQueueWait(CTKernelQueue event_queue, int16_t eventFilter);
+
+//#pragma mark -- CTThread API
+
+CTRANSPORT_API CTRANSPORT_INLINE CTThread CTThreadCreate(CTKernelQueue* threadPoolQueue, LPTHREAD_START_ROUTINE threadRoutine);
+CTRANSPORT_API CTRANSPORT_INLINE void CTThreadClose(CTThread* thread);
 
 //#pragma mark -- CTSocket API
 
