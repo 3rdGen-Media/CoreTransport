@@ -418,7 +418,7 @@ int main(void) {
 		//and provides us with a dispatch_queue on a dedicated pool thread for reading
 		//On Win32 platforms we create a thread/pool of threads to associate an io completion port
 		//When Win32 sees that data is available for read it will read for us and provide the buffers to us on the completion port thread/pool
-		cxThread = CTThreadCreate(&cxQueue, (LPTHREAD_START_ROUTINE)CT_Dequeue_Connect);
+		cxThread = CTThreadCreate(&cxQueue, (LPTHREAD_START_ROUTINE)CT_Dequeue_Resolve_Connect_Handshake);
 		rxThread = CTThreadCreate(&rxQueue, (LPTHREAD_START_ROUTINE)CT_Dequeue_Recv_Decrypt);
 		txThread = CTThreadCreate(&txQueue, (LPTHREAD_START_ROUTINE)CT_Dequeue_Encrypt_Send);
 

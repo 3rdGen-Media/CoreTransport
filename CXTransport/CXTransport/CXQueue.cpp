@@ -1,7 +1,7 @@
 #include "../CXTransport.h"
 
 
-unsigned long __stdcall CX_Dequeue_Connect(LPVOID lpParameter)
+unsigned long __stdcall CX_Dequeue_Resovle_Connect_Handshake(LPVOID lpParameter)
 {
 	int i;
 	OSStatus status;

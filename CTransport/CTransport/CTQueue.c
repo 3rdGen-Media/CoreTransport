@@ -867,7 +867,7 @@ void* __stdcall CT_Dequeue_Encrypt_Send(LPVOID lpParameter)
 
 #else
 
-unsigned long __stdcall CT_Dequeue_Connect(LPVOID lpParameter)
+unsigned long __stdcall CT_Dequeue_Resolve_Connect_Handshake(LPVOID lpParameter)
 {
 	int i;
 	OSStatus status;
