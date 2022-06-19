@@ -113,9 +113,9 @@ The general process for establishing and consuming from connections using CTrans
 
 ####  Create Thread Pool 
 ```
-   CTThread cxThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CT_Dequeue_Connect, cxQueue, 0, NULL);		
-   CTThread txThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CT_Dequeue_Encrypt_Send, txQueue, 0, NULL);
-   CTThread rxThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CT_Dequeue_Recv_Decrypt, rxQueue, 0, NULL);
+   CTThread cxThread = CTThreadCreate(&cxQueue, (LPTHREAD_START_ROUTINE)CT_Dequeue_Connect);
+   CTThread rxThread = CTThreadCreate(&rxQueue, (LPTHREAD_START_ROUTINE)CT_Dequeue_Recv_Decrypt);
+   CTThread txThread = CTThreadCreate(&txQueue, (LPTHREAD_START_ROUTINE)CT_Dequeue_Encrypt_Send);
 ```
 
 ####  Define your target
@@ -233,9 +233,9 @@ The general process for establishing and consuming from connections using CTrans
 
 ####  Create Thread Pool 
 ```
-   CTThread cxThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CX_Dequeue_Connect, cxQueue, 0, NULL);		
-   CTThread txThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CX_Dequeue_Encrypt_Send, txQueue, 0, NULL);
-   CTThread rxThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CX_Dequeue_Recv_Decrypt, rxQueue, 0, NULL);
+   CTThread cxThread = CTThreadCreate(&cxQueue, (LPTHREAD_START_ROUTINE)CX_Dequeue_Connect);
+   CTThread rxThread = CTThreadCreate(&rxQueue, (LPTHREAD_START_ROUTINE)CX_Dequeue_Recv_Decrypt);
+   CTThread txThread = CTThreadCreate(&txQueue, (LPTHREAD_START_ROUTINE)CX_Dequeue_Encrypt_Send);
 ```
 
 ####  Define your target (same as CTransport)
