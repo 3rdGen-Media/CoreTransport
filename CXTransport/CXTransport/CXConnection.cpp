@@ -4,7 +4,7 @@ using namespace CoreTransport;
 
 std::function< void(CTError* err, CXConnection* conn) > CXConnectionLambdaFunc = [](CTError* err, CXConnection* conn) {};
 
-CXConnection::CXConnection(CTConnection *conn, CTKernelQueue rxQueue, CTKernelQueue txQueue)
+CXConnection::CXConnection(CTConnection *conn, CTKernelQueueType rxQueue, CTKernelQueueType txQueue)
 {
 	//copy the from CTConnection CTC memory to CXConnection managed memory (because it will go out of scope)
 	//followup note:  this is no longer the case with connection pool feature + the nonblocking path
@@ -44,12 +44,12 @@ void CXConnection::close()
 	CTCloseConnection(&_conn);
 }
 
-CTKernelQueue CXConnection::queryQueue()
+CTKernelQueueType CXConnection::queryQueue()
 {
 	return _txQueue;
 }
 
-CTKernelQueue CXConnection::responseQueue()
+CTKernelQueueType CXConnection::responseQueue()
 {
 	return _rxQueue;
 }

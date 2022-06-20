@@ -115,7 +115,7 @@ extern "C" {
 #include "CTransport/CTError.h"
 #include "CTransport/CTDNS.h"
 #include "CTransport/CTSocket.h"
-//#include "CTransport/CTSSL.h"
+#include "CTransport/CTSSL.h"
 #include "CTransport/CTURL.h"
 #include "CTransport/CTConnection.h"
 #include "CTransport/CTQueue.h"

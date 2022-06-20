@@ -122,9 +122,7 @@ CTRANSPORT_API CTRANSPORT_INLINE int CTReQLHandshake( CTConnection * r, CTTarget
 CTRANSPORT_API CTRANSPORT_INLINE int CTReQLAsyncHandshake(CTConnection* conn, CTTarget* service, CTConnectionClosure callback);
 CTRANSPORT_API CTRANSPORT_INLINE int CTCloseConnection( CTConnection * conn );
 
-#ifdef _WIN32
 CTRANSPORT_API CTRANSPORT_INLINE int CTCloseSSLSocket(CTSSLContextRef sslContextRef, CTSocket socketfd);
-#endif
 
 //Blocking Send/Receive network buffer over CTConnection dedicated platform TCP socket
 CTRANSPORT_API CTRANSPORT_INLINE int   CTSend(CTConnection * conn, void * msg, unsigned long * msgLength );

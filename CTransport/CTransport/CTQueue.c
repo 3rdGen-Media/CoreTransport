@@ -2,8 +2,528 @@
 #ifndef _WIN32
 #include <assert.h>
 
-typedef int CTSSLStatus;
-#define SEC_E_OK 0x00
+
+void* __stdcall CT_Dequeue_Resolve_Connect_Handshake(LPVOID lpParameter)
+{
+	int i;
+	OSStatus status;
+	uint64_t queryToken = 0;
+	
+	CTCursor* cursor = NULL;
+
+	CTOverlappedTarget  pendingTarget = {0};
+	CTOverlappedTarget* overlappedTarget = NULL;
+	//CTOverlappedResponse* overlappedResponse = NULL;
+
+	unsigned long NumBytesTransferred = 0;
+	unsigned long ioctlBytes = 0;
+	//unsigned long recvMsgLength = 0;
+
+	CTSSLStatus scRet = 0;
+	CTClientError ctError = CTSuccess;
+
+	//we passed the completion port handle as the lp parameter
+	CTKernelQueue * cq = ((CTKernelQueue*)lpParameter);
+	CTKernelQueueType cxQueue = cq->kq;
+	CTKernelQueueType cxPipe[2] = {cq->pq[0], cq->pq[1]};//*((CTKernelQueue*)lpParameter);
+
+	CTConnection* conn = NULL;
+	unsigned long cBufferSize = ct_system_allocation_granularity();
+
+	CTCursor* closeCursor = NULL;
+	CTError err = { 0,0,NULL };
+
+	fprintf(stderr, "CT_Dequeue_Resolve_Connect_Handshake Begin\n");
+
+	//Create a kqueue to listen for incoming pipe eventss
+    CTKernelQueueType pendingTargetQueue = kqueue();//CTKernelQueueCreate();
+
+    /* Set the kqueue to start listening for messages on the incoming pipe */
+    struct kevent overlappedEvent = {0};
+    EV_SET(&overlappedEvent, cxPipe[CT_INCOMING_PIPE], EVFILT_READ, EV_ADD, 0, 0, NULL);
+	kevent(pendingTargetQueue, &overlappedEvent, 1, NULL, 0, NULL);
+
+	//TO DO:  Optimize number of packets dequeued at once
+	while(1)
+	{    
+		int ret = 0;
+		struct kevent kev[2] = {{0}, {0}};
+		memset(&overlappedEvent, 0, sizeof(struct kevent));
+		//kev[0].filter = EVFILT_USER;
+		//kev[0].ident = CTKQUEUE_OVERLAPPED_EVENT;
+		//kev[1].filter = EVFILT_READ | EV_EOF;
+		//kev[1].udata = &
+		//kev[1].ident = CTKQUEUE_OVERLAPPED_EVENT;
+		overlappedTarget = NULL;
+
+		fprintf(stderr, "\nCT_Dequeue_Resolve_Connect_Handshake::Waiting for cursor event\n");
+	
+		//wait for active target and read events with zero timeout 
+		if( (ret = kqueue_wait_with_timeout(cxQueue, &(kev[0]), 2, 0)) < 0 )
+		{
+			fprintf(stderr, "\nCT_Dequeue_Resolve_Connect_Handshake::kqueue_wait_with_timeout 1 failed with ret (%d) and errno (%d).\n", ret, errno);
+			assert(1==0);
+		}
+		else if(ret == 1)
+		{
+			//make sure we got the active target event
+			assert( kev[0].filter == EVFILT_USER);
+
+		}
+		else if(ret == 2)
+		{
+			if( kev[0].filter == EVFILT_READ && kev[1].filter == EVFILT_USER)
+			{
+				struct kevent tmp = kev[0];
+				kev[0] = kev[1];
+				kev[1] = tmp;
+			}
+			//make sure kev[0] is the active cursor event
+			assert( kev[0].filter == EVFILT_USER);
+			assert( kev[1].filter == EVFILT_READ);
+		}
+
+		if( kev[0].filter == EVFILT_USER )
+		{
+			//assert(kev[0].filter == EVFILT_USER );//&& kev[0].ident == CTKQUEUE_OVERLAPPED_EVENT);
+
+			//Get the overlapped struct associated with the asychronous IOCP call
+			overlappedTarget = (CTOverlappedTarget*)(kev[0].udata);
+			assert(overlappedTarget);
+
+			cursor = overlappedTarget->cursor;
+			cursor->target = overlappedTarget->target;
+			//cursor->target->ctx = overlappedTarget;
+			//overlappedTarget->cursor->overlappedResponse.buf += NumBytesTransferred;
+			
+			fprintf(stderr, "\nCT_Dequeue_Resolve_Connect_Handshake::Read overlappedTarget cursor (%lu) from cxQueue\n", cursor->queryToken);
+
+			//if( overlappedTarget->stage == CT_OVERLAPPED_EXECUTE) //the active target is finishing an async connect
+			//	assert(1==0);
+			
+			if( overlappedTarget->stage != CT_OVERLAPPED_RECV_FROM && overlappedTarget->stage != CT_OVERLAPPED_EXECUTE) //skip over this for async recv_from completion
+			{
+				
+				fprintf(stderr, "\nCT_Dequeue_Resolve_Connect_Handshake::Waiting for read event\n");
+				assert(1==0);
+				//Wait for kqueue notification that bytes are available for reading on rxQueue
+				if( kev[1].filter != EVFILT_READ && (ret = kqueue_wait_with_timeout(cxQueue, &(kev[1]), 1, CTSOCKET_MAX_TIMEOUT)) != 1 )
+				{
+					fprintf(stderr, "\nCT_Dequeue_Resolve_Connect_Handshake::kqueue_wait_with_timeout cxQueue read failed with ret (%d).\n", ret);
+					assert(1==0);
+				}
+				//fprintf(stderr, "\nCT_Dequeue_Resolve_Connect_Handshake::kqueue_wait_with_timeout 2 ret = (%hd) errno = %d.\n", kev[1].filter, errno);
+
+				fprintf(stderr, "\nCT_Dequeue_Resolve_Connect_Handshake::kqueue_wait_with_timeout cxQueue read filter = (%hd) errno = %d.\n", kev[1].filter, kev[1].data);
+
+				//assert(ret==1);
+				if( kev[1].filter == EV_ERROR)
+				{
+					//assert(kev[1].filter == EVFILT_USER && kev[1].ident == CTKQUEUE_OVERLAPPED_EVENT);
+					assert(1==0);
+				}
+				else if( kev[1].flags & EV_EOF)
+				{
+					assert(1==0);
+				}
+			
+				assert( kev[1].filter == EVFILT_READ);
+				assert( kev[1].ident == cursor->target->socket );
+				assert((kev[1].udata));	
+				assert(cxPipe[CT_INCOMING_PIPE] == (CTKernelQueueType)(kev[1].udata) );
+				NumBytesTransferred = kev[1].data;
+
+				//Determine how many bytes are available on the socket for reading
+				fprintf(stderr, "\nCT_Dequeue_Resolve_Connect_Handshake::Bytes Available\n");
+
+				int ioRet = ioctlsocket(cursor->target->socket, FIONREAD, &ioctlBytes);
+				assert(NumBytesTransferred > 0);
+				//if( NumBytesRecv == 0) NumBytesRecv = 32768;
+
+				fprintf(stderr, "**** nCT_Dequeue_Resolve_Connect_Handshake::NumBytesTransferred C status = %lu\n", NumBytesTransferred);
+				fprintf(stderr, "**** nCT_Dequeue_Resolve_Connect_Handshake::ictlsocket C status = %lu\n", ioRet);
+				fprintf(stderr, "**** nCT_Dequeue_Resolve_Connect_Handshake::ictlsocket C = %lu\n", ioctlBytes);
+				
+				NumBytesTransferred = ioctlBytes;
+
+				assert( kev[0].ident != CTSOCKET_EVT_TIMEOUT );
+			}
+		}
+		else if( kev[0].filter == EVFILT_WRITE ) //there was only one event from cxQueue and it was a write event
+		{
+			assert(1==0);
+		}
+		else if( kev[0].filter == EVFILT_READ) //there was only one event cxQueue and it was a read event
+		{
+			assert(1==0);
+		}
+		else //there was no event
+		{
+			fprintf(stderr, "\nnCT_Dequeue_Resolve_Connect_Handshake::Waiting for overlapped pipe\n");
+			//assert(kev[0].filter == EVFILT_READ);
+
+			/* Grab any events written to the pipe from the crTimeServer */
+			if( (ret = kqueue_wait_with_timeout(pendingTargetQueue, &kev[0], 1, CTSOCKET_MAX_TIMEOUT)) < 1 )
+			{
+				fprintf(stderr, "\nCT_Dequeue_Resolve_Connect_Handshake::kqueue_wait_with_timeout 0 failed with ret (%d).\n", ret);
+				assert(1==0);
+			}
+
+			assert( kev[0].ident == cxPipe[CT_INCOMING_PIPE]);		
+			ssize_t bytes = read((int)kev[0].ident, &pendingTarget, sizeof(CTOverlappedTarget));
+			if( bytes == -1 )
+			{
+				fprintf(stderr, "\nCT_Dequeue_Resolve_Connect_Handshake::Read from overlapped pipe failed with error %d\n", errno);
+				assert(1==0);
+			}
+			//fprintf(stderr, "\nCT_Dequeue_Recv_Decrypt::Read %d bytes from overlapped pipe \n", (int)bytes);
+			assert(bytes == sizeof(CTOverlappedTarget));
+			overlappedTarget = &pendingTarget;
+			//assert(overlappedResponse);
+
+			assert(overlappedTarget);
+			assert(overlappedTarget->target);
+			//cursor = overlappedTarget->cursor;
+			//cursor->target = overlappedTarget->target;
+			//cursor->target->ctx = overlappedTarget;
+			//	overlappedTarget->cursor->overlappedResponse.buf += NumBytesTransferred;
+				
+			fprintf(stderr, "\nCT_Dequeue_Resolve_Connect_Handshake::Read connection target (%s) from cxPipe\n", overlappedTarget->target->url.host);
+		}
+	
+
+		if (overlappedTarget->stage == CT_OVERLAPPED_SCHEDULE)
+		{
+			fprintf(stderr, "\nCT_Dequeue_Resolve_Connect_Handshake::CT_OVERLAPPED_SCHEDULE\n");
+			//This will resolve the host asynchronously and kick off the async connection returning to this loop for the various completion stage
+			//overlappedTarget->target->ctx = overlappedTarget; // store the overlapped for subsquent async connection execution
+			CTTargetResolveHost(overlappedTarget->target, overlappedTarget->target->callback);
+		}
+		else if (overlappedTarget->stage == CT_OVERLAPPED_RECV_FROM)
+		{
+			fprintf(stderr, "\nCT_Dequeue_Resolve_Connect_Handshake::CT_OVERLAPPED_RECV_FROM\n");
+			//assert(1 == 0);
+			cursor = overlappedTarget->cursor;
+			cursor->target = overlappedTarget->target;
+			/*
+			//cursor->target->ctx = overlappedTarget;
+			overlappedTarget->cursor->overlappedResponse.buf += NumBytesTransferred;
+			if (cursor->headerLength == 0)
+			{
+				//search for end of protocol header (and set cxCursor headerLength property
+				char* endOfHeader = cursor->headerLengthCallback(cursor, cursor->file.buffer, NumBytesTransferred);
+
+				//calculate size of header
+				if (endOfHeader)
+				{
+					cursor->headerLength = endOfHeader - (cursor->file.buffer);
+
+					memcpy(cursor->requestBuffer, cursor->file.buffer, cursor->headerLength);
+
+					fprintf(stderr, "CTDecryptResponseCallbacK::Header = \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
+
+					//copy body to start of buffer to overwrite header 
+					memcpy(cursor->file.buffer, endOfHeader, NumBytesTransferred - cursor->headerLength);
+					//overlappedResponse->buf += endDecryptedBytes - endOfHeader;
+
+					overlappedTarget->cursor->overlappedResponse.buf -= cursor->headerLength;
+				}
+
+			}
+			assert(cursor->contentLength > 0);
+
+			if (cursor->contentLength <= overlappedTarget->cursor->overlappedResponse.buf - cursor->file.buffer)
+			{
+				closeCursor = cursor;
+				//increment the connection response count
+				//closeCursor->conn->rxCursorQueueCount--;
+				//closeCursor->conn->responseCount++;
+
+#ifdef _DEBUG
+				assert(closeCursor->responseCallback);
+#endif
+				//issue the response to the client caller
+				closeCursor->responseCallback(&err, closeCursor);
+				closeCursor = NULL;	//set to NULL for posterity
+
+			}
+			*/
+
+			struct CTError error = { (CTErrorClass)0,0,0 };    //Reql API client functions will generally return ints as errors
+
+			char* target_host = cursor->target->proxy.host ? cursor->target->proxy.host : cursor->target->url.host;
+			short target_port = cursor->target->proxy.host  ? cursor->target->proxy.port : cursor->target->url.port;
+
+			struct dill_ipaddr addr[1];
+			struct dns_addrinfo* ai = (struct dns_addrinfo*)(cursor->target->ctx);
+
+			int numResolvedAddresses = 0;
+			if ((numResolvedAddresses = dill_ipaddr_dns_query_wait_ai(ai, addr, 1, target_port, DILL_IPADDR_IPV4, -1)) < 1)
+			{
+				fprintf(stderr, "\nCT_Dequeue_Resolve_Connect_Handshake::dill_ipaddr_dns_query_wait_ai failed to resolve any IPV4 addresses!\n");
+				error.errClass = CTDriverErrorClass;
+				error.id = CTDNSError;
+				goto CONN_CALLBACK;
+
+			}
+
+			fprintf(stderr, "\nCT_Dequeue_Resolve_Connect_Handshake::DNS resolved %d ip address(es)\n", numResolvedAddresses);
+			struct sockaddr_in* ptr = (struct sockaddr_in*)addr;//(addr[0]);
+			cursor->target->url.addr = *ptr;//(struct sockaddr_in*)addresses;
+
+			closeCursor = cursor;
+			//increment the connection response count
+			//closeCursor->conn->rxCursorQueueCount--;
+			//closeCursor->conn->responseCount++;
+
+#ifdef _DEBUG
+			assert(closeCursor->responseCallback);
+#endif
+			//issue the response to the client caller
+			closeCursor->responseCallback(&err, closeCursor);
+			closeCursor = NULL;	//set to NULL for posterity
+			continue;
+		}
+		else if (overlappedTarget->stage == CT_OVERLAPPED_EXECUTE)
+		{
+			fprintf(stderr, "\nCT_Dequeue_Resolve_Connect_Handshake::CT_OVERLAPPED_EXECUTE\n");
+
+			cursor = overlappedTarget->cursor;
+			cursor->target = overlappedTarget->target;
+
+			//wait for write to be available to indicate connection is complete
+			if( kev[1].filter != EVFILT_WRITE && (ret = kqueue_wait_with_timeout(cxQueue, &(kev[1]), 1, CTSOCKET_MAX_TIMEOUT)) != 1 )
+			{
+				fprintf(stderr, "\nCT_Dequeue_Resolve_Connect_Handshake::kqueue_wait_with_timeout cxQueue write failed with ret (%d).\n", ret);
+				assert(1==0);
+			}
+
+			fprintf(stderr, "\nCT_Dequeue_Resolve_Connect_Handshake::kqueue_wait_with_timeout cxQueue write filter = (%hd) errno = %d.\n", kev[1].filter, kev[1].data);
+
+			//assert(ret==1);
+			if( kev[1].filter == EV_ERROR)
+			{
+				//assert(kev[1].filter == EVFILT_USER && kev[1].ident == CTKQUEUE_OVERLAPPED_EVENT);
+				assert(1==0);
+			}
+			else if( kev[1].flags & EV_EOF)
+			{
+				assert(1==0);
+			}
+		
+			assert( kev[1].filter == EVFILT_WRITE);
+			assert( kev[1].ident == cursor->target->socket );
+			//assert((kev[1].udata));	
+			//assert(cxPipe[CT_INCOMING_PIPE] == (CTKernelQueueType)(kev[1].udata) );
+
+			//This will get the result of the async connection and perform ssl handshake
+			fprintf(stderr, "\nCT_Dequeue_Resolve_Connect_Handshake::ConnectEx complete error = %d\n\n", CTSocketError());
+			//struct CTConnection conn = { 0 };
+			//get a pointer to a new connection object memory
+			struct CTError error = { (CTErrorClass)0,0,0 };    //Reql API client functions will generally return ints as errors
+
+			//Check for socket error to ensure that the connection succeeded
+			if ((error.id = CTSocketGetError(overlappedTarget->target->socket)) != 0)
+			{
+				// connection failed; error code is in 'result'
+				fprintf(stderr, "\nCT_Dequeue_Resolve_Connect_Handshake::socket async connect failed with result: %d", error.id);
+				CTSocketClose(overlappedTarget->target->socket);
+				error.id = CTSocketConnectError;
+				goto CONN_CALLBACK;
+			}
+
+			fprintf(stderr, "\nCT_Dequeue_Resolve_Connect_Handshake::After CTSocketGetError\n\n");
+
+			/* Make the socket more well-behaved.
+			int rc = setsockopt(overlappedTarget->target->socket, SOL_SOCKET, SO_UPDATE_CONNECT_CONTEXT, NULL, 0);
+			if (rc != 0) {
+				fprintf(stderr, "SO_UPDATE_CONNECT_CONTEXT failed: %d\n", WSAGetLastError());
+				return 1;
+			}
+			*/
+
+			conn = CTGetNextPoolConnection();
+			memset(conn, 0, sizeof(CTConnection));
+
+			conn->socket = overlappedTarget->target->socket;
+			conn->socketContext.socket = overlappedTarget->target->socket;
+			conn->socketContext.host = overlappedTarget->target->url.host;
+
+#ifdef _WIN32
+			//For Loading
+			IO_STATUS_BLOCK iostatus;
+			pNtSetInformationFile NtSetInformationFile = NULL;
+
+			//For Executing
+			FILE_COMPLETION_INFORMATION  socketCompletionInfo = { NULL, NULL };// { overlappedTarget->target->cxQueue, dwCompletionKey };
+			ULONG fcpLen = sizeof(FILE_COMPLETION_INFORMATION);
+
+			//Load library if needed...
+			//	ntdll = LoadLibrary("ntdll.dll");
+			//	if (ntdll == NULL) {
+			//		return 0;
+			//	}
+
+			fprintf(stderr, "\nBefore GetProcAddress\n\n");
+
+			/*
+			HINSTANCE hDll = LoadLibrary("ntdll.dll");
+			if (!hDll) {
+				fprintf(stderr, "ntdll.dll failed to load!\n");
+				assert(1 == 0);
+			}
+			fprintf(stderr, "ntdll.dll loaded successfully...\n");
+			*/
+
+			//LoadNtSetInformation function ptr from ntdll.lib
+
+			NtSetInformationFile = (pNtSetInformationFile)GetProcAddress(GetModuleHandle("ntdll.dll"), "NtSetInformationFile");
+			if (NtSetInformationFile == NULL) {
+				assert(1 == 0);
+				return 0;
+			}
+
+			//remove the existing completion port attache to socket handle used for connection
+			if (NtSetInformationFile(conn->socket, &iostatus, &socketCompletionInfo, sizeof(FILE_COMPLETION_INFORMATION), FileReplaceCompletionInformation) < 0) {
+				assert(1 == 0);
+				return 0;
+			}
+#else
+			//unsubscribe from socket events on the cxQueue
+			struct kevent kev;
+			EV_SET(&kev, conn->socket, EVFILT_READ, EV_DELETE, 0, 0, NULL);
+			kevent(overlappedTarget->target->cxQueue, &kev, 1, NULL, 0, NULL);
+			EV_SET(&kev, conn->socket, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
+			kevent(overlappedTarget->target->cxQueue, &kev, 1, NULL, 0, NULL);
+		
+			//subscribe to socket read events on rxQueue
+			EV_SET(&kev, conn->socket, EVFILT_READ, EV_ADD | EV_ENABLE , 0, 0, (void*)(overlappedTarget->target->rxPipe[CT_INCOMING_PIPE]));
+			kevent(overlappedTarget->target->rxQueue, &kev, 1, NULL, 0, NULL);
+
+#endif
+			//Copy tx, rx completion port queue from target to connection and attach them to the socket handle for async writing and async reading, respectively
+			//We assume that since we are executing on a cxQueue placed on the target by the user, they will have also specified their own txQueue, rxQueue as well
+			conn->socketContext.cq = overlappedTarget->target->cq;
+			conn->socketContext.tq = overlappedTarget->target->tq;// CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
+			conn->socketContext.rq = overlappedTarget->target->rq;// CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
+			//CreateIoCompletionPort((HANDLE)conn->socket, conn->socketContext.rxQueue, dwCompletionKey, 1);
+			fprintf(stderr, "\nCT_Dequeue_Resolve_Connect_Handshake::After CreateIoCompletionPort\n\n");
+
+			//There is some short order work that would be good to parallelize regarding loading the cert and saving it to keychain
+			//However, the SSLHandshake loop has already been optimized with yields for every asynchronous call
+
+#ifdef DEBUG
+			fprintf(stderr, "\nCT_Dequeue_Resolve_Connect_Handshake::Before CTSSLRoutine Host = %s\n", conn->socketContext.host);
+			fprintf(stderr, "\nCT_Dequeue_Resolve_Connect_Handshake::Before CTSSLRoutine Host = %s\n", overlappedTarget->target->host);
+#endif
+
+			//put the connection callback on the service so we can ride it through the async handshake
+
+			conn->target = overlappedTarget->target;
+
+			if (conn->target->proxy.host)
+			{
+				assert(1==0);
+#if 0
+				//Initate the Async SSL Handshake scheduling from this thread (ie cxQueue) to rxQueue and txQueue threads
+				if ((status = CTProxyHandshake(conn)) != 0)
+				{
+					fprintf(stderr, "CTConnection::CTConnectThread::CTSSLRoutine failed with error: %d\n", (int)status);
+					error.id = CTSSLHandshakeError;
+					goto CONN_CALLBACK;
+					//return status;
+				}
+#endif
+				//if we are running the handshake asynchronously on a queue, don't return connection to client yet
+				if (conn->socketContext.txQueue)
+					continue;
+			}
+			else if (conn->target->ssl.method > CTSSL_NONE)
+			{
+				//Initate the Async SSL Handshake scheduling from this thread (ie cxQueue) to rxQueue and txQueue threads
+				if ((status = CTSSLRoutine(conn, conn->socketContext.host, overlappedTarget->target->ssl.ca)) != 0)
+				{
+					fprintf(stderr, "CTConnection::CTConnectThread::CTSSLRoutine failed with error: %d\n", (int)status);
+					error.id = CTSSLHandshakeError;
+					goto CONN_CALLBACK;
+					//return status;
+				}
+
+				//if we are running the handshake asynchronously on a queue, don't return connection to client yet
+				if (conn->socketContext.txQueue)
+					continue;
+			}
+
+			/*
+			int iResult;
+
+			u_long iMode = 1;
+
+			//-------------------------
+			// Set the socket I/O mode: In this case FIONBIO
+			// enables or disables the blocking mode for the
+			// socket based on the numerical value of iMode.
+			// If iMode = 0, blocking is enabled;
+			// If iMode != 0, non-blocking mode is enabled.
+
+			iResult = ioctlsocket(conn.socket, FIONBIO, &iMode);
+			if (iResult != NO_ERROR)
+				fprintf(stderr, "ioctlsocket failed with error: %ld\n", iResult);
+			*/
+
+			//The connection completed successfully, allocate memory to return to the client
+			error.id = CTSuccess;
+
+		CONN_CALLBACK:
+			//fprintf(stderr, "before callback!\n");
+			conn->responseCount = 0;  //we incremented this for the handshake, it is critical to reset this for the client before returning the connection
+			conn->queryCount = 0;
+			CTSetCursorPoolIndex(0);
+			overlappedTarget->target->callback(&error, conn);
+			//fprintf(stderr, "After callback!\n");
+
+			/*
+			//Remove observer that yields to coroutines
+			CFRunLoopRemoveObserver(runLoop, runLoopObserver, kCFRunLoopDefaultMode);
+			//Remove dummy source that keeps run loop alive
+			CFRunLoopRemoveSource(runLoop, runLoopSource, kCFRunLoopDefaultMode);
+
+			//release runloop object memory
+			CFRelease(runLoopObserver);
+			CFRelease(runLoopSource);
+			*/
+
+			//return the error id
+			return error.id;
+
+		}
+		else
+		{
+			fprintf(stderr, "CTConnection::CTConnectThread::UNHANDLED_STAGE (%d)\n", overlappedTarget->stage);
+			fflush(stderr);
+		}
+		/*
+		if (NumBytesSent == 0)
+		{
+			fprintf(stderr, "CTConnection::CTConnectThread::Server Disconnected!!!\n");
+		}
+		else
+		{
+
+			CTTargetResolveHost(overlappedTarget->target, overlappedTarget->callback);
+
+		}
+		*/
+	
+
+	}
+
+	fprintf(stderr, "\nCTConnection::CTConnectThread::End\n");
+	ExitThread(0);
+	return 0;
+
+}
+
 
 void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 {
@@ -31,9 +551,13 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 	CTSSLStatus scRet = 0;
 	CTClientError ctError = CTSuccess;
 
-	CTKernelQueuePipePair *qPair = (CTKernelQueuePipePair*)lpParameter;
-	CTKernelQueue rxQueue = qPair->q;//*((CTKernelQueue*)lpParameter);
-	CTKernelQueue oxPipe[2] = {qPair->p[0], qPair->p[1]};//*((CTKernelQueue*)lpParameter);
+	CTKernelQueue * rq = ((CTKernelQueue*)lpParameter);
+	CTKernelQueueType rxQueue = rq->kq;
+	CTKernelQueueType rxPipe[2] = {rq->pq[0], rq->pq[1]};//*((CTKernelQueue*)lpParameter);
+
+	//CTKernelQueuePipePair *qPair = (CTKernelQueuePipePair*)lpParameter;
+	//CTKernelQueue rxQueue = qPair->q;//*((CTKernelQueue*)lpParameter);
+	//CTKernelQueue oxPipe[2] = {qPair->p[0], qPair->p[1]};//*((CTKernelQueue*)lpParameter);
 
 	unsigned long cBufferSize = ct_system_allocation_granularity();
 
@@ -50,11 +574,11 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 
 	//Create a kqueue to listen for incoming pipe eventss
     //CTKernelQueue activeCursorQueue = CTKernelQueueCreate();
-    CTKernelQueue pendingCursorQueue = CTKernelQueueCreate();
+    CTKernelQueueType pendingCursorQueue = kqueue();//CTKernelQueueCreate();
 
     /* Set the kqueue to start listening for messages on the incoming pipe */
     struct kevent overlappedEvent = {0};
-    EV_SET(&overlappedEvent, oxPipe[CT_INCOMING_PIPE], EVFILT_READ, EV_ADD, 0, 0, NULL);
+    EV_SET(&overlappedEvent, rxPipe[CT_INCOMING_PIPE], EVFILT_READ, EV_ADD, 0, 0, NULL);
 	kevent(pendingCursorQueue, &overlappedEvent, 1, NULL, 0, NULL);
 
 	fprintf(stderr, "\nCT_Dequeue_Recv_Decrypt::Begin\n");
@@ -123,7 +647,7 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 			assert(overlappedResponse);
 			assert(cursor);
 
-			fprintf(stderr, "\nCT_Dequeue_Recv_Decrypt::Read cursor (%lu) from oxQueue\n", cursor->queryToken);
+			fprintf(stderr, "\nCT_Dequeue_Recv_Decrypt::Read cursor (%lu) from rxQueue\n", cursor->queryToken);
 		}
 		else
 		{
@@ -136,7 +660,7 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 				assert(1==0);
 			}
 
-			assert( kev[0].ident == oxPipe[CT_INCOMING_PIPE]);		
+			assert( kev[0].ident == rxPipe[CT_INCOMING_PIPE]);		
 			ssize_t bytes = read((int)kev[0].ident, &overlappedCursor, sizeof(CTOverlappedResponse));
 			if( bytes == -1 )
 			{
@@ -150,7 +674,7 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 			cursor = (CTCursor*)overlappedResponse->cursor;
 			assert(cursor);
 			//assert(cursor->queryToken == 0);
-			fprintf(stderr, "\nCT_Dequeue_Recv_Decrypt::Read cursor (%lu) from oxPipe\n", cursor->queryToken);
+			fprintf(stderr, "\nCT_Dequeue_Recv_Decrypt::Read cursor (%lu) from rxPipe\n", cursor->queryToken);
 		}
 	
 		fprintf(stderr, "\nCT_Dequeue_Recv_Decrypt::Waiting for read event\n");
@@ -179,7 +703,7 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 		assert( kev[1].filter == EVFILT_READ);
 		assert( kev[1].ident == cursor->conn->socket );
 		assert((kev[1].udata));	
-		assert(oxPipe[CT_INCOMING_PIPE] == (CTKernelQueue)(kev[1].udata) );
+		assert(rxPipe[CT_INCOMING_PIPE] == (CTKernelQueueType)(kev[1].udata) );
 		NumBytesRecv = kev[1].data;
 
 		
@@ -404,7 +928,7 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 						{
 							//assert(1==0);
 
-							assert( nextCursorMsg.ident == oxPipe[CT_INCOMING_PIPE]);		
+							assert( nextCursorMsg.ident == rxPipe[CT_INCOMING_PIPE]);		
 							ssize_t bytes = read((int)nextCursorMsg.ident, &nextOverlappedCursor, sizeof(CTOverlappedResponse));
 							if( bytes == -1 )
 							{
@@ -722,14 +1246,15 @@ void* __stdcall CT_Dequeue_Encrypt_Send(LPVOID lpParameter)
 	unsigned long NumBytesSent = 0;
 	unsigned long recvMsgLength = 0;
 
-	//CTSSLStatus scRet = 0;
+	CTSSLStatus scRet = 0;
 	CTClientError ctError = CTSuccess;
 	CTError err = { 0,0,NULL };
 	//struct timespec _timespec = {0,0};
 
 	//we passed the kqueue handle as the lp parameter
-	CTKernelQueue txQueue = *((CTKernelQueue*)lpParameter);
-	CTKernelQueue oxQueue = 0;//*((CTKernelQueue*)lpParameter);
+	CTKernelQueue *tq = ((CTKernelQueue*)lpParameter);
+	CTKernelQueueType txQueue = tq->kq;
+	//CTKernelQueue oxQueue = 0;//*((CTKernelQueue*)lpParameter);
 
 	unsigned long cBufferSize = ct_system_allocation_granularity();
 
@@ -795,13 +1320,7 @@ void* __stdcall CT_Dequeue_Encrypt_Send(LPVOID lpParameter)
 				//a)	encrypt the query message in the query buffer
 				//b)	send the encrypted query data over the socket
 				if (overlappedRequest->stage != CT_OVERLAPPED_SEND)
-				{
-					#ifdef _WIN32
 					scRet = CTSSLWrite(cursor->conn->socket, cursor->conn->sslContext, overlappedRequest->buf, &NumBytesSent);
-					#else
-					assert(1==0);
-					#endif
-				}	
 				else
 				{
 					//TO DO:  create a send callback cursor attachment to remove post send TLS handshake logic here
@@ -889,7 +1408,7 @@ unsigned long __stdcall CT_Dequeue_Resolve_Connect_Handshake(LPVOID lpParameter)
 	CTClientError ctError = CTSuccess;
 
 	//we passed the completion port handle as the lp parameter
-	CTKernelQueue hCompletionPort = (CTKernelQueue)lpParameter;
+	CTKernelQueueType hCompletionPort = *(CTKernelQueueType*)lpParameter;
 	CTConnection* conn = NULL;
 	unsigned long cBufferSize = ct_system_allocation_granularity();
 
@@ -1131,6 +1650,7 @@ unsigned long __stdcall CT_Dequeue_Resolve_Connect_Handshake(LPVOID lpParameter)
 				//fprintf(stderr, "before callback!\n");
 				conn->responseCount = 0;  //we incremented this for the handshake, it is critical to reset this for the client before returning the connection
 				conn->queryCount = 0;
+				CTSetCursorPoolIndex(0);
 				overlappedTarget->target->callback(&error, conn);
 				//fprintf(stderr, "After callback!\n");
 
@@ -1199,7 +1719,8 @@ unsigned long __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 	CTSSLStatus scRet = 0;
 	CTClientError ctError = CTSuccess;
 
-	HANDLE hCompletionPort = (HANDLE)lpParameter;
+	//HANDLE hCompletionPort = (HANDLE)lpParameter;
+	CTKernelQueueType hCompletionPort = *(CTKernelQueueType*)lpParameter;
 
 	unsigned long cBufferSize = ct_system_allocation_granularity();
 
@@ -1917,7 +2438,8 @@ unsigned long __stdcall CT_Dequeue_Encrypt_Send(LPVOID lpParameter)
 	CTError err = { 0,0,NULL };
 
 	//we passed the completion port handle as the lp parameter
-	HANDLE hCompletionPort = (HANDLE)lpParameter;
+	//HANDLE hCompletionPort = (HANDLE)lpParameter;
+	CTKernelQueueType hCompletionPort = *(CTKernelQueueType*)lpParameter;
 
 	unsigned long cBufferSize = ct_system_allocation_granularity();
 

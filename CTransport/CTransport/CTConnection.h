@@ -11,6 +11,20 @@ extern "C" {
 #endif
 
 
+//Win32 -> BSD Overlapped Compatibility
+#ifndef _WIN32
+typedef int DWORD;
+typedef struct WSABUF
+{
+	unsigned long len;
+	char* 		  buf;
+}WSABUF;
+typedef struct WSAOVERLAPPED{
+	struct kevent hEvent;
+}WSAOVERLAPPED;
+#define ZeroMemory(x, y) memset(x, 0, y)
+#endif
+
 //#pragma mark -- CTSSL Struct
 
 /* * *
@@ -77,8 +91,6 @@ typedef enum CTOverlappedStage
 	CT_OVERLAPPED_ENCRYPT_SEND,				//TLS + TCP
 }CTOverlappedStage;
 
-#ifdef _WIN32
-
 typedef struct CTOverlappedTarget
 {
 	WSAOVERLAPPED		Overlapped;
@@ -93,7 +105,7 @@ typedef struct CTOverlappedTarget
 
 	//struct CTOverlappedResponse *overlappedResponse;	//ptr to the next overlapped
 }CTOverlappedTarget;
-#endif
+
 /* * *
  *  CTConnection [ReqlConnection]
  *
@@ -102,10 +114,8 @@ typedef struct CTOverlappedTarget
 typedef struct CTConnection
 {
     //BSD Socket TLS Connection
-#ifdef _WIN32
     CTSSLContextRef sslContext;
-    //SSLContextRef sslWriteContext;
-#endif
+
 	//BSD Socket TCP Connection
     union{
 		CTSocketContext socketContext;
@@ -185,17 +195,44 @@ typedef struct CTTarget     //TO DO:  calculate size and alignment
 	//UDP/TCP Socket Connection Options
 	int64_t		timeout;        //-1 indicates wait forever
 
-	CTKernelQueue	cxQueue;	//The desired kernel queue for the socket connection to async connect AND async recv on 
-	CTKernelQueue	txQueue;	//The desired kernel queue for the socket connection to async send on
-	CTKernelQueue	rxQueue;	//The desired kernel queue for the socket connection to async send on
-#ifndef _WIN32
-	CTKernelQueue	oxPipe[2];	//The desired kernel queue for the socket connection to post overlapped cursors to the rxQueue + thread pool
-#endif
+	//CTKernelQueue	cxQueue;	//The desired kernel queue for the socket connection to async connect AND async recv on 
+	//CTKernelQueue	txQueue;	//The desired kernel queue for the socket connection to async send on
+	//CTKernelQueue	rxQueue;	//The desired kernel queue for the socket connection to async send on
+
+	//CTKernelQueue rxQueue;
+
+	union  
+	{
+		struct{
+			CTKernelQueueType cxQueue;
+			CTKernelQueueType cxPipe[2];
+		};
+		CTKernelQueue cq;
+	};
+
+	union  
+	{
+		struct{
+			CTKernelQueueType txQueue;
+			CTKernelQueueType txPipe[2];
+		};
+		CTKernelQueue tq;
+	};
+
+
+	union  
+	{
+		struct{
+			CTKernelQueueType rxQueue;
+			CTKernelQueueType rxPipe[2];
+		};
+		CTKernelQueue rq;
+	};
 
 	CTConnectionClosure				callback;
-#ifdef _WIN32
+//#ifdef _WIN32
 	struct CTOverlappedTarget		overlappedTarget;
-#endif
+//#endif
 	void* ctx;
 
 	//RethinkDB SASL SCRAM SHA-256 Handshake Credentials; 
@@ -208,29 +245,6 @@ typedef struct CTTarget     //TO DO:  calculate size and alignment
 	unsigned char padding[2];
 }CTTarget;
 typedef CTTarget CTConnectionOptions;
-
-
-
-/*
-typedef enum CTOverlappedConnectionStage
-{
-	CT_OVERLAPPED_SCHEDULE,
-	CT_OVERLAPPED_EXECUTE,
-}CTOverlappedResponseType;
-*/
-
-#ifndef _WIN32
-typedef int DWORD;
-typedef struct WSABUF
-{
-	unsigned long len;
-	char* 		  buf;
-}WSABUF;
-typedef struct WSAOVERLAPPED{
-	struct kevent hEvent;
-}WSAOVERLAPPED;
-#define ZeroMemory(x, y) memset(x, 0, y)
-#endif
 
 
 typedef struct CTOverlappedResponse

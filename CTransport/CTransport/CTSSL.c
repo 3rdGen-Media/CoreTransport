@@ -5,6 +5,7 @@
 //#include "ReqlFile.h"
 
 #include <stdio.h>
+#include <assert.h>
 
 #ifdef CTRANSPORT_WOLFSSL
 	static int g_SSLInitialized = 0;
@@ -53,7 +54,6 @@ static void ReqlMBEDTLSDebug(void *ctx, int level, const char *file, int line, c
 }
 
 #elif defined(_WIN32)
-#include <assert.h>
 
 #define DLL_NAME TEXT("secur32.dll")
 #define NT4_DLL_NAME TEXT("Security.dll")
@@ -1733,10 +1733,10 @@ int CTWolfSSLRecv(WOLFSSL* ssl, char* buff, int sz, void* ctx)
 	unsigned long recvdBytes;
 	//fprintf(stderr, "CTWolfSSLRecv Callback: attempting to recv %d bytes on socket (%d)...\n", sz, sockfd);
 
-	WSABUF wsaBuf = { sz, buff };
-	DWORD flags = 0;
-	OVERLAPPED ol;
-	ZeroMemory(&ol, sizeof(OVERLAPPED));
+	//WSABUF wsaBuf = { sz, buff };
+	//DWORD flags = 0;
+	//OVERLAPPED ol;
+	//ZeroMemory(&ol, sizeof(OVERLAPPED));
 	//Receive a buffer of encrypted bytes from a buffer passed to wolfSSL_read by CoreTransport
 	if (sockfd == 0)
 	{
@@ -1757,8 +1757,11 @@ int CTWolfSSLRecv(WOLFSSL* ssl, char* buff, int sz, void* ctx)
 	}
 	//Receive a buffer of encrypted bytes by reading directly from the socket
 	//else if ((recvd = WSARecv(sockfd, &wsaBuf, 1, sz, &flags, &ol, NULL)) == SOCKET_ERROR){
+#ifdef _WIN32
 	else if ((recvd = recv(sockfd, buff, sz, 0)) == SOCKET_ERROR) {
-
+#else
+	else if ((recvd = recv(sockfd, buff, sz, 0)) < 0) {
+#endif
 		//DWORD numBytes;
 		//BOOL ok = GetOverlappedResult((HANDLE)sockfd, &ol, &numBytes, TRUE);
 		//if (ok)
@@ -1767,12 +1770,9 @@ int CTWolfSSLRecv(WOLFSSL* ssl, char* buff, int sz, void* ctx)
 		//error encountered. Be responsible and report it in wolfSSL terms
 		fprintf(stderr, stderr, "IO RECEIVE ERROR: ");
 
-		int ret = WSAGetLastError();
-#ifdef _WIN32
+		int ret = CTSocketError();
 		switch (ret){
-#else 
-		switch (errno) {
-#endif
+
 #if EAGAIN != EWOULDBLOCK
 		case EAGAIN: /* EAGAIN == EWOULDBLOCK on some systems, but not others */
 #endif
@@ -1785,8 +1785,10 @@ int CTWolfSSLRecv(WOLFSSL* ssl, char* buff, int sz, void* ctx)
 				fprintf(stderr, stderr, "socket timeout\n");
 				return WOLFSSL_CBIO_ERR_TIMEOUT;
 			}
+#ifdef _WIN32
 		case WSAEWOULDBLOCK:
 			assert(1 == 0);
+#endif
 		case ECONNRESET:
 			fprintf(stderr, stderr, "connection reset\n");
 			return WOLFSSL_CBIO_ERR_CONN_RST;
@@ -1881,7 +1883,7 @@ int CTWolfSSLSend(WOLFSSL* ssl, char* buff, int sz, void* ctx)
 		if (sent != sz)
 		{
 			//fprintf(stderr, stderr, "IO SEND ERROR: ");
-			switch (WSAGetLastError()) {
+			switch (CTSocketError()) {
 #if EAGAIN != EWOULDBLOCK
 			case EAGAIN: // EAGAIN == EWOULDBLOCK on some systems, but not others
 #endif
@@ -2860,6 +2862,8 @@ CTCursorCompletionClosure SSLSecondMessageResponseCallback = ^ void(CTError * er
 
 	cursor->conn->responseCount = 0;  //we incremented this for the handshake, it iscritical to reset this for the client before returning the connection
 	cursor->conn->queryCount = 0;
+	CT_CURSOR_INDEX = 0;
+
 	cursor->conn->target->callback(err, cursor->conn);
 };
 
@@ -4374,7 +4378,9 @@ int CTSSLWrite( CTSocket socketfd, CTSSLContextRef sslContextRef, void * msg, un
 	//if ( (errOrBytesWritten = wolfSSL_BIO_write(sslContextRef->bio, msg, *msgLength)) != *msgLength)
 	if ((errOrBytesWritten = wolfSSL_write(sslContextRef->ctx, msg, *msgLength)) != *msgLength)
 	{
-		fprintf(stderr, "CTSSLWrite ERROR: wolfSSL_write failed to write\n");
+		wolfSSL_get_error(sslContextRef->ctx, errOrBytesWritten);
+		fprintf(stderr, "CTSSLWrite ERROR: wolfSSL_write failed to write with error: %d\n", (int)errOrBytesWritten);
+		assert(1==0);
 		errOrBytesWritten = -1;
 	}
 	*msgLength = errOrBytesWritten;

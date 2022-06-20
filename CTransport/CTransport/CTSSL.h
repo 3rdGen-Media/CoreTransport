@@ -10,8 +10,6 @@
 
 //#include "dns/dns.h"
 
-
-
 typedef enum CTSSLMethod
 {
     CTSSL_NONE,
@@ -91,13 +89,18 @@ typedef enum CTSSLMethod
     */
 }CTSSLMethod;
 
-
+#ifndef _WIN32
+typedef long SECURITY_STATUS;
+#define SEC_E_OK                         0x00000000L
+#define SEC_I_CONTINUE_NEEDED            0x00090312L
+#define SEC_E_INCOMPLETE_MESSAGE         0x80090318L
+#endif
 
 #ifdef CTRANSPORT_WOLFSSL
 //WOLF SSL
 #include <wolfssl/options.h>
 #include <wolfssl/ssl.h>
-typedef int CTSSLStatus;
+typedef SECURITY_STATUS CTSSLStatus;
 //typedef char CTSecCertificate;
 typedef char* CTSecCertificateRef;
 typedef struct CTSSLContext

@@ -14,6 +14,7 @@ add_library (
         CTransport STATIC
         CTransport/CTFile.c
         CTransport/CTSocket.c
+        CTransport/CTSSL.c
         CTransport/CTransportAPI.c
         CTransport/CTQueue.c
 )

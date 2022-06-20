@@ -82,14 +82,31 @@ typedef NTSTATUS(WINAPI* pNtSetInformationFile)(HANDLE, PIO_STATUS_BLOCK, PVOID,
 #ifdef _WIN32
 #define CTSocket 			SOCKET
 #define CTThread			HANDLE
-#define CTKernelQueue 		HANDLE
+typedef HANDLE              CTKernelQueueType;
 #define CTDispatchSource 	void
 //#define SSLContextRef 	void*
 #define CTSocketError() (WSAGetLastError())
+typedef LPTHREAD_START_ROUTINE CTThreadRoutine; //Win32 CRT Thread Routine
+
+typedef struct CTKernelQueue
+{
+	CTKernelQueueType kq;
+}CTKernelQueue;
+
 #elif defined(__APPLE__) || defined(__FreeBSD__) //with libdispatch
 #define CTSocket 	  		int //sockets are just file descriptors
 #define CTThread			pthread_t
-#define CTKernelQueue 		int //kqueues are just file descriptors
+#define CTThreadRoutine     
+typedef int CTKernelQueueType; //kqueues are just file descriptors
+typedef int CTKernelPipeType;  //pipes are just file descriptors
+
+typedef struct CTKernelQueue 
+{
+	CTKernelQueueType kq;
+	CTKernelQueueType pq[2];
+}CTKernelQueue;
+
+
 #define CT_INCOMING_PIPE	0
 #define CT_OUTGOING_PIPE	1
 #define CTDispatchSource 	dispatch_source_t
@@ -99,11 +116,8 @@ typedef void (^CTDispatchSourceHandler)(void);
 #error "Unsupported Platform"
 #endif
 
-typedef struct CTKernelQueuePipePair
-{
-    CTKernelQueue q;
-	CTKernelQueue p[2];
-}CTKernelQueuePipePair;
+
+//typedef void* (* CTThreadRoutine) (void* lpThreadParameter); //pthread routine
 
 extern const uint32_t  CTSOCKET_MAX_TIMEOUT; //input to kqueue to indicate we want to wait forever
 extern const uintptr_t CTSOCKET_EVT_TIMEOUT; //custom return value from kqueue wait to indicate we received timeout from kqueue
@@ -119,19 +133,55 @@ typedef struct CTSocketContext
 #else
 	CTSocket socket;
 #endif
-	CTKernelQueue			cxQueue;		//
-	CTKernelQueue			txQueue;		//an WIN32 iocp completion port
-	CTKernelQueue			rxQueue;
+	//CTKernelQueue			cxQueue;		//
+	//CTKernelQueue			txQueue;		//an WIN32 iocp completion port
+	//CTKernelQueue			rxQueue;
+	
+	//THIS IS SO FUCKING UGLY!!!!
+	union  
+	{
+		struct{
+			CTKernelQueueType cxQueue;
 #ifndef _WIN32
-	CTKernelQueue			oxPipe[2];	//The desired kernel queue for the socket connection to post overlapped cursors to the rxQueue + thread pool
+			CTKernelQueueType cxPipe[2];
 #endif
+		};
+		CTKernelQueue cq;
+	};
+
+
+	union  
+	{
+		struct{
+			CTKernelQueueType txQueue;
+#ifndef _WIN32
+			CTKernelQueueType txPipe[2];
+#endif
+		};
+		CTKernelQueue tq;
+	};
+
+	union  
+	{
+		struct{
+			CTKernelQueueType rxQueue;
+#ifndef _WIN32
+			CTKernelQueueType rxPipe[2];
+#endif
+		};
+		CTKernelQueue rq;
+	};
+
+//#ifndef _WIN32
+//	CTKernelQueue			oxPipe[2];	//The desired kernel queue for the socket connection to post overlapped cursors to the rxQueue + thread pool
+//#endif
 
 	char * host;
 }CTSocketContext;
 typedef CTSocketContext* CTSocketContextRef;
 
 //#pragma mark -- CTKernelQueue Event API
-CTRANSPORT_API CTRANSPORT_INLINE int kqueue_wait_with_timeout(int kqueue, struct kevent * kev, int numEvents, uint32_t timeout);
+CTRANSPORT_API CTRANSPORT_INLINE int kqueue_wait_with_timeout(CTKernelQueueType kqueue, struct kevent * kev, int numEvents, uint32_t timeout);
 
 CTRANSPORT_API CTRANSPORT_INLINE CTKernelQueue CTKernelQueueCreate(void);
 
@@ -139,7 +189,7 @@ CTRANSPORT_API CTRANSPORT_INLINE CTKernelQueue CTKernelQueueCreate(void);
  *  Creates rx and tx kernel queues and associates them with the socket for reading and writing
  *	(Not used in practice; only for development)
  ***/
-CTRANSPORT_API CTRANSPORT_INLINE CTKernelQueue CTSocketCreateEventQueue(CTSocketContext * socketContext);
+//CTRANSPORT_API CTRANSPORT_INLINE CTKernelQueue CTSocketCreateEventQueue(CTSocketContext * socketContext);
 
 /**
  *  CTKernelQueueWait
@@ -151,11 +201,11 @@ CTRANSPORT_API CTRANSPORT_INLINE CTKernelQueue CTSocketCreateEventQueue(CTSocket
  *
  *  TO DO:  Add timeout input
  ***/
-CTRANSPORT_API CTRANSPORT_INLINE coroutine int CTKernelQueueWait(CTKernelQueue event_queue, int16_t eventFilter);
+CTRANSPORT_API CTRANSPORT_INLINE coroutine int CTKernelQueueWait(CTKernelQueueType event_queue, int16_t eventFilter);
 
 //#pragma mark -- CTThread API
 
-CTRANSPORT_API CTRANSPORT_INLINE CTThread CTThreadCreate(CTKernelQueue* threadPoolQueue, LPTHREAD_START_ROUTINE threadRoutine);
+CTRANSPORT_API CTRANSPORT_INLINE CTThread CTThreadCreate(CTKernelQueue* threadPoolQueue, CTThreadRoutine threadRoutine);
 CTRANSPORT_API CTRANSPORT_INLINE void CTThreadClose(CTThread* thread);
 
 //#pragma mark -- CTSocket API

@@ -33,11 +33,14 @@ int kqueue_wait_with_timeout(int kqueue, struct kevent * kev, int numEvents, uin
 
 CTKernelQueue CTKernelQueueCreate(void)
 {
+    CTKernelQueue queue = { 0 };
 #ifndef _WIN32
-    return kqueue();
+    queue.kq = kqueue();//{kqueue(), pipe(kq.rxPipe)};
+    pipe(queue.pq);
 #else
-    return CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, (ULONG_PTR)NULL, 0);
+    queue.kq = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, (ULONG_PTR)NULL, 0);
 #endif
+    return queue;
 }
 
 
@@ -49,6 +52,7 @@ ULONG_PTR dwCompletionKey = (ULONG_PTR)NULL;
  *
  *
  ***/
+ /*
 CTKernelQueue CTSocketCreateEventQueue(CTSocketContext * socketContext)
 {
 	CTKernelQueue event_queue = -1;
@@ -82,6 +86,7 @@ CTKernelQueue CTSocketCreateEventQueue(CTSocketContext * socketContext)
 #endif
 	return event_queue;
 }
+*/
 
 /**
  *  CTKernelQueueWait
@@ -93,7 +98,7 @@ CTKernelQueue CTSocketCreateEventQueue(CTSocketContext * socketContext)
  *
  *  TO DO:  Add timeout input
  ***/
-coroutine int CTKernelQueueWait(CTKernelQueue event_queue, int16_t eventFilter)
+coroutine int CTKernelQueueWait(CTKernelQueueType event_queue, int16_t eventFilter)
 {
 #ifndef _WIN32
     //fprintf(stderr, "CTSocketWait Start\n");
@@ -118,13 +123,13 @@ coroutine int CTKernelQueueWait(CTKernelQueue event_queue, int16_t eventFilter)
 
 //#pragma mark -- CTThread API
 
-CTThread CTThreadCreate(CTKernelQueue* threadPoolQueue, LPTHREAD_START_ROUTINE threadRoutine)
+CTThread CTThreadCreate(CTKernelQueue* threadPoolQueue, CTThreadRoutine threadRoutine)
 {
 #ifdef _WIN32
-    return CreateThread(NULL, 0, threadRoutine, *threadPoolQueue, 0, NULL);
+    return CreateThread(NULL, 0, threadRoutine, (LPVOID)threadPoolQueue, 0, NULL);
 #else
     CTThread thread;
-    pthread_create(&thread, NULL, threadRoutine, (void*)threadPoolQueue)
+    pthread_create(&thread, NULL, threadRoutine, (void*)threadPoolQueue);
     return thread;
     //if (pthread_create(&rxThread, NULL, CT_Dequeue_Recv_Decrypt, (void*)&g_kQueuePipePair) != 0)
     //    assert(1 == 0);
@@ -169,7 +174,7 @@ void CTSocketInit(void)
 CTSocket CTSocketCreateUDP(void)
 {
     // Standard unix socket definitions
-    CTSocket socketfd;
+    CTSocket socketfd = -1;
     struct linger lin;
     int iResult;
     u_long nonblockingMode = 0;
@@ -179,8 +184,8 @@ CTSocket CTSocketCreateUDP(void)
     BOOL     bOptVal = TRUE;
     int      bOptLen = sizeof(BOOL);
     socketfd = WSASocket(AF_INET, SOCK_DGRAM, IPPROTO_UDP , NULL, 0, WSA_FLAG_OVERLAPPED);
-#elif defined(__APPLE__)
-
+#else //defined(__APPLE__)
+    socketfd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
 #endif
 
     // Create the non-blocking unix socket file descriptor for a tcp stream

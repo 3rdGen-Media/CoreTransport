@@ -3,6 +3,11 @@
 # to the root binary directory of the project as ${HELLO_BINARY_DIR}.
 cmake_minimum_required (VERSION 3.20)
 
+# Set Workspace/Solution Level Options
+# Turn on WolfSSL for CTransport TLS connections and define associated preprocessor definition
+add_definitions(-DCTRANSPORT_WOLFSSL)
+option(CTRANSPORT_WOLFSSL "Builds CTransport with WolfSSL TLS Support for Secure Connections" ON)
+
 set (CMAKE_C_FLAGS "-fblocks")
 set (CMAKE_CXX_FLAGS "-fblocks")
 set (CMAKE_SHARED_LINKER_FLAGS "-lBlocksRuntime")
@@ -21,7 +26,7 @@ message(STATUS "CoreTrasnport CMAKE_CXX_COMPILER_VERSION is ${CMAKE_CXX_COMPILER
 set(CMAKE_DEBUG_POSTFIX d)
 #set(CMAKE_RELEASE_POSTFIX R)
 
-#Create a /bin directory at top level of VitalTransport Dir (ie the VitalTransport Workspace Directory)
+#Create a /bin directory at top level of CoreTransport Dir (ie the CoreTransport Workspace Directory)
 file(MAKE_DIRECTORY ./bin)
 file(MAKE_DIRECTORY ./include)
 file(MAKE_DIRECTORY ./include/dill)
@@ -58,13 +63,17 @@ project(CoreTransport LANGUAGES CXX C)
 #recurse into CAuth subdirectory to build
 add_subdirectory (CAuth)
 
-#if( CAUTH_OPENSSL )
-#target_include_directories (VAuth PUBLIC ../../../ThirdParty/openssl-1.1.1l/include/openssl ${CMAKE_CURRENT_SOURCE_DIR})
-#target_link_libraries(VAuth PUBLIC OpenSSL::SSL OpenSSL::Crypto) 
-#endif()
-
-
 #recurse into CTransport directory to build
 add_subdirectory (CTransport)
 #add_subdirectory (CXTransport)
 add_subdirectory (Samples/HappyEyeballs)
+
+if ( CTRANSPORT_WOLFSSL )
+target_include_directories (CTransport PUBLIC /usr/local/include)
+target_link_libraries (CTransport PUBLIC /usr/local/lib/libwolfssl.a)
+target_link_libraries (CTransport PUBLIC /usr/lib/libm.a)
+target_include_directories (HappyEyeballs PUBLIC /usr/local/include)
+target_link_libraries (HappyEyeballs PUBLIC /usr/local/lib/libwolfssl.a)
+target_link_libraries (HappyEyeballs PUBLIC /usr/lib/libm.a)
+endif()
+
