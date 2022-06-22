@@ -7,6 +7,7 @@ cmake_minimum_required (VERSION 3.20)
 # Turn on WolfSSL for CTransport TLS connections and define associated preprocessor definition
 add_definitions(-DCTRANSPORT_WOLFSSL)
 option(CTRANSPORT_WOLFSSL "Builds CTransport with WolfSSL TLS Support for Secure Connections" ON)
+add_definitions(-DWOLFSSL_DEBUG)
 
 set (CMAKE_C_FLAGS "-fblocks")
 set (CMAKE_CXX_FLAGS "-fblocks")
@@ -70,10 +71,13 @@ add_subdirectory (Samples/HappyEyeballs)
 
 if ( CTRANSPORT_WOLFSSL )
 target_include_directories (CTransport PUBLIC /usr/local/include)
-target_link_libraries (CTransport PUBLIC /usr/local/lib/libwolfssl.a)
+target_include_directories (CTransport PUBLIC /home/jmoulton/3rdGen/3rdParty/wolfssl-5.1.1/wolfssl)
+target_link_libraries (CTransport PUBLIC /home/jmoulton/3rdGen/3rdParty/wolfssl-5.1.1/build/libwolfssld.a)
 target_link_libraries (CTransport PUBLIC /usr/lib/libm.a)
 target_include_directories (HappyEyeballs PUBLIC /usr/local/include)
-target_link_libraries (HappyEyeballs PUBLIC /usr/local/lib/libwolfssl.a)
+target_include_directories (HappyEyeballs PUBLIC /home/jmoulton/3rdGen/3rdParty/wolfssl-5.1.1/wolfssl)
+target_link_libraries (HappyEyeballs PUBLIC /home/jmoulton/3rdGen/3rdParty/wolfssl-5.1.1/build/libwolfssld.a)
+#target_link_libraries (HappyEyeballs PUBLIC /usr/local/lib/libwolfssl.a)
 target_link_libraries (HappyEyeballs PUBLIC /usr/lib/libm.a)
 endif()
 

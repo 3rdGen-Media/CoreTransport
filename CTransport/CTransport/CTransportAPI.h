@@ -126,7 +126,8 @@ CTRANSPORT_API CTRANSPORT_INLINE int CTCloseSSLSocket(CTSSLContextRef sslContext
 
 //Blocking Send/Receive network buffer over CTConnection dedicated platform TCP socket
 CTRANSPORT_API CTRANSPORT_INLINE int   CTSend(CTConnection * conn, void * msg, unsigned long * msgLength );
-CTRANSPORT_API CTRANSPORT_INLINE void* CTRecv(CTConnection * conn, void * msg, unsigned long * msgLength );
+CTRANSPORT_API CTRANSPORT_INLINE void* CTRecv(CTConnection * conn, void * msg, unsigned long * msgLength);
+CTRANSPORT_API CTRANSPORT_INLINE void* CTRecvBytes(CTConnection * conn, void * msg, unsigned long * msgLength);
 
 #ifdef _WIN32
 //Async Send/Receive network buffer over CTConnection dedicated platform TCP socket (and tag with a queryToken)
@@ -142,14 +143,15 @@ CTRANSPORT_API CTRANSPORT_INLINE CTClientError CTCursorRecvOnQueue(CTOverlappedR
 CTRANSPORT_API CTRANSPORT_INLINE CTClientError CTAsyncRecv(CTConnection* conn, void * msg, unsigned long offset, unsigned long * msgLength);
 #ifdef _WIN32
 CTRANSPORT_API CTRANSPORT_INLINE CTClientError CTAsyncRecv2(CTConnection* conn, void * msg, unsigned long offset, unsigned long * msgLength, uint64_t queryToken, CTOverlappedResponse** overlappedResponsePtr);
+#endif 
 
 //Request [more] data  
 CTRANSPORT_API CTRANSPORT_INLINE CTClientError CTCursorAsyncRecv(CTOverlappedResponse** overlappedResponsePtr, void * msg, unsigned long offset, unsigned long * msgLength);
 
+#ifdef _WIN32
 //Reql Send/Receive wrappers
 CTRANSPORT_API CTRANSPORT_INLINE uint64_t CTReQLRunQueryOnQueue(CTConnection * conn, const char ** queryBufPtr, unsigned long queryStrLength, uint64_t queryToken);
-
-#endif 
+#endif
 
 //#pragma mark -- Global ReqlClientDriver Object
 typedef struct CTClientDriver

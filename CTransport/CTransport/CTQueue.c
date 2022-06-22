@@ -114,7 +114,7 @@ void* __stdcall CT_Dequeue_Resolve_Connect_Handshake(LPVOID lpParameter)
 				}
 				//fprintf(stderr, "\nCT_Dequeue_Resolve_Connect_Handshake::kqueue_wait_with_timeout 2 ret = (%hd) errno = %d.\n", kev[1].filter, errno);
 
-				fprintf(stderr, "\nCT_Dequeue_Resolve_Connect_Handshake::kqueue_wait_with_timeout cxQueue read filter = (%hd) errno = %d.\n", kev[1].filter, kev[1].data);
+				fprintf(stderr, "\nCT_Dequeue_Resolve_Connect_Handshake::kqueue_wait_with_timeout cxQueue read filter = (%hd) errno = %ld.\n", kev[1].filter, kev[1].data);
 
 				//assert(ret==1);
 				if( kev[1].filter == EV_ERROR)
@@ -130,7 +130,7 @@ void* __stdcall CT_Dequeue_Resolve_Connect_Handshake(LPVOID lpParameter)
 				assert( kev[1].filter == EVFILT_READ);
 				assert( kev[1].ident == cursor->target->socket );
 				assert((kev[1].udata));	
-				assert(cxPipe[CT_INCOMING_PIPE] == (CTKernelQueueType)(kev[1].udata) );
+				assert(cxPipe[CT_INCOMING_PIPE] == *(CTKernelQueueType*)(kev[1].udata) );
 				NumBytesTransferred = kev[1].data;
 
 				//Determine how many bytes are available on the socket for reading
@@ -141,7 +141,7 @@ void* __stdcall CT_Dequeue_Resolve_Connect_Handshake(LPVOID lpParameter)
 				//if( NumBytesRecv == 0) NumBytesRecv = 32768;
 
 				fprintf(stderr, "**** nCT_Dequeue_Resolve_Connect_Handshake::NumBytesTransferred C status = %lu\n", NumBytesTransferred);
-				fprintf(stderr, "**** nCT_Dequeue_Resolve_Connect_Handshake::ictlsocket C status = %lu\n", ioRet);
+				fprintf(stderr, "**** nCT_Dequeue_Resolve_Connect_Handshake::ictlsocket C status = %d\n", ioRet);
 				fprintf(stderr, "**** nCT_Dequeue_Resolve_Connect_Handshake::ictlsocket C = %lu\n", ioctlBytes);
 				
 				NumBytesTransferred = ioctlBytes;
@@ -298,7 +298,7 @@ void* __stdcall CT_Dequeue_Resolve_Connect_Handshake(LPVOID lpParameter)
 				assert(1==0);
 			}
 
-			fprintf(stderr, "\nCT_Dequeue_Resolve_Connect_Handshake::kqueue_wait_with_timeout cxQueue write filter = (%hd) errno = %d.\n", kev[1].filter, kev[1].data);
+			fprintf(stderr, "\nCT_Dequeue_Resolve_Connect_Handshake::kqueue_wait_with_timeout cxQueue write filter = (%hd) errno = %ld.\n", kev[1].filter, kev[1].data);
 
 			//assert(ret==1);
 			if( kev[1].filter == EV_ERROR)
@@ -397,7 +397,7 @@ void* __stdcall CT_Dequeue_Resolve_Connect_Handshake(LPVOID lpParameter)
 			kevent(overlappedTarget->target->cxQueue, &kev, 1, NULL, 0, NULL);
 		
 			//subscribe to socket read events on rxQueue
-			EV_SET(&kev, conn->socket, EVFILT_READ, EV_ADD | EV_ENABLE , 0, 0, (void*)(overlappedTarget->target->rxPipe[CT_INCOMING_PIPE]));
+			EV_SET(&kev, conn->socket, EVFILT_READ, EV_ADD | EV_ENABLE , 0, 0, (void*)&(overlappedTarget->target->rxPipe[CT_INCOMING_PIPE]));
 			kevent(overlappedTarget->target->rxQueue, &kev, 1, NULL, 0, NULL);
 
 #endif
@@ -494,7 +494,7 @@ void* __stdcall CT_Dequeue_Resolve_Connect_Handshake(LPVOID lpParameter)
 			*/
 
 			//return the error id
-			return error.id;
+			return 0;//error.id;
 
 		}
 		else
@@ -519,7 +519,8 @@ void* __stdcall CT_Dequeue_Resolve_Connect_Handshake(LPVOID lpParameter)
 	}
 
 	fprintf(stderr, "\nCTConnection::CTConnectThread::End\n");
-	ExitThread(0);
+
+	//ExitThread(0);
 	return 0;
 
 }
@@ -687,7 +688,7 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 		}
 		//fprintf(stderr, "\nCT_Dequeue_Recv_Decrypt::kqueue_wait_with_timeout 2 ret = (%hd) errno = %d.\n", kev[1].filter, errno);
 
-		fprintf(stderr, "\nCT_Dequeue_Recv_Decrypt::kqueue_wait_with_timeout rxQueue read filter = (%hd) errno = %d.\n", kev[1].filter, kev[1].data);
+		fprintf(stderr, "\nCT_Dequeue_Recv_Decrypt::kqueue_wait_with_timeout rxQueue read filter = (%hd) errno = %ld.\n", kev[1].filter, kev[1].data);
 
 		//assert(ret==1);
 		if( kev[1].filter == EV_ERROR)
@@ -703,22 +704,8 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 		assert( kev[1].filter == EVFILT_READ);
 		assert( kev[1].ident == cursor->conn->socket );
 		assert((kev[1].udata));	
-		assert(rxPipe[CT_INCOMING_PIPE] == (CTKernelQueueType)(kev[1].udata) );
+		assert(rxPipe[CT_INCOMING_PIPE] == *(CTKernelQueueType*)(kev[1].udata) );
 		NumBytesRecv = kev[1].data;
-
-		
-		//Determine how many bytes are available on the socket for reading
-		fprintf(stderr, "\nCT_Dequeue_Recv_Decrypt::Bytes Available\n");
-
-		int ioRet = ioctlsocket(cursor->conn->socket, FIONREAD, &ioctlBytes);
-		assert(NumBytesRecv > 0);
-		//if( NumBytesRecv == 0) NumBytesRecv = 32768;
-
-		fprintf(stderr, "**** CT_Dequeue_Recv_Decrypt::NumBytesRecv C status = %lu\n", NumBytesRecv);
-		fprintf(stderr, "**** CT_Dequeue_Recv_Decrypt::ictlsocket C status = %lu\n", ioRet);
-		fprintf(stderr, "**** CT_Dequeue_Recv_Decrypt::ictlsocket C = %lu\n", ioctlBytes);
-		
-		NumBytesRecv = ioctlBytes;
 
 		if( kev[0].ident != CTSOCKET_EVT_TIMEOUT )
 		{			
@@ -790,6 +777,22 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 
 				//continue;
 			}
+
+			//Determine how many bytes are available on the socket for reading
+			//fprintf(stderr, "\nCT_Dequeue_Recv_Decrypt::Bytes Available\n");
+
+			int ioRet = ioctlsocket(cursor->conn->socket, FIONREAD, &ioctlBytes);
+			assert(NumBytesRecv > 0);
+			//if( NumBytesRecv == 0) NumBytesRecv = 32768;
+
+			fprintf(stderr, "**** CT_Dequeue_Recv_Decrypt::NumBytesRecv C status = %lu\n", NumBytesRecv);
+			fprintf(stderr, "**** CT_Dequeue_Recv_Decrypt::ictlsocket C status = %d\n", ioRet);
+			fprintf(stderr, "**** CT_Dequeue_Recv_Decrypt::ictlsocket C = %lu\n", ioctlBytes);
+			
+			NumBytesRecv = ioctlBytes;
+
+
+
 			//else
 			//{
 				//fprintf(stderr, "CT_Dequeue_Recv_Decrypt::Scheduling Cursor (%d) via ...", (int)cursor->queryToken);
@@ -820,9 +823,9 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 				*/
 				
 				// Sync Wait for query response on ReqlConnection socket
-				unsigned long recv_length = 32768;
-				char * responsePtr = CTRecv( cursor->conn, overlappedResponse->buf, &recv_length );
-				if( !responsePtr ) responsePtr = CTRecv( cursor->conn, overlappedResponse->buf, &recv_length );
+				unsigned long recv_length = NumBytesRecv;
+				char * responsePtr = CTRecvBytes( cursor->conn, overlappedResponse->buf, &recv_length );
+				if( !responsePtr ) responsePtr = CTRecvBytes( cursor->conn, overlappedResponse->buf, &recv_length );
 
 				assert(responsePtr);
 				assert(recv_length > 0);
@@ -831,9 +834,14 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 
 				//assert(recv_length == NumByte)
 				NumBytesRecv = recv_length;
+
+
+
 			//}
+			
 
 			NumBytesRecv += overlappedResponse->wsaBuf.buf - overlappedResponse->buf;
+			overlappedResponse->buf[NumBytesRecv] = '\0';
 
 			fprintf(stderr, "Cursor Response Count (%lu) NumBytesRecv (%lu)\n\n", cursor->conn->responseCount, NumBytesRecv);
 
@@ -965,7 +973,7 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 							nextCursor->conn->responseCount++;		
 							if (cursor->contentLength < overlappedResponse->buf - cursor->file.buffer)
 							{
-								fprintf(stderr, "CT_Deque_Recv_Decrypt::CT_OVERLAPPED_RECV::vagina (%d)\n", (overlappedResponse->buf - cursor->file.buffer));
+								fprintf(stderr, "CT_Deque_Recv_Decrypt::CT_OVERLAPPED_RECV::vagina (%ld)\n", (overlappedResponse->buf - cursor->file.buffer));
 
 								cursor->conn->response_overlap_buffer_length = (size_t)overlappedResponse->buf - (size_t)(cursor->file.buffer + cursor->contentLength);
 								assert(cursor->conn->response_overlap_buffer_length > 0);
@@ -1089,7 +1097,7 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 									}
 									else //failure
 									{
-										fprintf(stderr, "CTConnection::CT_OVERLAPPED_RECV::CTAsyncRecv (next cursor) failed with CTDriverError = %d\n", scRet);
+										fprintf(stderr, "CTConnection::CT_OVERLAPPED_RECV::CTAsyncRecv (next cursor) failed with CTDriverError = %ld\n", scRet);
 										assert(1 == 0);
 									}
 								}
@@ -1168,7 +1176,7 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 							}
 							else //failure
 							{
-								fprintf(stderr, "CTConnection::DecryptResponseCallback::CTAsyncRecv failed with CTDriverError = %d\n", scRet);
+								fprintf(stderr, "CTConnection::DecryptResponseCallback::CTAsyncRecv failed with CTDriverError = %ld\n", scRet);
 								assert(1 == 0);
 							}
 						}
@@ -1323,9 +1331,33 @@ void* __stdcall CT_Dequeue_Encrypt_Send(LPVOID lpParameter)
 					scRet = CTSSLWrite(cursor->conn->socket, cursor->conn->sslContext, overlappedRequest->buf, &NumBytesSent);
 				else
 				{
-					//TO DO:  create a send callback cursor attachment to remove post send TLS handshake logic here
+					//TO DO:  create a send callback cursor attachment to remove post send TLS handshake logic here					
 					//assert(1 == 0);
-					
+					int cbData = send(cursor->conn->socket, (char*)overlappedRequest->buf, overlappedRequest->len, 0);
+
+#ifdef _WIN32
+					if (cbData == SOCKET_ERROR || cbData == 0)
+#else
+					if (cbData <= 0)
+#endif
+					{
+						fprintf(stderr, "**** CT_Dequeue_Encrypt_Send(kqueue)::CT_OVERLAPPED_SCHEDULE_SEND Error %d sending data to server (%d)\n", CTSocketError(), cbData);
+						assert(1==0);
+					}
+
+					//we haven't populated the cursor's overlappedResponse for recv'ing yet,
+					//so use it here to pass the overlappedRequest->buf to the queryCallback (for instance, bc SCHANNEL needs to free handshake memory)
+					cursor->overlappedResponse.buf = overlappedRequest->buf;
+					err.id = cbData;
+					if (cursor->queryCallback)
+						cursor->queryCallback(&err, cursor);
+
+					fprintf(stderr, "%d bytes of handshake data sent\n", cbData);
+					cursor->overlappedResponse.buf = NULL;
+					overlappedRequest->buf = NULL; //should this stay here or in the queryCallback?
+					schedule_stage = CT_OVERLAPPED_SCHEDULE_RECV;
+
+					/*
 					//non-blocking send
 					//int cbData = send(cursor->conn->socket, (char*)overlappedRequest->buf, overlappedRequest->len, 0);
 					unsigned long send_length = overlappedRequest->len;
@@ -1349,7 +1381,7 @@ void* __stdcall CT_Dequeue_Encrypt_Send(LPVOID lpParameter)
 					cursor->overlappedResponse.buf = NULL;
 					overlappedRequest->buf = NULL; //should this stay here or in the queryCallback?
 					schedule_stage = CT_OVERLAPPED_SCHEDULE_RECV;
-
+					*/
 				}
 
 				//However, the zero buffer read doesn't seem to scale very well if Schannel is encrypting/decrypting for us 

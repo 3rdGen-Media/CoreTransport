@@ -238,7 +238,7 @@ void sendHTTPRequest(CTCursor* cursor)
 		imgName = "brickwall_normal.jpg";
 
 	//char GET_REQUEST[1024] = "GET /index.html HTTP/1.1\r\nHost: example.com\r\nUser-Agent: CoreTransport\r\nAccept: */*\r\n\r\n\0";
-	sprintf(GET_REQUEST, "GET /img/textures/%s HTTP/1.1\r\nHost: 3rdgen-sandbox-html-resources.s3.us-west-1.amazonaws.com\r\nUser-Agent: CoreTransport\r\nAccept: */*\r\n\r\n\0", imgName);
+	sprintf(GET_REQUEST, "GET /img/textures/%s HTTP/1.1\r\nHost: 3rdgen-sandbox-html-resources.s3.us-west-1.amazonaws.com\r\nUser-Agent: CoreTransport\r\nAccept: */*\r\n\r\n", imgName);
 	//GET_REQUEST = "GET /img/textures/wood.png HTTP/1.1\r\nHost: 3rdgen-sandbox-html-resources.s3.us-west-1.amazonaws.com\r\nUser-Agent: CoreTransport\r\nAccept: */*\r\n\r\n\0";
 
 	//file path to open
@@ -430,17 +430,13 @@ int main(void) {
 	httpTarget.proxy.host = NULL;//(char*)proxy_server;
 	httpTarget.proxy.port = 0;//proxy_port;
 	httpTarget.ssl.ca = NULL;//(char*)caPath;
-	httpTarget.ssl.method = 0;//CTSSL_TLS_1_2;
+	httpTarget.ssl.method = CTSSL_NONE;//CTSSL_TLS_1_2;
 	httpTarget.dns.resconf = (char*)resolvConfPath;
 	httpTarget.dns.nssconf = (char*)nsswitchConfPath;
 	httpTarget.cq = cxQueue;
 	httpTarget.rq = rxQueue;
-	httpTarget.tq = txQueue;// CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
-//#ifndef _WIN32
-//	httpTarget.oxPipe[0] = oxPipe[0];// CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
-//	httpTarget.oxPipe[1] = oxPipe[1];// CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
-//#endif
-	
+	httpTarget.tq = txQueue;
+
 	//Demonstrate CTransport CT C API Connection (No JSON support)
 	//On Darwin/BSD platforms, when no cxQueue is specified the Core Transport connection routine operates asynchronously on a single thread to by integrating libdill coroutines with an arbitrary runloop thread's e.g. CFRunLoop or SystemKeyboardEventLoop
 	//On WIN32, when no cxQueue is specified we only have synchronous/blocking connection support, but this can be easily thrown onto a background thread at startup (or just use a cxQueue to post to the iocp queue responsible for connections)

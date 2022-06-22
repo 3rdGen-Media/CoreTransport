@@ -99,6 +99,7 @@ typedef long SECURITY_STATUS;
 #ifdef CTRANSPORT_WOLFSSL
 //WOLF SSL
 #include <wolfssl/options.h>
+#include <wolfssl/wolfcrypt/settings.h>
 #include <wolfssl/ssl.h>
 typedef SECURITY_STATUS CTSSLStatus;
 //typedef char CTSecCertificate;
@@ -258,6 +259,10 @@ CTRANSPORT_API CTRANSPORT_INLINE  void CTSSLContextDestroy(CTSSLContextRef sslCo
 
 CTRANSPORT_API CTRANSPORT_INLINE void CTSSLHandshakeSendFirstMessage(CTSocket socketfd, CTSSLContextRef sslContextRef, void* firstMessageBuffer, int firstMessageLen);
 
+//TO DO:  how to expose cursor to this header?
+struct CTCursor; //forward declaration to eliminate clang compiler warning
+CTRANSPORT_API CTRANSPORT_INLINE SECURITY_STATUS CTSSLHandshakeProcessFirstResponse(struct CTCursor * cursor, CTSocket socketfd, CTSSLContextRef sslContextRef);
+
 //CTRANSPORT_API int CTSSLHandshakeProcessFirstResponse(CTSocket socketfd, CTSSLContextRef sslContextRef, char* responseBuffer);
 //CTRANSPORT_API int CTSSLHandshakeRecvSecondResponse(CTSocket socketfd, CTSSLContextRef sslContextRef, CTSecCertificateRef rootCertRef, const char* serverName);
 
@@ -290,18 +295,18 @@ CTRANSPORT_API CTRANSPORT_INLINE CTSSLStatus CTSSLDecryptMessage2(CTSSLContextRe
 CTRANSPORT_API CTRANSPORT_INLINE CTSSLStatus CTSSLDecryptMessageInSitu(CTSSLContextRef sslContextRef, void**msg, unsigned long *msgLength);
 
 /***
- *	ReqlSSLRead
-/*****************************************************************************/
+ *	CTSSLRead
+ *****************************************************************************/
 CTRANSPORT_API CTRANSPORT_INLINE CTSSLStatus CTSSLRead( CTSocket socketfd, CTSSLContextRef sslContextRef, void * msg, unsigned long * msgLength );
 
 /***
- *	ReqlSSLEncryptMessage
+ *	CTSSLEncryptMessage
  ***/
 CTRANSPORT_API CTRANSPORT_INLINE CTSSLStatus CTSSLEncryptMessage(CTSSLContextRef sslContextRef, void*msg, unsigned long * msgLength);
 
 /***
- *	ReqlSSLWrite
-/*****************************************************************************/
+ *	CTSSLWrite
+ *****************************************************************************/
 CTRANSPORT_API CTRANSPORT_INLINE int CTSSLWrite( CTSocket socketfd, CTSSLContextRef sslContextRef, void * msg, unsigned long * msgLength );// * phContext, PBYTE pbIoBuffer, SecPkgContext_StreamSizes Sizes )
 
 

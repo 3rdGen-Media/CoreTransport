@@ -428,6 +428,7 @@ DILL_EXPORT int dill_ipaddr_remote(
     char*resolv,
     char*nsswitch);
 
+struct dns_addrinfo; //forward declaration to eliminate clang compiler warning
 DILL_EXPORT int dill_ipaddr_dns_query_ai(struct dns_addrinfo **ai, struct dill_ipaddr *addrs, int naddrs, const char *name, int port, int mode, char * resolv, char * nsswitch);
 DILL_EXPORT int dill_ipaddr_dns_query_wait_ai(struct dns_addrinfo *ai, struct dill_ipaddr *addrs, int naddrs, int port, int mode, int64_t deadline);
 

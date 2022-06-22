@@ -73,8 +73,9 @@ typedef struct CTRANSPORT_PACK_ATTRIBUTE CTDNS
 
 //#pragma mark -- HTTPConnection Struct
 
-typedef struct CTCursor;
-typedef struct CTTarget;
+//Forward declare structs that will be defined later in the header
+struct CTCursor;
+struct CTTarget;
 
 typedef enum CTOverlappedStage
 {

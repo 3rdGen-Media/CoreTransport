@@ -371,6 +371,127 @@ void* CTRecv(CTConnection* conn, void * msg, unsigned long * msgLength)
     return decryptedMessagePtr;
 }
 
+
+/***
+ *  CTRecv
+ *
+ *  CTRecv will wait on a ReqlConnection's full duplex TCP socket
+ *  for an EOF read event and return the buffer to the calling function
+ ***/
+
+void* CTRecvBytes(CTConnection* conn, void * msg, unsigned long * msgLength)
+{
+    //OSStatus status;
+    int ret; 
+	char * decryptedMessagePtr = NULL; 
+	unsigned long  totalMsgLength = 0;
+	unsigned long remainingBufferSize = *msgLength;
+
+	 //fprintf(stderr, "SSLRead remainingBufferSize = %d, msgLength = %d\n", (int)remainingBufferSize, (int)*msgLength);
+
+    //struct kevent kev;
+    //uintptr_t timout_event = -1;
+    //uintptr_t out_of_range_event = -2;
+    //uint32_t timeout = UINT_MAX;  //uint max will translate to timeout struct of null, which is timeout of forever
+    
+    //fprintf(stderr, "ReqlRecv Waiting for read...\n");
+    //uintptr_t ret_event = kqueue_wait_with_timeout(r->event_queue, &kev, EVFILT_READ | EV_EOF, timout_event, out_of_range_event, r->socket, r->socket, timeout);
+    /*
+	if( CTSocketWait(conn->socket, conn->socketContext.rxQueue, EVFILT_READ | EV_EOF) != conn->socket )
+    {
+        fprintf(stderr, "CTRecv::CTSocketWait failed.\n");
+        return decryptedMessagePtr;
+    }
+	*/
+	/*
+	if (conn->target->ssl.method > 0)//CTSSL_NONE)
+	{
+		ret = CTSSLRead(conn->socket, conn->sslContext, msg, &remainingBufferSize);
+
+		if (ret != 0)
+			ret = 0;
+		else
+		{
+#ifdef CTRANSPORT_WOLFSSL
+			decryptedMessagePtr = (char*)msg;
+#elif defined(CTRANSPORT_USE_MBED_TLS)
+			decryptedMessagePtr = (char*)msg;
+#elif defined(_WIN32)
+			decryptedMessagePtr = (char*)msg + conn->sslContext->Sizes.cbHeader;
+#else
+			decryptedMessagePtr = msg;
+#endif
+		}
+	}
+	else
+	{
+	*/
+		ret = (size_t)recv(conn->socket, (char*)msg, remainingBufferSize, 0 );
+#ifdef _WIN32
+		if(ret == SOCKET_ERROR)
+#else
+		if( ret < 0 )
+#endif
+		{
+			fprintf(stderr, "**** CTRecv::Error %d reading data from server\n", CTSocketError());
+			switch (CTSocketError()) 
+			{	
+				case EFAULT:
+					return NULL;
+				default:
+					//fprintf(stderr, stderr, "general error\n");
+					//return WOLFSSL_CBIO_ERR_GENERAL;
+					assert(1 == 0);
+					return NULL;
+			}
+
+			//scRet = SEC_E_INTERNAL_ERROR;
+			assert(1 == 0);
+			return NULL;
+		}
+		else if(ret== 0)
+		{
+			fprintf(stderr, "**** CTRecv::Server unexpectedly disconnected\n");
+			//scRet = SEC_E_INTERNAL_ERROR;
+			return NULL;
+			assert(1 == 0);
+		}
+		fprintf(stderr, "CTRecv::%d bytes of data received\n\n", ret);//, (char*)msg);
+		decryptedMessagePtr = (char*)msg;
+	//}
+	*msgLength = ret;//(size_t)ret;
+	totalMsgLength += *msgLength;
+	remainingBufferSize -= *msgLength;
+
+/*
+#elif defined(__APPLE__)
+    status = SSLRead(conn->sslContext, msg, remainingBufferSize, msgLength);
+
+	totalMsgLength += *msgLength;
+    remainingBufferSize -= *msgLength;
+
+    //fprintf(stderr, "Before errSSLWouldBlock...\n");
+
+    while( status == errSSLWouldBlock)
+    {
+        //TO DO:  Figure out why this is happening for changefeeds ...
+        fprintf(stderr, "SSLRead remainingBufferSize = %d, msgLength = %d\n", (int)remainingBufferSize, (int)*msgLength);
+        status = SSLRead(conn->sslContext, msg+totalMsgLength, remainingBufferSize, msgLength);
+        totalMsgLength += *msgLength;
+        remainingBufferSize -= *msgLength;
+    }
+
+	if( status != noErr )
+    {
+        fprintf(stderr, "ReqlRecv::SSLRead failed with error: %d\n", (int)status);
+    }
+#endif
+*/
+    //fprintf(stderr, "SSLRead final remainingBufferSize = %d, msgLength = %d\n", (int)remainingBufferSize, (int)*msgLength);
+    *msgLength = totalMsgLength;
+    return decryptedMessagePtr;
+}
+
 /***
  *  CTSend
  *
@@ -405,18 +526,19 @@ int CTSend(CTConnection* conn, void * msg, unsigned long * msgLength )
         unsigned long remainingBytes = msgLengthInput - totalBytesProcessed;
         unsigned long msg_chunk_size = (max_msg_buffer_size < remainingBytes) ? max_msg_buffer_size : remainingBytes;
 		
-		if (conn->target->ssl.method != 0)//CTSSL_NONE)
+		if (conn->target->ssl.method != CTSSL_NONE)
 		{
-#ifdef __WIN32
 			ret = CTSSLWrite(conn->socket, conn->sslContext, msg_chunk, &msg_chunk_size);
-			if (ret == SOCKET_ERROR || ret == 0)
-			{
-				fprintf(stderr, "****CTSend::Error %d sending data to server\n", WSAGetLastError());
+#ifdef __WIN32
+			if (ret == SOCKET_ERROR || ret == 0) {
+#else
+			if (ret <= 0) {
+#endif
+				fprintf(stderr, "****CTSend::Error %d sending data to server\n", CTSocketError());
 				return ret;
 			}
 			//fprintf(stderr, "%d bytes of handshake data sent\n", ret);
 			bytesProcessed = ret;
-#endif
 //#elif defined(__APPLE__)
 			//status = SSLWrite(conn->sslContext, msg_chunk, msg_chunk_size, &bytesProcessed);
 //#endif
@@ -1391,6 +1513,77 @@ CTClientError CTCursorRecvOnQueue(CTOverlappedResponse** overlappedResponsePtr, 
 
 }
 
+
+//A helper function to perform a socket connection to a given service
+//Will either return an kqueue fd associated with the input (blocking or non-blocking) socket
+//or an error code
+coroutine int CTSocketConnect(CTSocket socketfd, CTTarget * service)
+{
+    //fprintf(stderr, "CTSocketConnect\n");
+    //yield();
+    struct sockaddr_in addr;
+
+    //Resolve hostname asynchronously   
+    /*
+    // Resolve hostname synchronously
+     struct hostent *host = NULL;
+     if ( (host = gethostbyname(service->host)) == NULL )
+    {
+        fprintf(stderr, "gethostbyname failed with err:  %d\n", errno);
+        perror(service->host);
+        return ReqlDomainError;
+    }
+    fprintf(stderr, "ReqlSocketConnect 3\n");
+    */
+    
+    // Fill a sockaddr_in socket host address and port (why do we copy the already resolved target addr to this local var?)
+    //bzero(&addr, sizeof(addr));
+	memset(&addr, 0, sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = service->url.addr.sin_addr.s_addr;//*(in_addr_t*)(service->url.addr.sa_data);//*(in_addr_t*)(host->h_addr);  //set host ip addr
+    addr.sin_port = service->proxy.host ? htons(service->proxy.port) : htons(service->url.port);
+    
+	char* connect_host = service->proxy.host ? service->proxy.host : service->url.host;
+
+	//push past any prefix if it's there
+	char* host_prefix = strstr(connect_host, "://");
+	if (host_prefix) connect_host = host_prefix + 3;
+
+    /*
+    struct sockaddr_in * addr_in = (struct sockaddr_in*)&(service->url.addr);
+    addr_in->sin_family = AF_INET;
+    //addr_in->sin_addr.s_addr = AF_INET;
+    addr_in->sin_port = service->port;
+    */
+    
+	// Connect the bsd socket to the remote server
+#ifdef _WIN32
+	if ( WSAConnect(socketfd, (struct sockaddr*)&addr, sizeof(addr), NULL, NULL, NULL, NULL) == SOCKET_ERROR )
+#else //defined(__APPLE__)
+    if ( connect(socketfd, (struct sockaddr*)&addr, sizeof(addr)) != 0 ) //== SOCKET_ERROR
+#endif
+    {
+		int error = CTSocketError();
+        if( error != CTEINPROGRESS ) //WSAEINPROGRESS/EINPROGRESS is expected for non blocking sockets
+        {
+	        fprintf(stderr, "socket failed to connect to %s with error: %d\n", connect_host, error);
+            CTSocketClose(socketfd);
+            perror(connect_host);
+            return CTSocketConnectError;
+        }
+        else
+        {
+			fprintf(stderr, "\nCTSocketConnect EINPROGRESS\n");
+        }
+
+    }
+    //fprintf(stderr, "ReqlSocketConnect End\n");
+    return CTSuccess;
+}
+
+
+
+
 //#pragma comment(lib, "ws2_32.lib")
 int CTSocketConnectOnQueue(CTSocket socketfd, CTTarget* service, CTConnectionClosure callback)
 {
@@ -1534,75 +1727,6 @@ int CTSocketConnectOnQueue(CTSocket socketfd, CTTarget* service, CTConnectionClo
 
 	return CTSuccess;
 }
-
-//A helper function to perform a socket connection to a given service
-//Will either return an kqueue fd associated with the input (blocking or non-blocking) socket
-//or an error code
-coroutine int CTSocketConnect(CTSocket socketfd, CTTarget * service)
-{
-    //fprintf(stderr, "CTSocketConnect\n");
-    //yield();
-    struct sockaddr_in addr;
-
-    //Resolve hostname asynchronously   
-    /*
-    // Resolve hostname synchronously
-     struct hostent *host = NULL;
-     if ( (host = gethostbyname(service->host)) == NULL )
-    {
-        fprintf(stderr, "gethostbyname failed with err:  %d\n", errno);
-        perror(service->host);
-        return ReqlDomainError;
-    }
-    fprintf(stderr, "ReqlSocketConnect 3\n");
-    */
-    
-    // Fill a sockaddr_in socket host address and port (why do we copy the already resolved target addr to this local var?)
-    //bzero(&addr, sizeof(addr));
-	memset(&addr, 0, sizeof(addr));
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = service->url.addr.sin_addr.s_addr;//*(in_addr_t*)(service->url.addr.sa_data);//*(in_addr_t*)(host->h_addr);  //set host ip addr
-    addr.sin_port = service->proxy.host ? htons(service->proxy.port) : htons(service->url.port);
-    
-	char* connect_host = service->proxy.host ? service->proxy.host : service->url.host;
-
-	//push past any prefix if it's there
-	char* host_prefix = strstr(connect_host, "://");
-	if (host_prefix) connect_host = host_prefix + 3;
-
-    /*
-    struct sockaddr_in * addr_in = (struct sockaddr_in*)&(service->url.addr);
-    addr_in->sin_family = AF_INET;
-    //addr_in->sin_addr.s_addr = AF_INET;
-    addr_in->sin_port = service->port;
-    */
-    
-	// Connect the bsd socket to the remote server
-#ifdef _WIN32
-	if ( WSAConnect(socketfd, (struct sockaddr*)&addr, sizeof(addr), NULL, NULL, NULL, NULL) == SOCKET_ERROR )
-#else //defined(__APPLE__)
-    if ( connect(socketfd, (struct sockaddr*)&addr, sizeof(addr)) != 0 ) //== SOCKET_ERROR
-#endif
-    {
-		int error = CTSocketError();
-        if( error != CTEINPROGRESS ) //WSAEINPROGRESS/EINPROGRESS is expected for non blocking sockets
-        {
-	        fprintf(stderr, "socket failed to connect to %s with error: %d\n", connect_host, error);
-            CTSocketClose(socketfd);
-            perror(connect_host);
-            return CTSocketConnectError;
-        }
-        else
-        {
-			fprintf(stderr, "\nCTSocketConnect EINPROGRESS\n");
-        }
-
-    }
-    //fprintf(stderr, "ReqlSocketConnect End\n");
-    return CTSuccess;
-}
-
-
 
 //#define CT_REQL_NUM_NONCE_BYTES 20
 //const char * clientKeyData = "Client Key";
@@ -2274,9 +2398,12 @@ char* SSLFirstMessageHeaderLengthCallback(struct CTCursor* cursor, char* buffer,
 
 	//The client *must* set the cursor's contentLength property
 	//to aid CoreTransport in knowing when to stop reading from the socket
-
-	//if (cursor->contentLength == 0)
-		cursor->contentLength = length;// 5 + 88 + 5 + 4583 + 5 + 333 + 5 + 4;// length;// ((ReqlQueryMessageHeader*)buffer)->length;
+		
+	//if( length > cursor->contentLength )
+	if ( cursor->contentLength == 0 ) 				//for Win32, this should always be the case
+		cursor->contentLength = length;
+	else //if( length > cursor->contentLength )		//for kqueue api we populate with the amount of bytes not passed to wolfssl yet
+		cursor->contentLength += length;
 
 	//The cursor headerLength is calculated as follows after this function returns
 	return endOfHeader;
@@ -2287,7 +2414,7 @@ char* SSLFirstMessageHeaderLengthCallback(struct CTCursor* cursor, char* buffer,
 //void SSLFirstMessageResponseCallback(CTError* err, CTCursor* cursor) {
 CTCursorCompletionClosure SSLFirstMessageResponseCallback = ^ void(CTError * err, CTCursor * cursor) {
 
-	fprintf(stderr, "SSLFirstMessageResponseCallback header:  \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
+	fprintf(stderr, "SSLFirstMessageResponseCallback header:  \n\n%.*s\n\n", (int)cursor->headerLength, cursor->requestBuffer);
 	SECURITY_STATUS scRet = 0;
 	if ((scRet = CTSSLHandshakeProcessFirstResponse(cursor, cursor->conn->socket, cursor->conn->sslContext)) != SEC_E_OK)
 	{
@@ -2308,7 +2435,7 @@ CTCursorCompletionClosure SSLFirstMessageResponseCallback = ^ void(CTError * err
 			return;
 
 		//ReqlSSLCertificateDestroy(&rootCertRef);
-		fprintf(stderr, "CTSSLHandshake with status:  %d\n", scRet);
+		fprintf(stderr, "CTSSLHandshake with status:  %ld\n", scRet);
 		err->id = CTSSLHandshakeError;
 		CTCloseSSLSocket(cursor->conn->sslContext, cursor->conn->socket);
 		cursor->conn->target->callback(err, cursor->conn);
@@ -2344,7 +2471,7 @@ CTCursorCompletionClosure SSLFirstMessageQueryCallback = ^ void(CTError * err, C
 
 		wolfErr = wolfSSL_get_error(cursor->conn->sslContext->ctx, 0);
 		wolfSSL_ERR_error_string(wolfErr, buffer);
-		fprintf(stderr, stderr, "SSLFirstMessageQueryCallback: wolfSSL_connect failed to send/read handshake data (%d): \n\n%s\n\n", wolfSSL_get_error(cursor->conn->sslContext->ctx, 0), buffer);
+		fprintf(stderr, "SSLFirstMessageQueryCallback: wolfSSL_connect failed to send/read handshake data (%d): \n\n%s\n\n", wolfSSL_get_error(cursor->conn->sslContext->ctx, 0), buffer);
 
 		//HANDLE INCOMPLETE MESSAGE: the buffer didn't have as many bytes as WolfSSL needed for decryption
 		if (wolfErr == WOLFSSL_ERROR_WANT_READ)
@@ -2964,7 +3091,7 @@ coroutine int CTSSLRoutine(CTConnection *conn, char * hostname, char * caPath)
 	CTSSLEncryptTransient* transient = (CTSSLEncryptTransient*)&(handshakeCursor->requestBuffer[65535 - sizeof(CTSSLEncryptTransient)]);// { 0, 0, NULL };
 	transient->wolf_socket_fd = 0;
 	transient->messageLen = 0;
-	transient->messageBuffer;
+	//transient->messageBuffer;
 	wolfSSL_SetIOWriteCtx(conn->sslContext->ctx, transient);
 #elif defined(_WIN32)
 	//send the first message in an async non-blocking fashion on a thread pool queeu
@@ -3006,7 +3133,7 @@ coroutine int CTSSLRoutine(CTConnection *conn, char * hostname, char * caPath)
 			}
 			else if (ret == SSL_ERROR_WANT_WRITE)
 			{
-
+				//assert(1==0);
 				CTCursor* handshakeCursor = CTGetNextPoolCursor();
 
 				//send the TLS Handshake first message in an async non-blocking fashion
@@ -3143,8 +3270,14 @@ coroutine int CTConnectRoutine(CTTarget * service, CTConnectionClosure callback)
 
 #ifndef CTRANSPORT_USE_MBED_TLS
 	fprintf(stderr, "Before CTSocketCreate()\n");
+#ifndef _WIN32
+	int default_blocking_option = 0;
+#else
+	int default_blocking_option = 1;
+#endif
+
     //  Create a [non-blocking] TCP socket and return a socket fd
-    if( (conn.socket = CTSocketCreate((service->cxQueue ? 1 : 0))) < 0)
+    if( (conn.socket = CTSocketCreate((service->cxQueue ? 1 : default_blocking_option))) < 0)
     {
         error.id = (int)conn.socket; //Note: hope that 64 bit socket handle is within 32 bit range?!
         goto CONN_CALLBACK;
@@ -3158,17 +3291,15 @@ coroutine int CTConnectRoutine(CTTarget * service, CTConnectionClosure callback)
 
 	if (service->cxQueue)
 	{
-
 		service->socket = conn.socket;
-
-		//Associate Socket with decdicated connetion CTKernelQueue
-#ifdef __FreeBSD__
+		//Associate Socket with dedicated CTKernelQueue for async connections
+#ifndef _WIN32
 		struct kevent kev;
 		EV_SET(&kev, conn.socket, EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, NULL);
 		kevent(service->cxQueue, &kev, 1, NULL, 0, NULL);
 		EV_SET(&kev, conn.socket, EVFILT_WRITE, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, NULL);
 		kevent(service->cxQueue, &kev, 1, NULL, 0, NULL);
-#elif defined( _WIN32 )
+#else// defined( _WIN32 )
 		CreateIoCompletionPort((HANDLE)service->socket, service->cxQueue, (ULONG_PTR)NULL, 1);
 #endif
 		return CTSocketConnectOnQueue(service->socket, service, callback);
@@ -3255,6 +3386,27 @@ coroutine int CTConnectRoutine(CTTarget * service, CTConnectionClosure callback)
         //return ReqlConnectError;
     }
     
+	//if the client specified tx, rx queues on the target as input
+	//copy them to the socket context now for the blocking ssl handshake routine if no cxQueue was specified
+	conn.socketContext.tq = service->tq;
+	conn.socketContext.rq = service->rq;
+
+	//On BSD platforms, we will associate the socket with the rxQueue prior to the ssl handshake for all paths
+	//Why? Because I haven't implemented support for a blocking WolfSSL implementation?
+#ifndef _WIN32 
+	struct kevent kev;
+	EV_SET(&kev, conn.socket, EVFILT_READ, EV_DELETE, 0, 0, NULL);
+	kevent(service->cxQueue, &kev, 1, NULL, 0, NULL);
+	EV_SET(&kev, conn.socket, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
+	kevent(service->cxQueue, &kev, 1, NULL, 0, NULL);
+
+	//fprintf(stderr, "CTConnectRoutine()::oxQueue = %d\n\n", conn.socketContext.oxQueue);
+
+	//subscribe to socket read events on rxQueue
+	EV_SET(&kev, conn.socket, EVFILT_READ, EV_ADD | EV_ENABLE , 0, 0, (void*)&(conn.socketContext.rxPipe[CT_INCOMING_PIPE]));
+	kevent(conn.socketContext.rxQueue, &kev, 1, NULL, 0, NULL);
+#endif
+
     //There is some short order work that would be good to parallelize regarding loading the cert and saving it to keychain
     //However, the SSLHandshake loop has already been optimized with yields for every asynchronous call
 
@@ -3262,7 +3414,7 @@ coroutine int CTConnectRoutine(CTTarget * service, CTConnectionClosure callback)
 	fprintf(stderr, "Before CTSSLRoutine Host = %s\n", service->url.host);
 
 	conn.target = service;
-//#ifdef _WIN32 //skip on linux while we develop
+
 	if (service->proxy.host)
 	{
 		conn.target = service;
@@ -3279,10 +3431,7 @@ coroutine int CTConnectRoutine(CTTarget * service, CTConnectionClosure callback)
     }
 //#endif
 
-	//if the client specified tx, rx queues on the target as input
-	//copy them to the socket context now for the blocking ssl handshake routine if no cxQueue was specified
-	conn.socketContext.tq = service->tq;
-	conn.socketContext.rq = service->rq;
+
 //#ifndef _WIN32
 //	conn.socketContext.oxPipe[0] = service->oxPipe[0];/
 //	conn.socketContext.oxPipe[1] = service->oxPipe[1];
@@ -3297,6 +3446,7 @@ coroutine int CTConnectRoutine(CTTarget * service, CTConnectionClosure callback)
 		ULONG_PTR dwCompletionKey = (ULONG_PTR)NULL;
 		CreateIoCompletionPort((HANDLE)conn.socket, conn.socketContext.rxQueue, dwCompletionKey, 1);
 #else
+		/*
 		//remove connection queue read/write event subscription from kqueue
 		struct kevent kev;
 		EV_SET(&kev, conn.socket, EVFILT_READ, EV_DELETE, 0, 0, NULL);
@@ -3309,6 +3459,7 @@ coroutine int CTConnectRoutine(CTTarget * service, CTConnectionClosure callback)
 		//subscribe to socket read events on rxQueue
 		EV_SET(&kev, conn.socket, EVFILT_READ, EV_ADD | EV_ENABLE , 0, 0, (void*)(conn.socketContext.rxPipe[CT_INCOMING_PIPE]));
 		kevent(conn.socketContext.rxQueue, &kev, 1, NULL, 0, NULL);
+		*/
 
 		//subscribe to overlapped cursor events on oxQueue
 		//EV_SET(&kev, CTQUEUE_ACTIVE_CURSOR, EVFILT_USER, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, context_ptr);
@@ -3416,7 +3567,7 @@ char* DNSResolveHeaderLengthCallback(struct CTCursor* cursor, char* buffer, unsi
 //void DNSResolveResponseCallback(CTError* err, CTCursor* cursor)
 CTCursorCompletionClosure DNSResolveResponseCallback = ^ void(CTError * err, CTCursor * cursor) {
 
-	fprintf(stderr, "DNSResolveResponseCallback header:  \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
+	fprintf(stderr, "DNSResolveResponseCallback header:  \n\n%.*s\n\n", (int)cursor->headerLength, cursor->requestBuffer);
 
 	int ret = 0;
 	socklen_t addrlen;
@@ -3639,7 +3790,7 @@ coroutine int CTTargetResolveHost(CTTarget* target, CTConnectionClosure callback
 	char* host_prefix = strstr(target_host, "://");
 	if (host_prefix) target_host = host_prefix + 3;
 
-	populate_sockaddr(AF_INET, (int)DNS_PORT, "8.8.8.8", &(target->url.addr), &addrlen);
+	populate_sockaddr(AF_INET, (int)DNS_PORT, "8.8.8.8", (struct sockaddr_storage*)&(target->url.addr), &addrlen);
 
 	//target->url.addr.sin_addr.s_addr = inet_addr("8.8.8.8");
 	assert(INADDR_NONE != target->url.addr.sin_addr.s_addr);
@@ -3834,7 +3985,7 @@ coroutine int CTTargetResolveHost(CTTarget* target, CTConnectionClosure callback
 	if( target->cxQueue )
 	{
 		struct kevent kev = {0};
-		EV_SET(&kev, target->socket, EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, (void*)(target->cxPipe[CT_INCOMING_PIPE]));
+		EV_SET(&kev, target->socket, EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, (void*)&(target->cxPipe[CT_INCOMING_PIPE]));
 		kevent(target->cxQueue, &kev, 1, NULL, 0, NULL);
 		//EV_SET(&kev, target->socket, EVFILT_WRITE, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, (void*)(target->cxPipe[CT_OUTGOING_PIPE]));
 		//kevent(target->cxQueue, &kev, 1, NULL, 0, NULL);

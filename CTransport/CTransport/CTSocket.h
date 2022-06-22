@@ -80,12 +80,12 @@ typedef NTSTATUS(WINAPI* pNtSetInformationFile)(HANDLE, PIO_STATUS_BLOCK, PVOID,
 #include "CTError.h"
 //Define REQL_SOCKET
 #ifdef _WIN32
-#define CTSocket 			SOCKET
-#define CTThread			HANDLE
-typedef HANDLE              CTKernelQueueType;
-#define CTDispatchSource 	void
-//#define SSLContextRef 	void*
-#define CTSocketError() (WSAGetLastError())
+#define CTSocket 				SOCKET
+#define CTThread				HANDLE
+typedef HANDLE              	CTKernelQueueType;
+#define CTDispatchSource 		void
+//#define SSLContextRef 		void*
+#define CTSocketError() 		(WSAGetLastError())
 typedef LPTHREAD_START_ROUTINE CTThreadRoutine; //Win32 CRT Thread Routine
 
 typedef struct CTKernelQueue
@@ -94,11 +94,11 @@ typedef struct CTKernelQueue
 }CTKernelQueue;
 
 #elif defined(__APPLE__) || defined(__FreeBSD__) //with libdispatch
-#define CTSocket 	  		int //sockets are just file descriptors
-#define CTThread			pthread_t
-#define CTThreadRoutine     
-typedef int CTKernelQueueType; //kqueues are just file descriptors
-typedef int CTKernelPipeType;  //pipes are just file descriptors
+#define CTSocket 	  			int //sockets are just file descriptors
+#define CTThread				pthread_t
+typedef int 					CTKernelQueueType; //kqueues are just file descriptors
+typedef int 					CTKernelPipeType;  //pipes are just file descriptors
+typedef void *					(*CTThreadRoutine)(void *);
 
 typedef struct CTKernelQueue 
 {
@@ -218,6 +218,10 @@ CTRANSPORT_API CTRANSPORT_INLINE void CTThreadClose(CTThread* thread);
 CTRANSPORT_API CTRANSPORT_INLINE void CTSocketInit(void);
 CTRANSPORT_API CTRANSPORT_INLINE int  CTSocketGetError(CTSocket socketfd);
 
+//UDP Sockets
+CTRANSPORT_API CTRANSPORT_INLINE CTSocket CTSocketCreateUDP(void);
+
+//TCP Sockets
 CTRANSPORT_API CTRANSPORT_INLINE CTSocket CTSocketCreate(int nonblocking);
 CTRANSPORT_API CTRANSPORT_INLINE int 	  CTSocketClose(CTSocket socketfd);
 
