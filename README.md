@@ -10,40 +10,40 @@ CoreTransport is a no-compromise cross-platform pure C library (with wrapper API
     <td align="center" width="17%"><strong>FreeBSD</strong></td>
   </tr>
   <tr width ="100%">
-    <td width="49%">Async non-blocking DNS resolve</td>
-    <td width="17%">IPv4&nbsp;✔️&nbsp;&nbsp;IPv6&nbsp;❌</td>
-    <td width="17%">IPv4&nbsp;✔️&nbsp;&nbsp;IPv6&nbsp;❌</td>
-    <td width="17%">IPv4&nbsp;✔️&nbsp;&nbsp;IPv6&nbsp;❌</td>
+    <td width="49%">Structured concurrency to promote simultaneous asynchronous non-blocking socket connections from a single thread</td>
+    <td width="17%"><s>Coroutines,</s><br/>Completion Queues</td>
+    <td width="17%">Coroutines,<br/>Completion Queues</td>
+    <td width="17%">Coroutines,<br/>Completion Queues</td>
   </tr>
   <tr width ="100%">
-    <td width="49%">Structured concurrency to promote simultaneous asynchronous non-blocking socket connections from a single thread</td>
-    <td width="17%">IOCP</td>
-    <td width="17%">Coroutines</td>
-    <td width="17%">Coroutines</td>
+    <td width="49%">Async non-blocking DNS resolve</td>
+    <td width="17%">IPv4,&nbsp;&nbsp;<s>IPv6</s></td>
+    <td width="17%">IPv4,&nbsp;&nbsp;<s>IPv6</s></td>
+    <td width="17%">IPv4,&nbsp;&nbsp;<s>IPv6</s></td>
   </tr>
   <tr width ="100%">
     <td width="49%">Async non-blocking TLS negotiation via platform provided encryption with fallback to 3rd party embedded support</td>
-    <td width="17%">SCHANNEL&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>WolfSSL</td>
-    <td width="17%">SecureTransport<br/>WolfSSL&nbsp;❌</td>
-    <td width="17%">Kernel TLS&nbsp;❌&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>WolfSSL</td>
+    <td width="17%">SCHANNEL,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>WolfSSL</td>
+    <td width="17%">SecureTransport,<br/>WolfSSL</td>
+    <td width="17%"><s>Kernel TLS,</s>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>WolfSSL</td>
   </tr>
   <tr width ="100%">
     <td width="49%">Lock-Free, Wait-Free Tx/Rx scheduling & completion operation dequeuing with fewest userspace context switches</td>
-    <td width="17%">IOCP<br/>PeekMessage</td>
-    <td width="17%">kqueue<br/>Cursor pipe</td>
-    <td width="17%"> kqueue<br/>Cursor pipe</td>
+    <td width="17%">IOCP Completion,<br/>PeekMessage</td>
+    <td width="17%">kqueue,<br/>Cursor pipe</td>
+    <td width="17%">kqueue,<br/>Cursor pipe</td>
   </tr>
   <tr width ="100%">
     <td width="49%">Memory management that supports in-place processing and optional response caching</td>
-    <td width="17%">Memory Pools<br/>Mapped Files</td>
-    <td width="17%">Memory Pools<br/>Mapped Files</td>
-    <td width="17%">Memory Pools<br/>Mapped Files</td>
+    <td width="17%">Memory Pools,<br/>Mapped Files</td>
+    <td width="17%">Memory Pools,<br/>Mapped Files</td>
+    <td width="17%">Memory Pools,<br/>Mapped Files</td>
   </tr>
   <tr width ="100%">
     <td width="49%">Closures to delegate response buffers back to caller</td>
-    <td width="17%">Clang Blocks<br/>C++ Lambdas</td>
-    <td width="17%">Clang Blocks<br/>C++ Lambdas</td>
-    <td width="17%">Clang Blocks<br/>C++ Lambdas</td>
+    <td width="17%">Clang Blocks,<br/>C++ Lambdas</td>
+    <td width="17%">Clang Blocks,<br/>C++ Lambdas</td>
+    <td width="17%">Clang Blocks,<br/>C++ Lambdas</td>
   </tr>
   <tr width ="100%">
     <td width="49%">Conditional chaining of requests/queries from the same and other connections</td>
@@ -60,8 +60,8 @@ CoreTransport is a no-compromise cross-platform pure C library (with wrapper API
   <tr width ="100%">
     <td width="49%">Tunneling via proxy connections</td>
     <td width="17%">HTTP,&nbsp;&nbsp;SOCKS5</td>
-    <td width="17%">❌</td>
-    <td width="17%">❌</td>
+    <td width="17%"><s>HTTP</s>,&nbsp;&nbsp;<s>SOCKS5</s></td>
+    <td width="17%"><s>HTTP</s>,&nbsp;&nbsp;<s>SOCKS5</s></td>
   </tr>
   <tr width ="100%">
     <td width="49%">Numa Siloing</td>
