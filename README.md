@@ -10,34 +10,40 @@ CoreTransport is a no-compromise cross-platform pure C library (with wrapper API
     <td align="center" width="17%"><strong>FreeBSD</strong></td>
   </tr>
   <tr width ="100%">
+    <td width="49%">Async non-blocking DNS resolve</td>
+    <td width="17%">IPv4&nbsp;✔️&nbsp;&nbsp;IPv6&nbsp;❌</td>
+    <td width="17%">IPv4&nbsp;✔️&nbsp;&nbsp;IPv6&nbsp;❌</td>
+    <td width="17%">IPv4&nbsp;✔️&nbsp;&nbsp;IPv6&nbsp;❌</td>
+  </tr>
+  <tr width ="100%">
     <td width="49%">Structured concurrency to promote simultaneous asynchronous non-blocking socket connections from a single thread</td>
     <td width="17%">IOCP</td>
     <td width="17%">Coroutines</td>
     <td width="17%">Coroutines</td>
   </tr>
   <tr width ="100%">
-    <td width="49%">Lock-Free, Wait-Free Tx/Rx scheduling & completion operation dequeuing with fewest userspace context switches</td>
-    <td width="17%">IOCP,<br/>PeekMessage</td>
-    <td width="17%">kqueue,<br/>Cursor pipe</td>
-    <td width="17%"> kqueue,<br/>Cursor pipe</td>
+    <td width="49%">Async non-blocking TLS negotiation via platform provided encryption with fallback to 3rd party embedded support</td>
+    <td width="17%">SCHANNEL&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>WolfSSL</td>
+    <td width="17%">SecureTransport<br/>WolfSSL&nbsp;❌</td>
+    <td width="17%">Kernel TLS&nbsp;❌&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>WolfSSL</td>
   </tr>
   <tr width ="100%">
-    <td width="49%">Closures to delegate response buffers back to caller</td>
-    <td width="17%">Clang Blocks, C++ Lambdas</td>
-    <td width="17%">Clang Blocks, C++ Lambdas</td>
-    <td width="17%">Clang Blocks, C++ Lambdas</td>
+    <td width="49%">Lock-Free, Wait-Free Tx/Rx scheduling & completion operation dequeuing with fewest userspace context switches</td>
+    <td width="17%">IOCP<br/>PeekMessage</td>
+    <td width="17%">kqueue<br/>Cursor pipe</td>
+    <td width="17%"> kqueue<br/>Cursor pipe</td>
   </tr>
   <tr width ="100%">
     <td width="49%">Memory management that supports in-place processing and optional response caching</td>
-    <td width="17%">Memory Pools, Mapped Files</td>
-    <td width="17%">Memory Pools, Mapped Files</td>
-    <td width="17%">Memory Pools, Mapped Files</td>
+    <td width="17%">Memory Pools<br/>Mapped Files</td>
+    <td width="17%">Memory Pools<br/>Mapped Files</td>
+    <td width="17%">Memory Pools<br/>Mapped Files</td>
   </tr>
   <tr width ="100%">
-    <td width="49%">Async non-blocking TLS negotiation via platform provided encryption with fallback to 3rd party embedded support</td>
-    <td width="17%">SCHANNEL,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>WolfSSL</td>
-    <td width="17%">SecureTransport,<br/>MBEDTLS</td>
-    <td width="17%">In&nbsp;Progress&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
+    <td width="49%">Closures to delegate response buffers back to caller</td>
+    <td width="17%">Clang Blocks<br/>C++ Lambdas</td>
+    <td width="17%">Clang Blocks<br/>C++ Lambdas</td>
+    <td width="17%">Clang Blocks<br/>C++ Lambdas</td>
   </tr>
   <tr width ="100%">
     <td width="49%">Conditional chaining of requests/queries from the same and other connections</td>
@@ -52,17 +58,17 @@ CoreTransport is a no-compromise cross-platform pure C library (with wrapper API
     <td width="17%">Progress<br/>Closures&nbsp;&nbsp;</td>
   </tr>
   <tr width ="100%">
-    <td width="49%">Numa Siloing</td>
-    <td width="17%">&cross;</td>
-    <td width="17%">&cross;</td>
-    <td width="17%">&cross;</td>
+    <td width="49%">Tunneling via proxy connections</td>
+    <td width="17%">HTTP,&nbsp;&nbsp;SOCKS5</td>
+    <td width="17%">❌</td>
+    <td width="17%">❌</td>
   </tr>
   <tr width ="100%">
-    <td width="49%">Tunneling via proxy connections</td>
-    <td width="17%">HTTP, SOCKS5</td>
-    <td width="17%">To Do</td>
-    <td width="17%">In Progress</td>
-  </tr>
+    <td width="49%">Numa Siloing</td>
+    <td width="17%">❌</td>
+    <td width="17%">❌</td>
+    <td width="17%">❌</td>
+  </tr>	
 </table>
 
 <!---
