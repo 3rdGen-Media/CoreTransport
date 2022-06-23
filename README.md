@@ -93,7 +93,7 @@ The general pattern for establishing and consuming from client connections using
 
 1.  Create a connection + cursor pool 
 2.  Create queues for async + non-blocking socket operations (CTKernelQueue)
-3.  Create a pool of threads to dequeue socket operations
+3.  Create a pool of threads to dequeue socket operations (CTThread)
 4.  Define your target (CTTarget)
 5.  Create a socket connection + perform SSL Handshake (CTConnection)
 6.  Make a network request and asynchronously receive the response (CTCursor)
