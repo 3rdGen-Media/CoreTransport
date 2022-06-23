@@ -112,28 +112,28 @@ The general process for establishing and consuming from connections using CTrans
 
 ####  Create Socket Queues
 ```	
-   CTKernelQueue cxQueue = CTKernelQueueCreate();
-   CTKernelQueue txQueue = CTKernelQueueCreate();
-   CTKernelQueue rxQueue = CTKernelQueueCreate();
+   CTKernelQueue cq = CTKernelQueueCreate();
+   CTKernelQueue tq = CTKernelQueueCreate();
+   CTKernelQueue rq = CTKernelQueueCreate();
 ```
 
 ####  Create Thread Pool 
 ```
-   CTThread cxThread = CTThreadCreate(&cxQueue, CT_Dequeue_Connect);
-   CTThread rxThread = CTThreadCreate(&rxQueue, CT_Dequeue_Recv_Decrypt);
-   CTThread txThread = CTThreadCreate(&txQueue, CT_Dequeue_Encrypt_Send);
+   CTThread cxThread = CTThreadCreate(&cq, CT_Dequeue_Connect);
+   CTThread txThread = CTThreadCreate(&tq, CT_Dequeue_Recv_Decrypt);
+   CTThread rxThread = CTThreadCreate(&rq, CT_Dequeue_Encrypt_Send);
 ```
 
 ####  Define your target
 ```
-   CTTarget httpTarget = {0};
-   httpTarget.host =     "learnopengl.com";
-   httpTarget.port =     443;
-   httpTarget.ssl.ca =   NULL;            //CTransport will look for the certificate in the platform CA trust store
+   CTTarget httpTarget =   {0};
+   httpTarget.host =       "learnopengl.com";
+   httpTarget.port =       443;
+   httpTarget.ssl.ca =     NULL;          //CTransport will look for the certificate in the platform CA trust store
    httpTarget.ssl.method = CTSSL_TLS_1_2; //Optionally specify if TLS encryption is desired and what version
-   httpTarget.cxQueue =  cxQueue; //If no connection queue is specified, the connection will be sync + blocking on the current thread
-   httpTarget.txQueue =  txQueue; //If no send queue for the socket is specified one will be created internal to CTransport
-   httpTarget.rxQueue =  rxQueue; //If no recv queue for the socket is specified one will be created internal to CTransport  
+   httpTarget.cq =  	   cq; //If no cx queue is specified [DNS + Connect + TLS Handshake] will occur on the current thread
+   httpTarget.tq =  	   tq; //If no tx queue is specified CTransport internal queues will be assigned to the connection for send
+   httpTarget.rq =  	   rq; //If no rx queue is specified CTransport internal queues will be assigned to the connection for recv 
 ```
 
 ####  Connect with Closure/Callback
@@ -232,28 +232,28 @@ The general process for establishing and consuming from connections using CTrans
 
 ####  Create Socket Queues (same as CTransport)
 ```	
-   CTKernelQueue cxQueue = CTKernelQueueCreate();
-   CTKernelQueue txQueue = CTKernelQueueCreate();
-   CTKernelQueue rxQueue = CTKernelQueueCreate();
+   CTKernelQueue cq = CTKernelQueueCreate();
+   CTKernelQueue tq = CTKernelQueueCreate();
+   CTKernelQueue rq = CTKernelQueueCreate();
 ```
 
 ####  Create Thread Pool 
 ```
-   CTThread cxThread = CTThreadCreate(&cxQueue, CX_Dequeue_Connect);
-   CTThread rxThread = CTThreadCreate(&rxQueue, CX_Dequeue_Recv_Decrypt);
-   CTThread txThread = CTThreadCreate(&txQueue, CX_Dequeue_Encrypt_Send);
+   CTThread cxThread = CTThreadCreate(&cq, CX_Dequeue_Connect);
+   CTThread txThread = CTThreadCreate(&tq, CX_Dequeue_Recv_Decrypt);
+   CTThread rxThread = CTThreadCreate(&rq, CX_Dequeue_Encrypt_Send);
 ```
 
 ####  Define your target (same as CTransport)
 ```
-   CTTarget httpTarget = {0};
-   httpTarget.host =     "learnopengl.com";
-   httpTarget.port =     443;
-   httpTarget.ssl.ca =   NULL;            //CTransport will look for the certificate in the platform CA trust store
+   CTTarget httpTarget =   {0};
+   httpTarget.host =       "learnopengl.com";
+   httpTarget.port =       443;
+   httpTarget.ssl.ca =     NULL;          //CTransport will look for the certificate in the platform CA trust store
    httpTarget.ssl.method = CTSSL_TLS_1_2; //Optionally specify if TLS encryption is desired and what version
-   httpTarget.cxQueue =  cxQueue; //If no connection queue is specified, the connection will be sync + blocking on the current thread
-   httpTarget.txQueue =  txQueue; //If no send queue for the socket is specified one will be created internal to CTransport
-   httpTarget.rxQueue =  rxQueue; //If no recv queue for the socket is specified one will be created internal to CTransport  
+   httpTarget.cq =  	   cq; //If no cx queue is specified [DNS + Connect + TLS Handshake] will occur on the current thread
+   httpTarget.tq =  	   tq; //If no tx queue is specified CTransport internal queues will be assigned to the connection for send
+   httpTarget.rq =  	   rq; //If no rx queue is specified CTransport internal queues will be assigned to the connection for recv
 ```
 
 ####  Connect with Closure
