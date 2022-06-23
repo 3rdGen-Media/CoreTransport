@@ -130,7 +130,7 @@ void* __stdcall CT_Dequeue_Resolve_Connect_Handshake(LPVOID lpParameter)
 				assert( kev[1].filter == EVFILT_READ);
 				assert( kev[1].ident == cursor->target->socket );
 				assert((kev[1].udata));	
-				assert(cxPipe[CT_INCOMING_PIPE] == *(CTKernelQueueType*)(kev[1].udata) );
+				assert(cxPipe[CT_INCOMING_PIPE] == (CTKernelQueueType)(uint64_t)(kev[1].udata) );
 				NumBytesTransferred = kev[1].data;
 
 				//Determine how many bytes are available on the socket for reading
@@ -397,7 +397,7 @@ void* __stdcall CT_Dequeue_Resolve_Connect_Handshake(LPVOID lpParameter)
 			kevent(overlappedTarget->target->cxQueue, &kev, 1, NULL, 0, NULL);
 		
 			//subscribe to socket read events on rxQueue
-			EV_SET(&kev, conn->socket, EVFILT_READ, EV_ADD | EV_ENABLE , 0, 0, (void*)&(overlappedTarget->target->rxPipe[CT_INCOMING_PIPE]));
+			EV_SET(&kev, conn->socket, EVFILT_READ, EV_ADD | EV_ENABLE , 0, 0, (void*)(uint64_t)(overlappedTarget->target->rxPipe[CT_INCOMING_PIPE]));
 			kevent(overlappedTarget->target->rxQueue, &kev, 1, NULL, 0, NULL);
 
 #endif
@@ -704,7 +704,7 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 		assert( kev[1].filter == EVFILT_READ);
 		assert( kev[1].ident == cursor->conn->socket );
 		assert((kev[1].udata));	
-		assert(rxPipe[CT_INCOMING_PIPE] == *(CTKernelQueueType*)(kev[1].udata) );
+		assert(rxPipe[CT_INCOMING_PIPE] == (CTKernelQueueType)(uint64_t)(kev[1].udata) );
 		NumBytesRecv = kev[1].data;
 
 		if( kev[0].ident != CTSOCKET_EVT_TIMEOUT )

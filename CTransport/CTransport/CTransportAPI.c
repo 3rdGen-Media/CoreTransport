@@ -1710,10 +1710,10 @@ int CTSocketConnectOnQueue(CTSocket socketfd, CTTarget* service, CTConnectionClo
 #else
 
 	//start non-blocking connect from thread pool running cxQueue
-	if( (conn.event_queue = CTSocketConnect(socketfd, service)) < 0 )
+	if( CTSocketConnect(socketfd, service) < 0 )
     {
-	        error.id = CTSocketError();
-			fprintf(stderr, "CTSocketConnectOnQueue::CTSocketConnect failed w/ error: %d\n", error.id);
+	        //error.id = CTSocketError();
+			fprintf(stderr, "CTSocketConnectOnQueue::CTSocketConnect failed w/ error: %d\n", CTSocketError());
 			CTSocketClose(socketfd);
 			perror(service->url.host);
 			return CTSocketConnectError;
@@ -3092,7 +3092,6 @@ coroutine int CTSSLRoutine(CTConnection *conn, char * hostname, char * caPath)
 #endif 
 
 #ifdef CTRANSPORT_WOLFSSL
-
 	CTSSLEncryptTransient* transient = NULL;
 	CTSSLEncryptTransient  blockingTransient = { conn->socket, 0, NULL };
 	if (conn->socketContext.cxQueue && conn->socketContext.txQueue)
@@ -3138,18 +3137,25 @@ coroutine int CTSSLRoutine(CTConnection *conn, char * hostname, char * caPath)
 	//{
 
 		//commence with the rest of the TLS handshake
-		if ((ret = CTSSLHandshake(conn->socket, conn->sslContext, rootCertRef, hostname)) != noErr)
+		while ((ret = CTSSLHandshake(conn->socket, conn->sslContext, rootCertRef, hostname)) != noErr)
 		{
 #ifdef CTRANSPORT_WOLFSSL
 			if (ret == SSL_ERROR_WANT_READ)
 			{
-				assert(1 == 0);
+				//we should never get here if we are using async connection on background thread path
+				if (conn->socketContext.cxQueue && conn->socketContext.txQueue)
+					assert(1 == 0);
+#ifndef _WIN32	//on *NIX platforms we'll use libdill to ping-pong with the calling thread's run loop
+				else
+				{
+					yield();
+					continue;
+				}
+#endif
 				return CTSuccess;
-
 			}
 			else if (ret == SSL_ERROR_WANT_WRITE)
 			{
-				//assert(1==0);
 				if (conn->socketContext.cxQueue && conn->socketContext.txQueue)
 				{
 					CTCursor* handshakeCursor = CTGetNextPoolCursor();
@@ -3169,7 +3175,7 @@ coroutine int CTSSLRoutine(CTConnection *conn, char * hostname, char * caPath)
 					CTCursorSendOnQueue(handshakeCursor, (char**)&(handshakeCursor->overlappedResponse.buf), handshakeCursor->overlappedResponse.len);
 					return CTSuccess;
 				}
-
+				
 				assert(1 == 0);
 				return CTSuccess;
 			}
@@ -3405,7 +3411,7 @@ coroutine int CTConnectRoutine(CTTarget * service, CTConnectionClosure callback)
     
 	//if the client specified tx, rx queues on the target as input
 	//copy them to the socket context now for the blocking ssl handshake routine if no cxQueue was specified
-	conn.socketContext.cq = service->cq;
+	//conn.socketContext.cq = service->cq; //wait until after the tls handshake
 	conn.socketContext.tq = service->tq;
 	conn.socketContext.rq = service->rq;
 
@@ -3421,7 +3427,7 @@ coroutine int CTConnectRoutine(CTTarget * service, CTConnectionClosure callback)
 	//fprintf(stderr, "CTConnectRoutine()::oxQueue = %d\n\n", conn.socketContext.oxQueue);
 
 	//subscribe to socket read events on rxQueue
-	EV_SET(&kev, conn.socket, EVFILT_READ, EV_ADD | EV_ENABLE , 0, 0, (void*)&(conn.socketContext.rxPipe[CT_INCOMING_PIPE]));
+	EV_SET(&kev, conn.socket, EVFILT_READ, EV_ADD | EV_ENABLE , 0, 0, (void*)(uint64_t)(conn.socketContext.rxPipe[CT_INCOMING_PIPE]));
 	kevent(conn.socketContext.rxQueue, &kev, 1, NULL, 0, NULL);
 #endif
 
@@ -3436,6 +3442,7 @@ coroutine int CTConnectRoutine(CTTarget * service, CTConnectionClosure callback)
 	if (service->proxy.host)
 	{
 		conn.target = service;
+		//conn.socketContext.cq = service->cq;
 #ifdef _WIN32
 		CTProxyHandshake(&conn);
 #endif
@@ -3447,13 +3454,8 @@ coroutine int CTConnectRoutine(CTTarget * service, CTConnectionClosure callback)
         goto CONN_CALLBACK;
         //return status;
     }
-//#endif
 
-
-//#ifndef _WIN32
-//	conn.socketContext.oxPipe[0] = service->oxPipe[0];/
-//	conn.socketContext.oxPipe[1] = service->oxPipe[1];
-//#endif
+	conn.socketContext.cq = service->cq;
 
 	//Remove the socket's association with cx queue and associated it with rx+tx queues
 	if (conn.socketContext.rxQueue)
@@ -4003,7 +4005,7 @@ coroutine int CTTargetResolveHost(CTTarget* target, CTConnectionClosure callback
 	if( target->cxQueue )
 	{
 		struct kevent kev = {0};
-		EV_SET(&kev, target->socket, EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, (void*)&(target->cxPipe[CT_INCOMING_PIPE]));
+		EV_SET(&kev, target->socket, EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, (void*)(uint64_t)(target->cxPipe[CT_INCOMING_PIPE]));
 		kevent(target->cxQueue, &kev, 1, NULL, 0, NULL);
 		//EV_SET(&kev, target->socket, EVFILT_WRITE, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, (void*)(target->cxPipe[CT_OUTGOING_PIPE]));
 		//kevent(target->cxQueue, &kev, 1, NULL, 0, NULL);
