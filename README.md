@@ -89,7 +89,7 @@ CoreTransport is a no-compromise cross-platform pure C library (with wrapper API
 
 ## Usage
 
-The general process for establishing and consuming from connections using CTransport and its wrapper interface libraries is the same:
+The general pattern for establishing and consuming from client connections using CTransport and its wrapper interface libraries is the same:
 
 1.  Create a connection + cursor pool 
 2.  Create queues for async + non-blocking socket operations (CTKernelQueue)
