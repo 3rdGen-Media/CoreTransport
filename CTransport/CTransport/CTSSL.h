@@ -260,7 +260,8 @@ CTRANSPORT_API CTRANSPORT_INLINE  void CTSSLContextDestroy(CTSSLContextRef sslCo
 CTRANSPORT_API CTRANSPORT_INLINE void CTSSLHandshakeSendFirstMessage(CTSocket socketfd, CTSSLContextRef sslContextRef, void* firstMessageBuffer, int firstMessageLen);
 
 //TO DO:  how to expose cursor to this header?
-struct CTCursor; //forward declaration to eliminate clang compiler warning
+struct CTCursor; //forward declaration to eliminate clang compiler 
+
 CTRANSPORT_API CTRANSPORT_INLINE SECURITY_STATUS CTSSLHandshakeProcessFirstResponse(struct CTCursor * cursor, CTSocket socketfd, CTSSLContextRef sslContextRef);
 
 //CTRANSPORT_API int CTSSLHandshakeProcessFirstResponse(CTSocket socketfd, CTSSLContextRef sslContextRef, char* responseBuffer);

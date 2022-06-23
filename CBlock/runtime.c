@@ -48,11 +48,13 @@
 #define _CRT_SECURE_NO_WARNINGS 1
 #include <windows.h>
 
+#if 0
 static __inline bool OSAtomicCompareAndSwapLong(long oldl, long newl, long volatile *dst) {
     /* fixme barrier is overkill -- see objc-os.h */
     long original = InterlockedCompareExchange(dst, newl, oldl);
     return (original == oldl);
 }
+#endif /* if 0 */
 
 static __inline bool OSAtomicCompareAndSwapInt(int oldi, int newi, int volatile *dst) {
     /* fixme barrier is overkill -- see objc-os.h */

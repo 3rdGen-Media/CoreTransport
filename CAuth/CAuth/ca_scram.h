@@ -31,8 +31,8 @@
 #define WIN32_LEAN_AND_MEAN                                     // allow the exclusion of uncommon features
 #define WINVER                                          _WIN32_WINNT_WIN7  // allow the use of Windows XP specific features
 #define _WIN32_WINNT                                    _WIN32_WINNT_WIN7  // allow the use of Windows XP specific features
-#define _CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES         1       // use the new secure functions in the CRT
-#define _CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES_COUNT   1       // use the new secure functions in the CRT
+#define _CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES         1       // override to use the new secure functions in the CRT
+#define _CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES_COUNT   1       // override use the new secure functions in the CRT
 
 
 #include <windows.h>            // fundamental Windows header file
@@ -107,13 +107,13 @@ static const OSStatus noErr = 0;
  * from the DLL / shared library / dynamic library.
  */
 #if defined(_WIN32) && defined(_CA_SCRAM_BUILD_DLL)
- /* We are building crMath as a Win32 DLL */
+ /* We are building CAuth as a Win32 DLL */
  #define CA_SCRAM_API __declspec(dllexport)
 #elif defined(_WIN32) && defined(CA_SCRAM_DLL)
- /* We are calling crMath as a Win32 DLL */
+ /* We are calling CAuth as a Win32 DLL */
  #define CA_SCRAM_API __declspec(dllimport)
 #elif defined(__GNUC__) && defined(_CA_SCRAM_BUILD_DLL)
- /* We are building CA_SCRAM as a shared / dynamic library */
+ /* We are building CAuth as a shared / dynamic library */
  #define CA_SCRAM_API __attribute__((visibility("default")))
 #else
  /* We are building or calling crMath as a static library */
@@ -123,7 +123,7 @@ static const OSStatus noErr = 0;
 //inline doesn't exist in C89, __inline is MSVC specific
 #ifndef CA_SCRAM_INLINE
 #ifdef _WIN32
-#define CA_SCRAM_INLINE __inline
+#define CA_SCRAM_INLINE
 #else
 #define CA_SCRAM_INLINE
 #endif

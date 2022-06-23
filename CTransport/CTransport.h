@@ -89,42 +89,27 @@ extern "C" {
 
 //Core Headers/"Classes" Needed To Create a Secure Socket Connection
 
+//Provide CAuth to all CTransport implementation files anyone that includes CTransport
+#include "CAuth/ca_scram.h"
+
+#include "CTransport/CTSystem.h"
+#include "CTransport/CTEndian.h"
+#include "CTransport/CTFile.h"
+#include "CTransport/CTCoroutine.h"
+#include "CTransport/CTError.h"
+#include "CTransport/CTDNS.h"
+#include "CTransport/CTSocket.h"
+#include "CTransport/CTSSL.h"
+#include "CTransport/CTURL.h"
+#include "CTransport/CTConnection.h"
+#include "CTransport/CTQueue.h"
+
+//Exposed API and Protocols extensions
 #ifdef _WIN32
-#include "CTransport/CTSystem.h"
-#include "CTransport/CTEndian.h"
-#include "CTransport/CTFile.h"
-#include "CTransport/CTCoroutine.h"
-#include "CTransport/CTError.h"
-#include "CTransport/CTDNS.h"
-#include "CTransport/CTSocket.h"
-#include "CTransport/CTSSL.h"
-#include "CTransport/CTURL.h"
-#include "CTransport/CTConnection.h"
-#include "CTransport/CTQueue.h"
-
-//Exposed API and Protocols extensions
 #include "CTransport/CTReQL.h"
-#include "CTransport/CTransportAPI.h"
-
-#else
-
-#include "CTransport/CTSystem.h"
-#include "CTransport/CTEndian.h"
-#include "CTransport/CTFile.h"
-#include "CTransport/CTCoroutine.h"
-#include "CTransport/CTError.h"
-#include "CTransport/CTDNS.h"
-#include "CTransport/CTSocket.h"
-#include "CTransport/CTSSL.h"
-#include "CTransport/CTURL.h"
-#include "CTransport/CTConnection.h"
-#include "CTransport/CTQueue.h"
-
-//Exposed API and Protocols extensions
-//#include "CTransport/CTReQL.h"
-#include "CTransport/CTransportAPI.h"
-
 #endif
+
+#include "CTransport/CTransportAPI.h"
 
 #ifdef __cplusplus
 }

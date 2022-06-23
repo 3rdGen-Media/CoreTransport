@@ -24,6 +24,7 @@ struct ReqlQueryContext *ReqlQueryGetContext(void) {
 #endif
 }
 
+/*
 
 const char* responseKey = "\"t\"";
 
@@ -210,7 +211,7 @@ uint64_t ReqlCursorContinue(ReqlCursor *cursor, void * options)
     //fprintf(stderr, "ReqlCursorContinue\n");
     return ReqlContinueQuery(cursor->conn, cursor->header->token, options);
 }
-
+*/
 
 
 CTRANSPORT_API CTRANSPORT_INLINE int CTReQLHandshakeProcessMagicNumberResponse(char* mnResponsePtr, size_t mnBufferLen)
@@ -456,7 +457,7 @@ CTRANSPORT_API CTRANSPORT_INLINE void* CTReQLHandshakeProcessFirstMessageRespons
     fprintf(stderr, "Base64 Server Signature:  %s\n\n", (char*)base64SS);
 
     //Add the client proof to the end of the client-final-message
-    sprintf(CLIENT_FINAL_MESSAGE_JSON, "{\"authentication\":\"%s,p=%.*s\"}\0", CLIENT_FINAL_MESSAGE, (int)base64ProofLength, (char*)base64Proof);
+    sprintf(CLIENT_FINAL_MESSAGE_JSON, "{\"authentication\":\"%s,p=%.*s\"}", CLIENT_FINAL_MESSAGE, (int)base64ProofLength, (char*)base64Proof);
     fprintf(stderr, "CLIENT_FINAL_MESSAGE_JSON = \n\n%s\n\n", CLIENT_FINAL_MESSAGE_JSON);
 
     //Send the client-final-message wrapped in json

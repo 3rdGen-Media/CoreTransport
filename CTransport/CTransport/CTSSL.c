@@ -244,11 +244,12 @@ static void DisplayWinVerifyTrustError(DWORD Status)
 	case CERT_E_WRONG_USAGE:            pszName = "CERT_E_WRONG_USAGE";             break;
 	default:                            pszName = "(unknown)";                      break;
 	}
-	fprintf(stderr, "Error 0x%x (%s) returned by CertVerifyCertificateChainPolicy!\n", Status, pszName);
+	fprintf(stderr, "Error 0x%lx (%s) returned by CertVerifyCertificateChainPolicy!\n", Status, pszName);
 }
 
 
 /*****************************************************************************/
+/*
 static void DisplayWinSockError(DWORD ErrCode)
 {
 	LPSTR pszName = NULL; // http://www.sockets.com/err_lst1.htm#WSANO_DATA
@@ -300,8 +301,9 @@ static void DisplayWinSockError(DWORD ErrCode)
 	case     11003:  pszName = "WSANO_RECOVERY    "; break;
 	case     11004:  pszName = "WSANO_DATA        "; break;
 	}
-	fprintf(stderr, "Error 0x%x (%s)\n", ErrCode, pszName);
+	fprintf(stderr, "Error 0x%lx (%s)\n", ErrCode, pszName);
 }
+*/
 
 /*****************************************************************************/
 static void DisplaySECError(DWORD ErrCode)
@@ -358,7 +360,7 @@ static void DisplaySECError(DWORD ErrCode)
 		break;
 
 	}
-	fprintf(stderr, "Error 0x%x %s \n", ErrCode, pszName);
+	fprintf(stderr, "Error 0x%lx %s \n", ErrCode, pszName);
 }
 
 
@@ -366,15 +368,13 @@ static void DisplaySECError(DWORD ErrCode)
 void DisplayCertChain(PCCERT_CONTEXT pServerCert, BOOL fLocal)
 {
 
-	typedef DWORD(WINAPI* fCertNameToStrA)(DWORD, PCERT_NAME_BLOB, DWORD, LPSTR, DWORD);
+	//typedef DWORD(WINAPI* fCertNameToStrA)(DWORD, PCERT_NAME_BLOB, DWORD, LPSTR, DWORD);
 
 	CHAR szName[512];
-	DWORD csz = 100;
+	//DWORD csz = 100;
 	PCCERT_CONTEXT pCurrentCert = NULL;
 	PCCERT_CONTEXT pIssuerCert = NULL;
 	DWORD dwVerificationFlags;
-
-
 
 	//fCertNameToStrA pCertNameToStrA = NULL;
 	//pCertNameToStrA = (fCertNameToStrA)GetProcAddress( g_hCrypto, TEXT("CertNameToStrA") );
@@ -460,7 +460,7 @@ void DisplayCertChain(PCCERT_CONTEXT pServerCert, BOOL fLocal)
 			CERT_X500_NAME_STR | CERT_NAME_STR_NO_PLUS_FLAG,
 			szName, sizeof(szName)))
 		{
-			fprintf(stderr, "**** Error 0x%x building subject name\n", GetLastError());
+			fprintf(stderr, "**** Error 0x%lx building subject name\n", GetLastError());
 		}
 
 		fprintf(stderr, "CA subject: %s\n", szName);
@@ -470,7 +470,7 @@ void DisplayCertChain(PCCERT_CONTEXT pServerCert, BOOL fLocal)
 			CERT_X500_NAME_STR | CERT_NAME_STR_NO_PLUS_FLAG,
 			szName, sizeof(szName)))
 		{
-			fprintf(stderr, "**** Error 0x%x building issuer name\n", GetLastError());
+			fprintf(stderr, "**** Error 0x%lx building issuer name\n", GetLastError());
 		}
 
 		fprintf(stderr, "CA issuer: %s\n\n", szName);
@@ -498,7 +498,7 @@ static void DisplayConnectionInfo(CtxtHandle *phContext)
 	}
 	*/
 	Status = QueryContextAttributes(phContext, SECPKG_ATTR_CONNECTION_INFO, (PVOID)&ConnectionInfo);
-	if (Status != SEC_E_OK) { fprintf(stderr, "Error 0x%x querying connection info\n", Status); return; }
+	if (Status != SEC_E_OK) { fprintf(stderr, "Error 0x%lx querying connection info\n", Status); return; }
 
 	fprintf(stderr, "\n");
 
@@ -530,7 +530,7 @@ static void DisplayConnectionInfo(CtxtHandle *phContext)
 		break;
 
 	default:
-		fprintf(stderr, "Protocol: 0x%x\n", ConnectionInfo.dwProtocol);
+		fprintf(stderr, "Protocol: 0x%lx\n", ConnectionInfo.dwProtocol);
 	}
 
 	switch (ConnectionInfo.aiCipher)
@@ -578,7 +578,7 @@ static void DisplayConnectionInfo(CtxtHandle *phContext)
 		fprintf(stderr, "Cipher: 0x%x\n", ConnectionInfo.aiCipher);
 	}
 
-	fprintf(stderr, "Cipher strength: %d\n", ConnectionInfo.dwCipherStrength);
+	fprintf(stderr, "Cipher strength: %ld\n", ConnectionInfo.dwCipherStrength);
 
 	switch (ConnectionInfo.aiHash)
 	{
@@ -604,7 +604,7 @@ static void DisplayConnectionInfo(CtxtHandle *phContext)
 		fprintf(stderr, "Hash: 0x%x\n", ConnectionInfo.aiHash);
 	}
 
-	fprintf(stderr, "Hash strength: %d\n", ConnectionInfo.dwHashStrength);
+	fprintf(stderr, "Hash strength: %ld\n", ConnectionInfo.dwHashStrength);
 
 	switch (ConnectionInfo.aiExch)
 	{
@@ -638,7 +638,7 @@ static void DisplayConnectionInfo(CtxtHandle *phContext)
 		fprintf(stderr, "Key exchange: 0x%x\n", ConnectionInfo.aiExch);
 	}
 
-	fprintf(stderr, "Key exchange strength: %d\n", ConnectionInfo.dwExchStrength);
+	fprintf(stderr, "Key exchange strength: %ld\n", ConnectionInfo.dwExchStrength);
 }
 
 
@@ -650,7 +650,7 @@ void PrintHexDump(
 	DWORD i, count, index;
 	CHAR rgbDigits[] = "0123456789abcdef";
 	CHAR rgbLine[100];
-	char cbLine;
+	uint8_t cbLine;
 
 	for (index = 0; length;
 		length -= count, buffer += count, index += count)
@@ -781,7 +781,7 @@ static void printProtocolsForDWORD(DWORD protocols)
 {
 	if( protocols & SP_PROT_PCT1_SERVER )
 		fprintf(stderr, "\nSP_PROT_PCT1_SERVER");
-		if( protocols & SP_PROT_PCT1_CLIENT )
+	if( protocols & SP_PROT_PCT1_CLIENT )
 		fprintf(stderr, "\nSP_PROT_PCT1_CLIENT");
 	if( protocols & SP_PROT_PCT1 )
 		fprintf(stderr, "\nSP_PROT_PCT1");
@@ -968,7 +968,7 @@ BOOL CTCredentialHandleCreate( CTSSLContextRef * sslContextRef )
 
 	//caCertRef = &hCreds;
     if(Status != SEC_E_OK) {
-		fprintf(stderr, "**** Error 0x%x (%ld) (returned by AcquireCredentialsHandle\n", Status, Status);
+		fprintf(stderr, "**** Error 0x%lx (%ld) (returned by AcquireCredentialsHandle\n", Status, Status);
 		//free(caCertRef);
 		//caCertRef = NULL;
 		return FALSE;
@@ -1004,7 +1004,7 @@ static void GetNewClientCredentials(CredHandle *phCreds, CtxtHandle *phContext)
 
 	// Read list of trusted issuers from schannel.
 	Status = pSSPI->QueryContextAttributes(phContext, SECPKG_ATTR_ISSUER_LIST_EX, (PVOID)&IssuerListInfo);
-	if (Status != SEC_E_OK) { fprintf(stderr, "Error 0x%x querying issuer list info\n", Status); return; }
+	if (Status != SEC_E_OK) { fprintf(stderr, "Error 0x%lx querying issuer list info\n", Status); return; }
 
 	// Enumerate the client certificates.
 	ZeroMemory(&FindByIssuerPara, sizeof(CERT_CHAIN_FIND_BY_ISSUER_PARA));
@@ -1025,7 +1025,7 @@ static void GetNewClientCredentials(CredHandle *phCreds, CtxtHandle *phContext)
 			CERT_CHAIN_FIND_BY_ISSUER,
 			&FindByIssuerPara,
 			pChainContext);
-		if (pChainContext == NULL) { fprintf(stderr, "Error 0x%x finding cert chain\n", GetLastError()); break; }
+		if (pChainContext == NULL) { fprintf(stderr, "Error 0x%lx finding cert chain\n", GetLastError()); break; }
 
 		fprintf(stderr, "\ncertificate chain found\n");
 
@@ -1047,7 +1047,7 @@ static void GetNewClientCredentials(CredHandle *phCreds, CtxtHandle *phContext)
 			&hCreds,                // (out) Cred Handle
 			NULL);            // (out) Lifetime (optional)
 
-		if (Status != SEC_E_OK) { fprintf(stderr, "**** Error 0x%x returned by AcquireCredentialsHandle\n", Status); continue; }
+		if (Status != SEC_E_OK) { fprintf(stderr, "**** Error 0x%lx returned by AcquireCredentialsHandle\n", Status); continue; }
 
 		fprintf(stderr, "\nnew schannel credential created\n");
 
@@ -1130,7 +1130,7 @@ DWORD VerifyServerCertificate(PCCERT_CONTEXT pServerCert, char* pszServerName, D
 		&pChainContext))
 	{
 		Status = GetLastError();
-		fprintf(stderr, "Error 0x%x returned by CertGetCertificateChain!\n", Status);
+		fprintf(stderr, "Error 0x%lx returned by CertGetCertificateChain!\n", Status);
 		goto cleanup;
 	}
 	fprintf(stderr, "After CertGetCertificateChain\n");
@@ -1156,7 +1156,7 @@ DWORD VerifyServerCertificate(PCCERT_CONTEXT pServerCert, char* pszServerName, D
 		&PolicyStatus))
 	{
 		Status = GetLastError();
-		fprintf(stderr, "Error 0x%x returned by CertVerifyCertificateChainPolicy!\n", Status);
+		fprintf(stderr, "Error 0x%lx returned by CertVerifyCertificateChainPolicy!\n", Status);
 		goto cleanup;
 	}
 
@@ -1729,8 +1729,8 @@ int CTWolfSSLRecv(WOLFSSL* ssl, char* buff, int sz, void* ctx)
 	int sockfd = *(int*)ctx;
 	CTSSLDecryptTransient* transient = (CTSSLDecryptTransient*)ctx;
 	int recvd;
-	unsigned long remainingBytes;
-	unsigned long recvdBytes;
+	//unsigned long remainingBytes;
+	//unsigned long recvdBytes;
 	fprintf(stderr, "CTWolfSSLRecv Callback: attempting to recv %d bytes on socket (%d)...\n", sz, sockfd);
 
 	//WSABUF wsaBuf = { sz, buff };
@@ -2103,7 +2103,7 @@ CTSSLStatus CTSSLDecryptMessage(CTSSLContextRef sslContextRef, void*msg, unsigne
 		{
 			buff = (PBYTE)pDataBuffer->pvBuffer; // fprintf(stderr,  "n-2= %d, n-1= %d \n", buff[length-2], buff[length-1] );
 			*msgLength += length;
-			fprintf(stderr, "Decrypted data: %d bytes", length); PrintText(length, buff);
+			fprintf(stderr, "Decrypted data: %lu bytes", length); PrintText(length, buff);
 			//if(fVerbose) { PrintHexDump(length, buff); fprintf(stderr, "\n"); }
 			//if( buff[length-2] == 13 && buff[length-1] == 10 ) return CTSSLSuccess; // fprintf(stderr, "Found CRLF\n");
 			//return ReqlSSLSuccess;
@@ -2113,7 +2113,7 @@ CTSSLStatus CTSSLDecryptMessage(CTSSLContextRef sslContextRef, void*msg, unsigne
 	// Move any "extra" data to the input buffer.
 	if (pExtraBuffer)
 	{
-		fprintf(stderr, "\nReqlSSLDecryptMessage::Handling Extra Buffer Data (%d bytes)!!!\n", pExtraBuffer->cbBuffer);
+		fprintf(stderr, "\nReqlSSLDecryptMessage::Handling Extra Buffer Data (%lu) bytes)!!!\n", pExtraBuffer->cbBuffer);
 		MoveMemory((char*)msg, pExtraBuffer->pvBuffer, pExtraBuffer->cbBuffer);
 		cbIoBuffer = pExtraBuffer->cbBuffer; // fprintf(stderr, "cbIoBuffer= %d  \n", cbIoBuffer);
 		scRet = CTSSLDecryptMessage(sslContextRef, msg, &(cbIoBuffer));
@@ -2159,16 +2159,10 @@ CTSSLStatus CTSSLDecryptMessage(CTSSLContextRef sslContextRef, void*msg, unsigne
 
 CTSSLStatus CTSSLDecryptMessage2(CTSSLContextRef sslContextRef, void*msg, unsigned long *msgLength, char **extraBuffer, unsigned long * extraBytes)
 {
-	int i;
-	unsigned long length;
-	CTSSLStatus scRet;				// unsigned long cbBuffer;    // Size of the buffer, in bytes
-	SecBuffer* pDataBuffer, * pExtraBuffer;
-	PBYTE              buff;
-	DWORD cbIoBuffer;
-
+	CTSSLStatus scRet;
 	unsigned long hasData, hasExtra, hasMissing;
 
-	SecBuffer          Buffers[4] = { {*msgLength, SECBUFFER_DATA, msg},0,0,0 };		// void    SEC_FAR * pvBuffer;   // Pointer to the buffer
+	SecBuffer          Buffers[4] = { {*msgLength, SECBUFFER_DATA, msg}, {0},{0},{0} };		// void    SEC_FAR * pvBuffer;   // Pointer to the buffer
 	SecBufferDesc      Message = { SECBUFFER_VERSION, 4, Buffers };
 
 	// Decrypt the received data.
@@ -2310,7 +2304,7 @@ CTSSLStatus ReqlSSLDecryptMessageInSitu(CTSSLContextRef sslContextRef, void**msg
 		{
 			buff = (PBYTE)pDataBuffer->pvBuffer; // fprintf(stderr,  "n-2= %d, n-1= %d \n", buff[length-2], buff[length-1] );
 			*msgLength = length;
-			fprintf(stderr, "Decrypted data: %d bytes", length); PrintText(length, buff);
+			fprintf(stderr, "Decrypted data: %lu bytes", length); PrintText(length, buff);
 			//if(fVerbose) { PrintHexDump(length, buff); fprintf(stderr, "\n"); }
 			if( buff[length-2] == 13 && buff[length-1] == 10 ) return CTSSLSuccess; // fprintf(stderr, "Found CRLF\n");
 			//return ReqlSSLSuccess;
@@ -2352,7 +2346,7 @@ CTSSLStatus CTSSLEncryptMessage(CTSSLContextRef sslContextRef, void*msg, unsigne
 	DWORD                   cbMessage;//, cbData;
 	//PBYTE                 pbHeader;//, pbMessage;
 	//BYTE pbMessage[4096];
-	size_t bufSize = sslContextRef->Sizes.cbHeader + sslContextRef->Sizes.cbTrailer;
+	//size_t bufSize = sslContextRef->Sizes.cbHeader + sslContextRef->Sizes.cbTrailer;
 
 	//pbMessage = (PBYTE)LocalAlloc(LMEM_FIXED, msgLength + bufSize);
 	//memset(pbMessage, 0, msgLength + bufSize );
@@ -2394,7 +2388,7 @@ CTSSLStatus CTSSLEncryptMessage(CTSSLContextRef sslContextRef, void*msg, unsigne
 
 	scRet = EncryptMessage(&(sslContextRef->hCtxt), 0, &Message, 0); // must contain four SecBuffer structures.
 	*msgLength = Buffers[1].cbBuffer;
-	if (FAILED(scRet)) { fprintf(stderr, "**** Error 0x%x returned by EncryptMessage\n", scRet); }
+	if (FAILED(scRet)) { fprintf(stderr, "**** Error 0x%lx returned by EncryptMessage\n", scRet); }
 	return scRet;
 }
 
@@ -2408,9 +2402,9 @@ CTSSLStatus CTSSLEncryptMessage(CTSSLContextRef sslContextRef, void*msg, unsigne
 SECURITY_STATUS CTSSLHandshakeProcessSecondResponse(CTCursor* cursor, CTSocket socketfd, CTSSLContextRef sslContextRef)
 {
 	int ret = 0;
+#ifdef CTRANSPORT_WOLFSSL
 	int err = 0;
 	char buffer[80];
-#ifdef CTRANSPORT_WOLFSSL
 
 	CTClientError scRet;
 
@@ -2520,7 +2514,7 @@ SECURITY_STATUS CTSSLHandshakeProcessSecondResponse(CTCursor* cursor, CTSocket s
 #elif defined(_WIN32)
 	SecBufferDesc   OutBuffer, InBuffer;
 	SecBuffer       InBuffers[2], OutBuffers[1];
-	DWORD           dwSSPIFlags, dwSSPIOutFlags, cbData, cbIoBuffer;
+	DWORD           dwSSPIFlags, dwSSPIOutFlags, cbIoBuffer;
 	//TimeStamp       tsExpiry;
 	SECURITY_STATUS scRet;
 	PUCHAR          IoBuffer;
@@ -2540,7 +2534,7 @@ SECURITY_STATUS CTSSLHandshakeProcessSecondResponse(CTCursor* cursor, CTSocket s
 				  ISC_RET_EXTENDED_ERROR    | | ISC_REQ_STREAM */;
 
 				  // Allocate data buffer.
-	IoBuffer = cursor->file.buffer;// (PUCHAR)LocalAlloc(LMEM_FIXED, IO_BUFFER_SIZE);
+	IoBuffer = (PUCHAR)cursor->file.buffer;// (PUCHAR)LocalAlloc(LMEM_FIXED, IO_BUFFER_SIZE);
 	if (IoBuffer == NULL) { fprintf(stderr, "**** Out of memory (1)\n"); return SEC_E_INTERNAL_ERROR; }
 	cbIoBuffer = cursor->headerLength + cursor->contentLength;
 	fDoRead = 1;//fDoInitialRead;
@@ -2626,13 +2620,13 @@ SECURITY_STATUS CTSSLHandshakeProcessSecondResponse(CTCursor* cursor, CTSocket s
 
 		if (scRet == SEC_E_OK ||
 			scRet == SEC_I_CONTINUE_NEEDED ||
-			FAILED(scRet) && (dwSSPIOutFlags & ISC_RET_EXTENDED_ERROR))
+			(FAILED(scRet) && (dwSSPIOutFlags & ISC_RET_EXTENDED_ERROR)))
 		{
 			// Check for fatal error.
 			//if (FAILED(scRet)) { fprintf(stderr, "**** Error 0x%x returned by InitializeSecurityContext (2)\n", scRet); }
-			fprintf(stderr, "**** Error 0x%x returned by InitializeSecurityContext (2)\n", scRet);
+			fprintf(stderr, "**** Error 0x%lx returned by InitializeSecurityContext (2)\n", scRet);
 
-			assert((LONG)scRet != 2148074278);
+			assert(scRet != (LONG)2148074278L);
 
 			//assert(scRet != SEC_I_CONTINUE_NEEDED);
 			/*
@@ -2711,7 +2705,7 @@ SECURITY_STATUS CTSSLHandshakeProcessSecondResponse(CTCursor* cursor, CTSocket s
 					}
 					else //failure
 					{
-						fprintf(stderr, "CTConnection::DecryptResponseCallback::CTAsyncRecv failed with CTDriverError = %d\n", scRet);
+						fprintf(stderr, "CTConnection::DecryptResponseCallback::CTAsyncRecv failed with CTDriverError = %ld\n", scRet);
 						break;
 					}
 
@@ -2748,7 +2742,7 @@ SECURITY_STATUS CTSSLHandshakeProcessSecondResponse(CTCursor* cursor, CTSocket s
 				sslContextRef->ExtraData.cbBuffer = InBuffers[1].cbBuffer;
 				sslContextRef->ExtraData.BufferType = SECBUFFER_TOKEN;
 
-				fprintf(stderr, "%d bytes of app data was bundled with handshake data\n", sslContextRef->ExtraData.cbBuffer);
+				fprintf(stderr, "%lu bytes of app data was bundled with handshake data\n", sslContextRef->ExtraData.cbBuffer);
 			}
 			else
 			{
@@ -2762,7 +2756,7 @@ SECURITY_STATUS CTSSLHandshakeProcessSecondResponse(CTCursor* cursor, CTSocket s
 
 
 		// Check for fatal error.
-		if (FAILED(scRet)) { fprintf(stderr, "**** Error 0x%x returned by InitializeSecurityContext (2)\n", scRet); break; }
+		if (FAILED(scRet)) { fprintf(stderr, "**** Error 0x%lx returned by InitializeSecurityContext (2)\n", scRet); break; }
 
 		// If InitializeSecurityContext returned SEC_I_INCOMPLETE_CREDENTIALS,
 		// then the server just requested client authentication.
@@ -2823,7 +2817,7 @@ char* SSLSecondMessageHeaderLengthCallback(struct CTCursor* cursor, char* buffer
 }
 
 //void SSLSecondMessageResponseCallback(CTError* err, CTCursor* cursor) {
-CTCursorCompletionClosure SSLSecondMessageResponseCallback = ^ void(CTError * err, CTCursor * cursor){
+CTCursorCompletionClosure SSLSecondMessageResponseCallback = ^void(CTError * err, CTCursor * cursor){
 
 	fprintf(stderr, "SSLSecondMessageResponseCallback header:  \n\n%.*s\n\n", (int)cursor->headerLength, cursor->requestBuffer);
 
@@ -2853,7 +2847,7 @@ CTCursorCompletionClosure SSLSecondMessageResponseCallback = ^ void(CTError * er
 		CTCloseSSLSocket(cursor->conn->sslContext, cursor->conn->socket);
 	}
 
-	if ((scRet = CTVerifyServerCertificate(cursor->conn->sslContext, cursor->conn->target->url.host)) != noErr)
+	if ((scRet = CTVerifyServerCertificate(cursor->conn->sslContext, cursor->conn->target->url.host)) != 0)
 	{
 		//ReqlSSLCertificateDestroy(&rootCertRef);
 		fprintf(stderr, "CTVerifyServerCertificate with status:  %ld\n", scRet);
@@ -2872,14 +2866,14 @@ CTCursorCompletionClosure SSLSecondMessageResponseCallback = ^ void(CTError * er
 //void SSLSecondMessageQueryCallback(CTError* err, CTCursor* cursor)
 CTCursorCompletionClosure SSLSecondMessageQueryCallback = ^ void(CTError * err, CTCursor * cursor) {
 
-	int ret = 0;
-	int wolfErr = 0;
-	char buffer[80];
-	CTClientError scRet;
+	//CTClientError scRet;
 
 	fprintf(stderr, "SSLSecondMessageQueryCallback header:  \n\n%.*s\n\n", (int)cursor->headerLength, cursor->requestBuffer);
 
 #ifdef CTRANSPORT_WOLFSSL
+	int ret = 0;
+	int wolfErr = 0;
+	char buffer[80];
 
 	CTSSLDecryptTransient dTransient = { 0, cursor->headerLength + cursor->contentLength, 0, cursor->file.buffer };
 	CTSSLEncryptTransient* eTransient = NULL;// { cursor->conn->socket, 0, NULL, 0 };
@@ -2947,7 +2941,7 @@ CTCursorCompletionClosure SSLSecondMessageQueryCallback = ^ void(CTError * err, 
 	//wolf_handshake_complete = 1;
 #elif defined(_WIN32)
 
-	BOOL    fVerbose = FALSE; // FALSE; // TRUE;
+	//BOOL    fVerbose = FALSE; // FALSE; // TRUE;
 	//if (fVerbose) { PrintHexDump(cbData, (PBYTE)(overlappedRequest->buf)); fprintf(stderr, "\n"); }
 
 	//always free the handshake buffer
@@ -3035,7 +3029,7 @@ void CTSSLHandshakeSendFirstMessage(CTSocket socketfd, CTSSLContextRef sslContex
 			free(sslContextRef);
 			return;// NULL;//SEC_E_INTERNAL_ERROR;
 		}
-		fprintf(stderr, "%d bytes of handshake data sent\n", cbData);
+		fprintf(stderr, "%lu bytes of handshake data sent\n", cbData);
 		if (fVerbose) { PrintHexDump(cbData, (PBYTE)(firstMessageBuffer)); fprintf(stderr, "\n"); }
 		FreeContextBuffer(firstMessageBuffer); // Free output buffer.
 		firstMessageBuffer = NULL;
@@ -3101,7 +3095,9 @@ CTSSLContextRef CTSSLContextCreate(CTSocket *socketfd, CTSecCertificateRef * cer
 	wolfSSL_set_fd(sslContextRef->ctx, *socketfd);
 
 	/* make wolfSSL object nonblocking */
+	//Note: this seems to have no effect if the socket actually is blocking (at least on Win32; unconfirmed BSD)
 	wolfSSL_set_using_nonblock(sslContextRef->ctx, 1);
+	
 	/*
 	fprintf(stderr, "creating new WOLFSSL BIO type to write and read with\n");
 	if( (sslContextRef->bio = wolfSSL_BIO_new(wolfSSL_BIO_f_ssl())) == NULL)
@@ -3249,9 +3245,9 @@ CTSSLContextRef CTSSLContextCreate(CTSocket *socketfd, CTSecCertificateRef * cer
 
 	SecBufferDesc   OutBuffer;
 	SecBuffer       OutBuffers[1];
-	DWORD           dwSSPIFlags, dwSSPIOutFlags, cbData;
+	DWORD           dwSSPIFlags, dwSSPIOutFlags;// cbData;
 	SECURITY_STATUS ss;
-	TimeStamp     tsExpiry = { 0 };
+	//TimeStamp     tsExpiry = { 0 };
 	//PSecurityFunctionTable pSSPI = NULL;
 	//PCtxtHandle pCtxHandle = NULL;
 	dwSSPIFlags =  ISC_REQ_STREAM | ISC_REQ_ALLOCATE_MEMORY;
@@ -3308,7 +3304,7 @@ CTSSLContextRef CTSSLContextCreate(CTSocket *socketfd, CTSecCertificateRef * cer
 		&dwSSPIOutFlags,
 		NULL);
 
-	if (ss != SEC_I_CONTINUE_NEEDED) { fprintf(stderr, "**** Error 0x%x returned by InitializeSecurityContext (1)\n", ss); }
+	if (ss != SEC_I_CONTINUE_NEEDED) { fprintf(stderr, "**** Error 0x%lx returned by InitializeSecurityContext (1)\n", ss); }
 
 	// Send response to server if there is one.
 	if (OutBuffers[0].cbBuffer != 0 && OutBuffers[0].pvBuffer != NULL)
@@ -3379,9 +3375,9 @@ CTSSLContextRef CTSSLContextCreate(CTSocket *socketfd, CTSecCertificateRef * cer
 SECURITY_STATUS CTSSLHandshakeProcessFirstResponse(struct CTCursor * cursor, CTSocket socketfd, CTSSLContextRef sslContextRef)
 {
 	int ret = 0;
+#ifdef CTRANSPORT_WOLFSSL
 	int err = 0;
 	char buffer[80];
-#ifdef CTRANSPORT_WOLFSSL
 	CTClientError scRet;
 
 	unsigned long totalBytesProcessed = 0;
@@ -3455,9 +3451,11 @@ SECURITY_STATUS CTSSLHandshakeProcessFirstResponse(struct CTCursor * cursor, CTS
 				overlappedResponse->buf = (char*)(cursor->file.buffer);// + NumBytesRecv;
 				//overlappedResponse->len = sslFirstMessageLen;
 
-				cursor->headerLength = 0;//NumBytesRecv;
-				cursor->headerLength = 0;
-				NumBytesRemaining = 32768;//dTransient.bytesToDecrypt;// NumBytesRecv + NumBytesRemaining;
+				//cusror->contentLength used to be reset 0 for Win32 but BSD kqueue rx pipeline demands we keep track of
+				//offset for async handshake messages this way in combination with headerLengthCallback (see SSLFirstMessageHeaderLengthCallback)
+				cursor->headerLength =	0;
+				cursor->contentLength = NumBytesRecv; 
+				NumBytesRemaining =		32768;			  //dTransient.bytesToDecrypt;// NumBytesRecv + NumBytesRemaining;
 
 #ifndef _WIN32  //ugly AF hack
 				//this is an odd case wherein we are using the same cursor with CTCursorAsyncRecv, 
@@ -3465,11 +3463,12 @@ SECURITY_STATUS CTSSLHandshakeProcessFirstResponse(struct CTCursor * cursor, CTS
 				//SO... we need to reset the stage in order for the queue event loops to properly increment conn->responseCount as if it were a new request
 				overlappedResponse->stage = CT_OVERLAPPED_RECV;//CT_OVERLAPPED_SCHEDULE_RECV + 4;
 				cursor->conn->responseCount++;
-				cursor->contentLength = NumBytesRecv;
 #endif
+				//The commented out line reflects the way Win32 pipeline had implemented reading more bytes for the WolfSSL for the async TLS handshake
+				//But the BSD kqueue pipeline demands that we don't use the offset parameter (due to the voodoo CTCursorAsyncRecv does with it) and Win32 seems fine with it
+				if ((scRet = CTCursorAsyncRecv(&(overlappedResponse), cursor->file.buffer + NumBytesRecv, 0, &NumBytesRemaining)) != CTSocketIOPending) {
+				//if ((scRet = CTCursorAsyncRecv(&(overlappedResponse), cursor->file.buffer + NumBytesRecv, 0, &NumBytesRemaining)) != CTSocketIOPending) {
 
-				if ((scRet = CTCursorAsyncRecv(&(overlappedResponse), cursor->file.buffer + NumBytesRecv, 0, &NumBytesRemaining)) != CTSocketIOPending)
-				{
 					//the async operation returned immediately
 					if (scRet == CTSuccess)
 					{
@@ -3502,7 +3501,7 @@ SECURITY_STATUS CTSSLHandshakeProcessFirstResponse(struct CTCursor * cursor, CTS
 				CTCursorSendOnQueue(cursor, (char**)&(cursor->overlappedResponse.buf), cursor->overlappedResponse.len);
 				return CTSuccess;
 			}
-			else if( err == HANDSHAKE_SIZE_ERROR)
+			else if( err == -404)
 			{
 				fprintf(stderr, "CTSSLHandshakeProcessFirstResponse::dTransient (%lu, %lu)\n",  dTransient.totalBytesProcessed,  dTransient.bytesToDecrypt);
 				assert(1==0);
@@ -3555,7 +3554,7 @@ SECURITY_STATUS CTSSLHandshakeProcessFirstResponse(struct CTCursor * cursor, CTS
 
 	SecBufferDesc   OutBuffer, InBuffer;
 	SecBuffer       InBuffers[2], OutBuffers[1];
-	DWORD           dwSSPIFlags, dwSSPIOutFlags, cbData, cbIoBuffer;
+	DWORD           dwSSPIFlags, dwSSPIOutFlags, cbIoBuffer;
 	//TimeStamp       tsExpiry;
 	SECURITY_STATUS scRet;
 	PUCHAR          IoBuffer;
@@ -3577,7 +3576,7 @@ SECURITY_STATUS CTSSLHandshakeProcessFirstResponse(struct CTCursor * cursor, CTS
 
 				  // Allocate data buffer.
 	//IoBuffer = (PUCHAR)LocalAlloc(LMEM_FIXED, IO_BUFFER_SIZE);
-	IoBuffer = cursor->file.buffer;
+	IoBuffer = (PUCHAR)cursor->file.buffer;
 
 	if (IoBuffer == NULL) { fprintf(stderr, "**** Out of memory (1)\n"); return SEC_E_INTERNAL_ERROR; }
 	cbIoBuffer = cursor->overlappedResponse.buf - cursor->file.buffer;// cursor->headerLength + cursor->contentLength;
@@ -3586,7 +3585,7 @@ SECURITY_STATUS CTSSLHandshakeProcessFirstResponse(struct CTCursor * cursor, CTS
 	// Loop until the handshake is finished or an error occurs.
 	scRet = SEC_I_CONTINUE_NEEDED;
 
-	fprintf(stderr, " CTSSLHandhsakeProcessFirstResponse:: recvd %d bytes of handshake data \n\n", cursor->overlappedResponse.buf - cursor->file.buffer);
+	fprintf(stderr, " CTSSLHandhsakeProcessFirstResponse:: recvd %lld bytes of handshake data \n\n", cursor->overlappedResponse.buf - cursor->file.buffer);
 
 	while (scRet == SEC_I_CONTINUE_NEEDED ||
 		scRet == SEC_E_INCOMPLETE_MESSAGE ||
@@ -3669,13 +3668,13 @@ SECURITY_STATUS CTSSLHandshakeProcessFirstResponse(struct CTCursor * cursor, CTS
 		// buffer to the server.
 		if (scRet == SEC_E_OK ||
 			scRet == SEC_I_CONTINUE_NEEDED ||
-			FAILED(scRet) && (dwSSPIOutFlags & ISC_RET_EXTENDED_ERROR))
+			(FAILED(scRet) && (dwSSPIOutFlags & ISC_RET_EXTENDED_ERROR)))
 		{
 			// Check for fatal error.
 			//if (FAILED(scRet)) { fprintf(stderr, "**** Error 0x%x returned by InitializeSecurityContext (2)\n", scRet); }
-			fprintf(stderr, "**** Error 0x%x returned by InitializeSecurityContext (2)\n", scRet);
+			fprintf(stderr, "**** Error 0x%lx returned by InitializeSecurityContext (2)\n", scRet);
 
-			assert((LONG)scRet != 2148074278);
+			assert(scRet != (LONG)2148074278L);
 
 			//assert(scRet != SEC_I_CONTINUE_NEEDED);
 			/*
@@ -3743,9 +3742,12 @@ SECURITY_STATUS CTSSLHandshakeProcessFirstResponse(struct CTCursor * cursor, CTS
 					cbIoBuffer = 0;
 					//buffer = cursor->file.buffer;;
 
-				//fprintf(stderr, " CTSSLHandhsakeProcessFirstResponse:: recvd %d bytes of handshake data \n\n", cursor->overlappedResponse.buf - cursor->file.buffer);
-				if ((ret = CTCursorAsyncRecv(&olResponse, cursor->file.buffer, cbIoBuffer, &NumBytesRemaining)) != CTSocketIOPending)
-				{
+				//The following 3 lines are critical for matching SCHANNEL Async TLS handshake cursor operation with WolFSSL on ALL platforms (see SSLFirstMessageHeaderLengthCallback):
+				cursor->headerLength = 0;
+				cursor->contentLength = cbIoBuffer;
+				if ((ret = CTCursorAsyncRecv(&olResponse, cursor->file.buffer + cbIoBuffer, 0, &NumBytesRemaining)) != CTSocketIOPending) {
+				//if ((ret = CTCursorAsyncRecv(&olResponse, cursor->file.buffer + cbIoBuffer, 0, &NumBytesRemaining)) != CTSocketIOPending) {
+
 					//the async operation returned immediately
 					if (ret == CTSuccess)
 					{
@@ -3754,7 +3756,7 @@ SECURITY_STATUS CTSSLHandshakeProcessFirstResponse(struct CTCursor * cursor, CTS
 					}
 					else //failure
 					{
-						fprintf(stderr, "CTConnection::DecryptResponseCallback::CTAsyncRecv failed with CTDriverError = %d\n", scRet);
+						fprintf(stderr, "CTConnection::DecryptResponseCallback::CTAsyncRecv failed with CTDriverError = %ld\n", scRet);
 						break;
 					}
 
@@ -3790,7 +3792,7 @@ SECURITY_STATUS CTSSLHandshakeProcessFirstResponse(struct CTCursor * cursor, CTS
 
 		cursor->file.buffer = cursor->requestBuffer;
 		cursor->overlappedResponse.buf = (char*)(OutBuffers[0].pvBuffer);
-		cursor->overlappedResponse.len = (char*)(OutBuffers[0].cbBuffer);
+		cursor->overlappedResponse.len = (OutBuffers[0].cbBuffer);
 
 		cursor->overlappedResponse.stage = CT_OVERLAPPED_SEND; //we need to send but bypass encrypt bc this is the ssl handshake
 		assert(cursor->overlappedResponse.buf);
@@ -3834,10 +3836,10 @@ SECURITY_STATUS CTSSLHandshakeProcessFirstResponse(struct CTCursor * cursor, CTS
  ***/
 int CTSSLHandshake(CTSocket socketfd, CTSSLContextRef sslContextRef, CTSecCertificateRef rootCertRef, const char * serverName)
 {
-	int ret = 0;
-	int err = 0;
 
 #ifdef CTRANSPORT_WOLFSSL
+	int ret = 0;
+	int err = 0;
 
 	/* Connect to wolfSSL on the server side */
 	if ((ret = wolfSSL_connect(sslContextRef->ctx)) != SSL_SUCCESS) {
@@ -3916,7 +3918,7 @@ int CTSSLHandshake(CTSocket socketfd, CTSSLContextRef sslContextRef, CTSecCertif
                     scRet = SEC_E_INTERNAL_ERROR;
                     break;
                 }
-                fprintf(stderr, "%d bytes of handshake data received\n", cbData);
+                fprintf(stderr, "%lu bytes of handshake data received\n", cbData);
                 if(fVerbose) { PrintHexDump(cbData, IoBuffer + cbIoBuffer); fprintf(stderr, "\n"); }
                 cbIoBuffer += cbData;
             }
@@ -3973,10 +3975,10 @@ int CTSSLHandshake(CTSocket socketfd, CTSSLContextRef sslContextRef, CTSecCertif
         // buffer to the server.
         if(scRet == SEC_E_OK                ||
            scRet == SEC_I_CONTINUE_NEEDED   ||
-           FAILED(scRet) && (dwSSPIOutFlags & ISC_RET_EXTENDED_ERROR))
+           (FAILED(scRet) && (dwSSPIOutFlags & ISC_RET_EXTENDED_ERROR)))
         {
 			//if (FAILED(scRet)) { fprintf(stderr, "**** Error 0x%x returned by InitializeSecurityContext (2)\n", scRet); }
-			fprintf(stderr, "**** Error 0x%x returned by InitializeSecurityContext (2)\n", scRet);
+			fprintf(stderr, "**** Error 0x%lx returned by InitializeSecurityContext (2)\n", scRet);
 
             if(OutBuffers[0].cbBuffer != 0 && OutBuffers[0].pvBuffer != NULL)
             {
@@ -3988,7 +3990,7 @@ int CTSSLHandshake(CTSocket socketfd, CTSSLContextRef sslContextRef, CTSecCertif
                     DeleteSecurityContext(&(sslContextRef->hCtxt));
                     return SEC_E_INTERNAL_ERROR;
                 }
-                fprintf(stderr, "%d bytes of handshake data sent\n", cbData);
+                fprintf(stderr, "%lu bytes of handshake data sent\n", cbData);
                 if(fVerbose) { PrintHexDump(cbData, (PBYTE)OutBuffers[0].pvBuffer); fprintf(stderr, "\n"); }
 
                 // Free output buffer.
@@ -4022,7 +4024,7 @@ int CTSSLHandshake(CTSocket socketfd, CTSSLContextRef sslContextRef, CTSecCertif
                 sslContextRef->ExtraData.cbBuffer   = InBuffers[1].cbBuffer;
                 sslContextRef->ExtraData.BufferType = SECBUFFER_TOKEN;
 
-                fprintf(stderr,  "%d bytes of app data was bundled with handshake data\n", sslContextRef->ExtraData.cbBuffer );
+                fprintf(stderr,  "%lu bytes of app data was bundled with handshake data\n", sslContextRef->ExtraData.cbBuffer );
             }
             else
             {
@@ -4036,7 +4038,7 @@ int CTSSLHandshake(CTSocket socketfd, CTSSLContextRef sslContextRef, CTSecCertif
 
 
         // Check for fatal error.
-        if(FAILED(scRet)) { fprintf(stderr, "**** Error 0x%x returned by InitializeSecurityContext (2)\n", scRet); break; }
+        if(FAILED(scRet)) { fprintf(stderr, "**** Error 0x%lx returned by InitializeSecurityContext (2)\n", scRet); break; }
 
         // If InitializeSecurityContext returned SEC_I_INCOMPLETE_CREDENTIALS,
         // then the server just requested client authentication.
@@ -4141,14 +4143,14 @@ int CTVerifyServerCertificate(CTSSLContextRef sslContextRef, char * pszServerNam
 
 	if (scRet != SEC_E_OK)
 	{
-		fprintf(stderr, "Error 0x%x querying Cipher STrengs\n", scRet); return scRet;
+		fprintf(stderr, "Error 0x%lx querying Cipher STrengs\n", scRet); return scRet;
 	} //
 
 	scRet = QueryCredentialsAttributes(&(sslContextRef->hCred), SECPKG_ATTR_SUPPORTED_ALGS, &supportedAlgs);
 
 	if (scRet != SEC_E_OK)
 	{
-		fprintf(stderr, "Error 0x%x querying Supported Algs\n", scRet); return scRet;
+		fprintf(stderr, "Error 0x%lx querying Supported Algs\n", scRet); return scRet;
 	} //
 
 /*
@@ -4173,10 +4175,10 @@ fprintf(stderr, "\n");
 
 	if (scRet != SEC_E_OK)
 	{
-		fprintf(stderr, "Error 0x%x querying Protocols\n", scRet); return scRet;
+		fprintf(stderr, "Error 0x%lx querying Protocols\n", scRet); return scRet;
 	} //
 
-	fprintf(stderr, "**** Protocols 0x%x (%ld) returned by AcquireCredentialsHandle\n", supportedProtocols.grbitProtocol);
+	fprintf(stderr, "**** Protocols 0x%lx (%ld) returned by AcquireCredentialsHandle\n", supportedProtocols.grbitProtocol, supportedProtocols.grbitProtocol);
 
 	printProtocolsForDWORD(supportedProtocols.grbitProtocol);
 
@@ -4186,7 +4188,7 @@ fprintf(stderr, "\n");
 	scRet = QueryContextAttributes(&(sslContextRef->hCtxt), SECPKG_ATTR_REMOTE_CERT_CONTEXT, (LPVOID)&pRemoteCertContext);
 	if (scRet != SEC_E_OK)
 	{
-		fprintf(stderr, "Error 0x%x querying remote certificate\n", scRet); return scRet;
+		fprintf(stderr, "Error 0x%lx querying remote certificate\n", scRet); return scRet;
 	} //
 
 //fprintf(stderr, "----- Server Credentials Authenticated \n");
@@ -4198,7 +4200,7 @@ fprintf(stderr, "\n");
 
 	// Attempt to validate server certificate.
 	scRet = VerifyServerCertificate(pRemoteCertContext, pszServerName, 0);
-	if (scRet) { fprintf(stderr, "**** Error 0x%x authenticating server credentials!\n", scRet); return scRet; }
+	if (scRet) { fprintf(stderr, "**** Error 0x%lx authenticating server credentials!\n", scRet); return scRet; }
 	// The server certificate did not validate correctly. At this point, we cannot tell
 	// if we are connecting to the correct server, or if we are connecting to a
 	// "man in the middle" attack server - Best to just abort the connection.
@@ -4218,7 +4220,7 @@ fprintf(stderr, "\n");
 	scRet = QueryContextAttributes(&(sslContextRef->hCtxt), SECPKG_ATTR_STREAM_SIZES, &(sslContextRef->Sizes));
 	if (scRet != SEC_E_OK)
 	{
-		fprintf(stderr, "**** Error 0x%x reading SECPKG_ATTR_STREAM_SIZES\n", scRet); return scRet;
+		fprintf(stderr, "**** Error 0x%lx reading SECPKG_ATTR_STREAM_SIZES\n", scRet); return scRet;
 	}
 
 	//    SecPkgContext_StreamSizes Sizes;            // unsigned long cbBuffer;    // Size of the buffer, in bytes
@@ -4374,7 +4376,7 @@ CTSSLStatus CTSSLRead( CTSocket socketfd, CTSSLContextRef sslContextRef, void * 
             }
             else // success
             {
-                fprintf(stderr, "%d bytes of (encrypted) application data received\n\n", cbData);
+                fprintf(stderr, "%lu bytes of (encrypted) application data received\n\n", cbData);
                 if(fVerbose) { PrintHexDump(cbData, (PBYTE)msg + cbIoBuffer); fprintf(stderr, "\n"); }
                 cbIoBuffer += cbData;
             }
@@ -4405,8 +4407,10 @@ CTSSLStatus CTSSLRead( CTSocket socketfd, CTSSLContextRef sslContextRef, void * 
 
 	*msgLength = (size_t)cbIoBuffer;
     return scRet;//(size_t)cbIoBuffer;
-
+#else
+	assert(1 == 0);
 #endif
+	return (CTSSLStatus )-1;
 }
 
 
@@ -4438,7 +4442,7 @@ int CTSSLWrite( CTSocket socketfd, CTSSLContextRef sslContextRef, void * msg, un
 	{
 		wolfSSL_get_error(sslContextRef->ctx, errOrBytesWritten);
 		fprintf(stderr, "CTSSLWrite ERROR: wolfSSL_write failed to write with error: %d\n", (int)errOrBytesWritten);
-		assert(1==0);
+		//assert(1==0);
 		errOrBytesWritten = -1;
 	}
 	*msgLength = errOrBytesWritten;

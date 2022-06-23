@@ -83,22 +83,26 @@ typedef NTSTATUS(WINAPI* pNtSetInformationFile)(HANDLE, PIO_STATUS_BLOCK, PVOID,
 #define CTSocket 				SOCKET
 #define CTThread				HANDLE
 typedef HANDLE              	CTKernelQueueType;
+typedef LPTHREAD_START_ROUTINE  CTThreadRoutine; //Win32 CRT Thread Routine
 #define CTDispatchSource 		void
 //#define SSLContextRef 		void*
 #define CTSocketError() 		(WSAGetLastError())
-typedef LPTHREAD_START_ROUTINE CTThreadRoutine; //Win32 CRT Thread Routine
 
 typedef struct CTKernelQueue
 {
 	CTKernelQueueType kq;
 }CTKernelQueue;
 
+static const int CTSOCKET_DEFAULT_BLOCKING_OPTION = 0;
 #elif defined(__APPLE__) || defined(__FreeBSD__) //with libdispatch
 #define CTSocket 	  			int //sockets are just file descriptors
 #define CTThread				pthread_t
 typedef int 					CTKernelQueueType; //kqueues are just file descriptors
 typedef int 					CTKernelPipeType;  //pipes are just file descriptors
-typedef void *					(*CTThreadRoutine)(void *);
+typedef void *					(*CTThreadRoutine)(void *); //pthread routine
+#define CTDispatchSource 		dispatch_source_t
+typedef void(^CTDispatchSourceHandler)(void);				//clang block
+#define CTSocketError() (errno)
 
 typedef struct CTKernelQueue 
 {
@@ -106,12 +110,10 @@ typedef struct CTKernelQueue
 	CTKernelQueueType pq[2];
 }CTKernelQueue;
 
-
 #define CT_INCOMING_PIPE	0
 #define CT_OUTGOING_PIPE	1
-#define CTDispatchSource 	dispatch_source_t
-typedef void (^CTDispatchSourceHandler)(void);
-#define CTSocketError() (errno)
+
+static const int CTSOCKET_DEFAULT_BLOCKING_OPTION = 1;
 #else
 #error "Unsupported Platform"
 #endif
@@ -181,7 +183,9 @@ typedef struct CTSocketContext
 typedef CTSocketContext* CTSocketContextRef;
 
 //#pragma mark -- CTKernelQueue Event API
+#ifndef _WIN32
 CTRANSPORT_API CTRANSPORT_INLINE int kqueue_wait_with_timeout(CTKernelQueueType kqueue, struct kevent * kev, int numEvents, uint32_t timeout);
+#endif
 
 CTRANSPORT_API CTRANSPORT_INLINE CTKernelQueue CTKernelQueueCreate(void);
 

@@ -112,17 +112,17 @@ CTCursor _reqlCursor;
 
 //Define a CTransport API CTTarget C style struct to initiate an HTTPS connection with a CTransport API CTConnection
 static const char* http_server = "3rdgen-sandbox-html-resources.s3.us-west-1.amazonaws.com";//"example.com";// "vtransport - assets.s3.us - west - 1.amazonaws.com";//"example.com";//"mineralism.s3 - us - west - 2.amazonaws.com";
-static const unsigned short	http_port = 80;
+static const unsigned short	http_port = 443;
 
 //Proxies use a prefix to specify the proxy protocol, defaulting to HTTP Proxy
-static const char* proxy_server = "socks5://172.20.10.1";// "54.241.100.168";
-static const unsigned short		proxy_port = 443;// 1080;
+//static const char* proxy_server = "socks5://172.20.10.1";// "54.241.100.168";
+//static const unsigned short		proxy_port = 443;// 1080;
 
 //Define a CTransport API ReqlService (ie CTTarget) C style struct to initiate a RethinkDB TLS connection with a CTransport API CTConnection
-static const char* rdb_server = "rdb.3rd-gen.net";
-static const unsigned short rdb_port = 28015;
-static const char* rdb_user = "admin";
-static const char* rdb_pass = "3rdgen.rdb.4.$";
+//static const char* rdb_server = "rdb.3rd-gen.net";
+//static const unsigned short rdb_port = 28015;
+//static const char* rdb_user = "admin";
+//static const char* rdb_pass = "3rdgen.rdb.4.$";
 
 //These are only relevant for custom DNS resolution libdill, loading the data from these files has not yet been implemented for WIN32 platforms
 char * resolvConfPath = "./resolv.conf";
@@ -181,7 +181,7 @@ CTCursorCompletionClosure httpResponseClosure = ^void(CTError * err, CTCursor* c
 uint64_t CTCursorSendRequestOnQueue(CTCursor * cursor, uint64_t requestToken)	
 {
 	//a string/stream for serializing the json query to char*	
-	unsigned long requestHeaderLength, requestLength;
+	unsigned long requestLength;
 
 	//get the buffer for sending with async iocp
 	char * requestBuffer = cursor->requestBuffer;
@@ -203,7 +203,7 @@ uint64_t CTCursorSendRequestOnQueue(CTCursor * cursor, uint64_t requestToken)
 
 void createCursorResponseBuffers(CTCursor* cursor, const char* filepath)
 {
-	unsigned long ctBufferSize = ct_system_allocation_granularity(); //+ sizeof(CTOverlappedResponse); 
+	//unsigned long ctBufferSize = ct_system_allocation_granularity(); //+ sizeof(CTOverlappedResponse); 
 
 	if (!filepath)
 		filepath = "map.jpg\0";
@@ -385,7 +385,7 @@ int main(void) {
 	CTRoutine coroutine_bundle;
 
 	//Declare dedicated Kernel Queues for dequeueing socket connect, read and write operations in our network application
-	CTKernelQueue cxQueue, txQueue, rxQueue;// oxPipe[2];
+	CTKernelQueue cq, tq, rq;// oxPipe[2];
 
 	//Declare thread handles for thread pools
 	CTThread cxThread, txThread, rxThread;
@@ -399,15 +399,12 @@ int main(void) {
 	CTCreateCursorPool(&(_httpCursor[0]), CT_MAX_INFLIGHT_CURSORS);
 	
 	//Kernel FileDescriptor Event Queue Initialization
-	cxQueue = CTKernelQueueCreate();//CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
-	rxQueue = CTKernelQueueCreate();//CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
-	txQueue = CTKernelQueueCreate();//CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
-#ifndef _WIN32
-	//pipe(oxPipe);
-	//g_kQueuePipePair.q = rxQueue;
-	//g_kQueuePipePair.p[0] = oxPipe[0];
-	//g_kQueuePipePair.p[1] = oxPipe[1];
-#endif
+	//If cq is *NOT* specified as input to a connection target, [DNS + Connect + TLS Handshake] will occur on the current thread.
+	//If cq is specified as input to a connection target, [DNS + Connect] will occur asynchronously on a background thread(pool) and handshake delegated to tq + rq.
+	//If tq or rq are not specified, CTransport internal queues will be assigned to the connection (ie async read/write operation operation post connection pipeline via tq + rq is *ALWAYS* mandatory).   
+	cq = CTKernelQueueCreate();//CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
+	tq = CTKernelQueueCreate();//CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
+	rq = CTKernelQueueCreate();//CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
 
 	//Initialize Thread Pool for dequeing socket operations on associated kernel queues
 	for (index = 0; index < 1; ++index)
@@ -416,9 +413,9 @@ int main(void) {
 		//and provides us with a dispatch_queue on a dedicated pool thread for reading
 		//On Win32 platforms we create a thread/pool of threads to associate an io completion port
 		//When Win32 sees that data is available for read it will read for us and provide the buffers to us on the completion port thread/pool
-		cxThread = CTThreadCreate(&cxQueue, CT_Dequeue_Resolve_Connect_Handshake);
-		rxThread = CTThreadCreate(&rxQueue, CT_Dequeue_Recv_Decrypt);
-		txThread = CTThreadCreate(&txQueue, CT_Dequeue_Encrypt_Send);
+		cxThread = CTThreadCreate(&cq, CT_Dequeue_Resolve_Connect_Handshake);
+		rxThread = CTThreadCreate(&rq, CT_Dequeue_Recv_Decrypt);
+		txThread = CTThreadCreate(&tq, CT_Dequeue_Encrypt_Send);
 
 		//TO DO:  check thread failure
 	}
@@ -430,12 +427,12 @@ int main(void) {
 	httpTarget.proxy.host = NULL;//(char*)proxy_server;
 	httpTarget.proxy.port = 0;//proxy_port;
 	httpTarget.ssl.ca = NULL;//(char*)caPath;
-	httpTarget.ssl.method = CTSSL_NONE;//CTSSL_TLS_1_2;
+	httpTarget.ssl.method = CTSSL_TLS_1_2;
 	httpTarget.dns.resconf = (char*)resolvConfPath;
 	httpTarget.dns.nssconf = (char*)nsswitchConfPath;
-	httpTarget.cq = cxQueue;
-	httpTarget.rq = rxQueue;
-	httpTarget.tq = txQueue;
+	httpTarget.cq = emptyQueue;		
+	httpTarget.tq = tq;		
+	httpTarget.rq = rq;
 
 	//Demonstrate CTransport CT C API Connection (No JSON support)
 	//On Darwin/BSD platforms, when no cxQueue is specified the Core Transport connection routine operates asynchronously on a single thread to by integrating libdill coroutines with an arbitrary runloop thread's e.g. CFRunLoop or SystemKeyboardEventLoop

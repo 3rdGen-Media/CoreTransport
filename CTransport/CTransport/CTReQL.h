@@ -220,6 +220,7 @@ typedef CTOverlappedResponse ReqlOverlappedResponse;
 
 
 //Cursor API
+/*
 CTRANSPORT_API CTRANSPORT_INLINE uint64_t ReqlCursorContinue(ReqlCursor *cursor, void* options);
 CTRANSPORT_API CTRANSPORT_INLINE uint64_t ReqlCursorStop(ReqlCursor *cursor, void* options);
 CTRANSPORT_API CTRANSPORT_INLINE ReqlResponseType ReqlCursorGetResponseType(ReqlCursor * cursor);
@@ -228,7 +229,7 @@ CTRANSPORT_API CTRANSPORT_INLINE uint64_t ReqlContinueQuery    ( ReqlConnection 
 CTRANSPORT_API CTRANSPORT_INLINE uint64_t ReqlContinueQueryCtx ( ReqlQueryContext * ctx, ReqlConnection * conn, uint64_t queryToken, void * options );
 CTRANSPORT_API CTRANSPORT_INLINE uint64_t ReqlStopQuery        ( ReqlConnection * conn, uint64_t queryToken, void * options );
 CTRANSPORT_API CTRANSPORT_INLINE uint64_t ReqlStopQueryCtx     ( ReqlQueryContext* ctx, ReqlConnection * conn, uint64_t queryToken, void * options );
-
+*/
 
 CTRANSPORT_API CTRANSPORT_INLINE int   CTReQLHandshakeProcessMagicNumberResponse (char* mnBuffer, size_t mnBufferLen);
 CTRANSPORT_API CTRANSPORT_INLINE void* CTReQLHandshakeProcessFirstMessageResponse(char* sFirstMessagePtr, size_t sFirstMessageLen, char* password);

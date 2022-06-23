@@ -96,7 +96,7 @@ CTRANSPORT_API CTRANSPORT_INLINE int ct_file_create_w(char * filepath)
 		
 		dwErr = GetLastError();
 		if (dwErr > 0) {
-			printf("ncr_file_create_w::CreateFileA Error Code: %d\n", dwErr );
+			printf("ncr_file_create_w::CreateFileA Error Code: %lu\n", dwErr);
 			fileDescriptor = (int)dwErr;
 		}
 		
@@ -153,7 +153,7 @@ CTRANSPORT_API CTRANSPORT_INLINE off_t ct_file_truncate(int fd, off_t size)
 
 	dwErr = GetLastError();
 	if (dwErr > 0) {
-		printf("ct_file_truncate::Error Code: %d\n", dwErr );
+		printf("ct_file_truncate::Error Code: %lu\n", dwErr );
 		outSz = (off_t)dwErr;
 	}
 #else

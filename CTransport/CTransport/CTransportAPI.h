@@ -5,10 +5,8 @@
 //  Copyright � 2019 3rdGen Multimedia. All rights reserved.
 //
 
-#ifndef CTSOCKETAPI_H
-#define CTSOCKETAPI_H
-
-#include "CAuth/ca_scram.h"
+#ifndef CTRANSPORTAPI_H
+#define CTRANSPORTAPI_H
 
 //uint64_t includes
 #include <stdint.h>

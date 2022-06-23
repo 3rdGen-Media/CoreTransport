@@ -144,7 +144,7 @@ static unsigned char base64DecodeLookup[256] =
 // returns the decoded buffer. Must be free'd by caller. Length is given by
 //    outputLength.
 //
-CA_SCRAM_API CA_SCRAM_INLINE void * cr_base64_to_utf8(const char *inputBuffer,size_t length,size_t *outputLength)
+void * cr_base64_to_utf8(const char *inputBuffer,size_t length,size_t *outputLength)
 {
 	unsigned char *outputBuffer=NULL;
 	size_t outputBufferSize = 0;
@@ -166,7 +166,7 @@ CA_SCRAM_API CA_SCRAM_INLINE void * cr_base64_to_utf8(const char *inputBuffer,si
         size_t accumulateIndex = 0;
         while (i < length)
         {
-            unsigned char decode = base64DecodeLookup[inputBuffer[i++]];
+            unsigned char decode = base64DecodeLookup[(unsigned)inputBuffer[i++]];
             if (decode != xx)
             {
                 accumulated[accumulateIndex] = decode;
@@ -217,7 +217,7 @@ CA_SCRAM_API CA_SCRAM_INLINE void * cr_base64_to_utf8(const char *inputBuffer,si
 // returns the encoded buffer. Must be free'd by caller. Length is given by
 //    outputLength.
 //
-CA_SCRAM_API CA_SCRAM_INLINE char *cr_utf8_to_base64(const void *buffer,size_t length,bool separateLines,size_t *outputLength)
+char *cr_utf8_to_base64(const void *buffer,size_t length,bool separateLines,size_t *outputLength)
 {
 	char *outputBuffer;
 	size_t lineLength;
@@ -427,7 +427,7 @@ void ca_scram_init_hmac_algorithm()
         NULL,
         BCRYPT_ALG_HANDLE_HMAC_FLAG | BCRYPT_HASH_REUSABLE_FLAG)))
     {
-        fprintf(stderr, "ca_scram_hmac_init::**** Error 0x%x returned by BCryptOpenAlgorithmProvider\n", g_bcryptStatus);
+        fprintf(stderr, "ca_scram_hmac_init::**** Error 0x%lx returned by BCryptOpenAlgorithmProvider\n", g_bcryptStatus);
 
     }
 
@@ -440,7 +440,7 @@ void ca_scram_init_hmac_algorithm()
         &cbData,
         0)))
     {
-        fprintf(stderr, "ca_scram_hmac_init::**** Error 0x%x returned by BCryptGetProperty\n", g_bcryptStatus);
+        fprintf(stderr, "ca_scram_hmac_init::**** Error 0x%lx returned by BCryptGetProperty\n", g_bcryptStatus);
         return;
     }
 
@@ -470,7 +470,7 @@ void ca_scram_init_hash_algorithm()
         NULL,
         BCRYPT_HASH_REUSABLE_FLAG)))
     {
-        fprintf(stderr, "ca_scram_hash_init::**** Error 0x%x returned by BCryptOpenAlgorithmProvider\n", g_bcryptStatus);
+        fprintf(stderr, "ca_scram_hash_init::**** Error 0x%lx returned by BCryptOpenAlgorithmProvider\n", g_bcryptStatus);
 
     }
 
@@ -483,7 +483,7 @@ void ca_scram_init_hash_algorithm()
         &cbData,
         0)))
     {
-        fprintf(stderr, "ca_scram_hash_init::**** Error 0x%x returned by BCryptGetProperty\n", g_bcryptStatus);
+        fprintf(stderr, "ca_scram_hash_init::**** Error 0x%lx returned by BCryptGetProperty\n", g_bcryptStatus);
         return;
     }
 
@@ -505,21 +505,21 @@ void ca_scram_init_hash_algorithm()
         0,//sizeof(key)-1,
         BCRYPT_HASH_REUSABLE_FLAG )))
     {
-        fprintf(stderr, "ca_scram_hmac::**** Error 0x%x returned by BCryptCreateHash\n", g_bcryptStatus);
+        fprintf(stderr, "ca_scram_hmac::**** Error 0x%lx returned by BCryptCreateHash\n", g_bcryptStatus);
         return;
     }
 #endif
 }
 
 
-CA_SCRAM_API CA_SCRAM_INLINE void ca_scram_init()
+void ca_scram_init()
 {
 	//ca_scram_init_rng_algorithm();
 	ca_scram_init_hmac_algorithm();
 	ca_scram_init_hash_algorithm();
 }
 
-CA_SCRAM_API CA_SCRAM_INLINE void ca_scram_cleanup()
+void ca_scram_cleanup()
 {
 	//TO DO:  Crypt API Cleanup
 #if defined(_WIN32)
@@ -545,7 +545,7 @@ CA_SCRAM_API CA_SCRAM_INLINE void ca_scram_cleanup()
 #endif
 }
 
-CA_SCRAM_API CA_SCRAM_INLINE OSStatus ca_scram_gen_rand_bytes(char * byteBuffer, size_t numBytes)
+OSStatus ca_scram_gen_rand_bytes(char * byteBuffer, size_t numBytes)
 {
 	OSStatus status;
     size_t byteIndex = 0;
@@ -620,7 +620,7 @@ CA_SCRAM_API CA_SCRAM_INLINE OSStatus ca_scram_gen_rand_bytes(char * byteBuffer,
 
 
 //extern unsigned char *CC_SHA256(const void *data, CC_LONG len, unsigned char *md)
-CA_SCRAM_API CA_SCRAM_INLINE void ca_scram_hash(const char * data, size_t dataLength, char * hashBuffer)
+void ca_scram_hash(const char * data, size_t dataLength, char * hashBuffer)
 {
 #ifdef _WIN32
 	 //hash some data
@@ -630,7 +630,7 @@ CA_SCRAM_API CA_SCRAM_INLINE void ca_scram_hash(const char * data, size_t dataLe
         (ULONG)dataLength,
         0)))
     {
-        fprintf(stderr, "ca_scram_hmac::**** Error 0x%x returned by BCryptHashData\n", g_bcryptStatus);
+        fprintf(stderr, "ca_scram_hmac::**** Error 0x%lx returned by BCryptHashData\n", g_bcryptStatus);
         return;
     }
 
@@ -641,7 +641,7 @@ CA_SCRAM_API CA_SCRAM_INLINE void ca_scram_hash(const char * data, size_t dataLe
         CC_SHA256_DIGEST_LENGTH,
         0)))
     {
-        fprintf(stderr, "ca_scram_hmac::**** Error 0x%x returned by BCryptFinishHash\n", g_bcryptStatus);
+        fprintf(stderr, "ca_scram_hmac::**** Error 0x%lx returned by BCryptFinishHash\n", g_bcryptStatus);
         return;
     }
 #elif defined(__APPLE__)
@@ -652,11 +652,12 @@ CA_SCRAM_API CA_SCRAM_INLINE void ca_scram_hash(const char * data, size_t dataLe
 
 //HMAC SHA 256 on Darwin;  Input Must be UTF8
 //hexBuffer output must be allocated 64 bits or larger
-CA_SCRAM_API CA_SCRAM_INLINE void ca_scram_hmac(const char * secretKey, size_t secretKeyLen, const char * data, size_t dataLen, char * hmacBuffer)
+void ca_scram_hmac(const char * secretKey, size_t secretKeyLen, const char * data, size_t dataLen, char * hmacBuffer)
 {
 #ifdef _WIN32
-	DWORD                   cbData = 0,cbHash = 0,cbHashObject = 0;
-	//PBYTE   pbHash;
+
+    //PBYTE   pbHash;
+    //DWORD   cbData = 0,cbHash = 0, cbHashObject = 0;
 
 	//Note the length of the hash will always be 32 for SHIA256
 	//The buffer will be supplied as input to this function
@@ -692,7 +693,7 @@ CA_SCRAM_API CA_SCRAM_INLINE void ca_scram_hmac(const char * secretKey, size_t s
         (ULONG)secretKeyLen,//sizeof(key)-1,
         BCRYPT_HASH_REUSABLE_FLAG )))
     {
-        fprintf(stderr, "ca_scram_hmac::**** Error 0x%x returned by BCryptCreateHash\n", g_bcryptStatus);
+        fprintf(stderr, "ca_scram_hmac::**** Error 0x%lx returned by BCryptCreateHash\n", g_bcryptStatus);
         return;
     }
 
@@ -703,7 +704,7 @@ CA_SCRAM_API CA_SCRAM_INLINE void ca_scram_hmac(const char * secretKey, size_t s
         (ULONG)dataLen,
         0)))
     {
-        fprintf(stderr, "ca_scram_hmac::**** Error 0x%x returned by BCryptHashData\n", g_bcryptStatus);
+        fprintf(stderr, "ca_scram_hmac::**** Error 0x%lx returned by BCryptHashData\n", g_bcryptStatus);
         return;
     }
 
@@ -714,7 +715,7 @@ CA_SCRAM_API CA_SCRAM_INLINE void ca_scram_hmac(const char * secretKey, size_t s
         CC_SHA256_DIGEST_LENGTH,
         0)))
     {
-        fprintf(stderr, "ca_scram_hmac::**** Error 0x%x returned by BCryptFinishHash\n", g_bcryptStatus);
+        fprintf(stderr, "ca_scram_hmac::**** Error 0x%lx returned by BCryptFinishHash\n", g_bcryptStatus);
         return;
     }
 
@@ -731,7 +732,7 @@ CA_SCRAM_API CA_SCRAM_INLINE void ca_scram_hmac(const char * secretKey, size_t s
 }
 
 //SCRAM Hi Algorithm Step
-CA_SCRAM_API CA_SCRAM_INLINE void ca_scram_salt_password(char * pw, size_t pwLen, char * salt, size_t saltLen, int ni, char * saltedPassword)
+void ca_scram_salt_password(char * pw, size_t pwLen, char * salt, size_t saltLen, int ni, char * saltedPassword)
 {
 	int i, charIndex;
     char hmacBuffer[2][CC_SHA256_DIGEST_LENGTH];    //a buffer to hold hmac at each iteration
@@ -775,7 +776,7 @@ CA_SCRAM_API CA_SCRAM_INLINE void ca_scram_salt_password(char * pw, size_t pwLen
 
 
 //a hex function for convenience
-CA_SCRAM_API CA_SCRAM_INLINE void ca_scram_hex(unsigned char * in, size_t insz, char * out, size_t outsz)
+void ca_scram_hex(unsigned char * in, size_t insz, char * out, size_t outsz)
 {
     unsigned char * pin = in;
     const char * hex = "0123456789ABCDEF";

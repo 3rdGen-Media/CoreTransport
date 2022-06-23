@@ -116,9 +116,11 @@ coroutine int CTKernelQueueWait(CTKernelQueueType event_queue, int16_t eventFilt
     }
     return ret;
 #else
-	return event_queue;
+    assert(1 == 0);
+    //#error "Unsupported Platform"
 #endif
-	//return ret_event;
+    return -1;// (int)event_queue;
+    //return ret_event;
 }
 
 //#pragma mark -- CTThread API
@@ -158,7 +160,7 @@ void CTSocketInit(void)
 	{
 		// Initialize the WinSock subsystem.
 		if(WSAStartup(MAKEWORD(2, 2)/*0x0101*/, &g_WsaData) == SOCKET_ERROR) // Winsock.h
-		{ fprintf(stderr, "Error %d returned by WSAStartup\n", GetLastError()); }// goto cleanup; } //
+		{ fprintf(stderr, "Error %ld returned by WSAStartup\n", GetLastError()); }// goto cleanup; } //
 		fprintf(stderr, "----- WinSock Initialized\n");
 		g_WsaInitialized = 1;
 	}
@@ -175,15 +177,15 @@ CTSocket CTSocketCreateUDP(void)
 {
     // Standard unix socket definitions
     CTSocket socketfd = -1;
-    struct linger lin;
-    int iResult;
-    u_long nonblockingMode = 0;
-    struct timeval timeout = { 0,0 };
+    //struct linger lin;
+    //int iResult;
+    //u_long nonblockingMode = 0;
+    //struct timeval timeout = { 0,0 };
 
 #ifdef _WIN32
-    BOOL     bOptVal = TRUE;
-    int      bOptLen = sizeof(BOOL);
-    socketfd = WSASocket(AF_INET, SOCK_DGRAM, IPPROTO_UDP , NULL, 0, WSA_FLAG_OVERLAPPED);
+    //BOOL     bOptVal = TRUE;
+    //int      bOptLen = sizeof(BOOL);
+    socketfd = WSASocket(AF_INET, SOCK_DGRAM, IPPROTO_UDP, NULL, 0, WSA_FLAG_OVERLAPPED);
 #else //defined(__APPLE__)
     socketfd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
 #endif
@@ -234,7 +236,7 @@ CTSocket CTSocketCreate(int nonblocking)
 
     //CTransport always uses non-blocking sockets, yuh
     u_long nonblockingMode = (u_long)nonblocking;
-    struct timeval timeout = { 0,0 };
+    //struct timeval timeout = { 0,0 };
 
 #ifdef _WIN32
     BOOL     bOptVal = TRUE;
@@ -248,7 +250,7 @@ CTSocket CTSocketCreate(int nonblocking)
 	// Create the non-blocking unix socket file descriptor for a tcp stream
     if(  socketfd < 0 || socketfd == INVALID_SOCKET )
     {
-        fprintf(stderr, "socket(PF_INET, SOCK_STREAM, IPPROTO_TCP) [fd=%d] failed with error:  %d", socketfd, errno);
+        fprintf(stderr, "socket(PF_INET, SOCK_STREAM, IPPROTO_TCP) [fd=%d] failed with error:  %d", (int)socketfd, errno);
         return CTSocketError;
     }
 
