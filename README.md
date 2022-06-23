@@ -11,9 +11,9 @@ CoreTransport is a no-compromise cross-platform pure C library (with wrapper API
   </tr>
   <tr width ="100%">
     <td width="49%">Structured concurrency to promote simultaneous asynchronous non-blocking socket connections from a single thread</td>
-    <td width="17%"><s>Coroutines,</s><br/>Completion Queues</td>
-    <td width="17%">Coroutines,<br/>Completion Queues</td>
-    <td width="17%">Coroutines,<br/>Completion Queues</td>
+    <td width="17%"><s>Coroutines,</s><br/>IO Completion</td>
+    <td width="17%">Coroutines,<br/><s>IO Completion</s></td>
+    <td width="17%">Coroutines,<br/>IO Completion</td>
   </tr>
   <tr width ="100%">
     <td width="49%">Async non-blocking DNS resolve</td>
@@ -29,7 +29,7 @@ CoreTransport is a no-compromise cross-platform pure C library (with wrapper API
   </tr>
   <tr width ="100%">
     <td width="49%">Lock-Free, Wait-Free Tx/Rx scheduling & completion operation dequeuing with fewest userspace context switches</td>
-    <td width="17%">IOCP Completion,<br/>PeekMessage</td>
+    <td width="17%">IOCP,<br/>PeekMessage</td>
     <td width="17%">kqueue,<br/>Cursor pipe</td>
     <td width="17%">kqueue,<br/>Cursor pipe</td>
   </tr>
