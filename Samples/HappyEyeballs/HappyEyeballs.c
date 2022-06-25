@@ -300,8 +300,8 @@ CTConnectionClosure _httpConnectionClosure = ^int(CTError * err, CTConnection * 
 	
 	fprintf(stderr, "HTTP Connection Success\n");
 	
-	//for(i =0; i<30; i++)
-	//	sendHTTPRequest(&_httpCursor[httpRequestCount % CT_MAX_INFLIGHT_CURSORS]);
+	for(i=0; i<30; i++)
+		sendHTTPRequest(&_httpCursor[httpRequestCount % CT_MAX_INFLIGHT_CURSORS]);
 
 	return err->id;
 };

@@ -2009,6 +2009,8 @@ CTSSLStatus CTSSLDecryptMessage2(CTSSLContextRef sslContextRef, void* msg, unsig
 			*extraBuffer = (char*)msg + transient.totalBytesProcessed;// : NULL;
 			scRet = SEC_E_INCOMPLETE_MESSAGE;
 		}		
+		else
+			assert(1==0);
 	}
 	else //WolfSSL returned decrypted bytes
 	{
