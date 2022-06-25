@@ -1212,7 +1212,7 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 					NumBytesRecv = NumBytesRemaining;	//set up for the next decryption
 
 					scRet = CTSSLDecryptMessage2(cursor->conn->sslContext, overlappedResponse->wsaBuf.buf, &NumBytesRecv, &extraBuffer, &NumBytesRemaining);
-					fprintf(stderr, "CT_Deque_Recv_Decrypt::CT_OVERLAPPED_EXECUTE C::Decrypted data: %d bytes recvd, %d bytes remaining, scRet = 0x%x\n", NumBytesRecv, NumBytesRemaining, scRet); //PrintText(NumBytesRecv, (PBYTE)(overlappedResponse->wsaBuf.buf + overlappedResponse->conn->sslContext->Sizes.cbHeader));
+					fprintf(stderr, "CT_Deque_Recv_Decrypt::CT_OVERLAPPED_EXECUTE C::Decrypted data: %lu bytes recvd, %lu bytes remaining, scRet = 0x%lx\n", NumBytesRecv, NumBytesRemaining, scRet); //PrintText(NumBytesRecv, (PBYTE)(overlappedResponse->wsaBuf.buf + overlappedResponse->conn->sslContext->Sizes.cbHeader));
 
 					if (scRet == SEC_E_OK)
 					{

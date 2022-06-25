@@ -45,8 +45,8 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <stdbool.h>
-
-#include "../../Git/libdispatch/dispatch/dispatch.h"
+#include <string.h>
+//#include "../../Git/libdispatch/dispatch/dispatch.h"
 
 #include "/usr/include/sys/thr.h"
 

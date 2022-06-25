@@ -11,7 +11,7 @@
 # The extension is already found. Any number of sources could be listed here.
 add_executable (HappyEyeballs HappyEyeballs.c)
 target_link_directories(HappyEyeballs PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../bin)
-target_link_directories(HappyEyeballs PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../Git/libdispatch)
+#target_link_directories(HappyEyeballs PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../Git/libdispatch)
 
 #Tell CMake to use custom name for generated target lib/exe
 #set_target_properties(CTransport PROPERTIES OUTPUT_NAME "CTransport")
@@ -27,7 +27,7 @@ set_target_properties(HappyEyeballs PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJEC
 
 # Make sure the compiler can find include files needed by our executable
 target_include_directories (HappyEyeballs PRIVATE ../../include ${CMAKE_CURRENT_SOURCE_DIR})
-target_include_directories (HappyEyeballs PRIVATE ../../../Git/libdispatch ${CMAKE_CURRENT_SOURCE_DIR})
+#target_include_directories (HappyEyeballs PRIVATE ../../../Git/libdispatch ${CMAKE_CURRENT_SOURCE_DIR})
 
 #Link our executable with -libpthreads
 find_package(Threads REQUIRED)
@@ -51,6 +51,6 @@ target_link_libraries (HappyEyeballs LINK_PUBLIC dill)
 #Link our executable with Clang libBlocksRuntime
 target_link_libraries(HappyEyeballs PUBLIC BlocksRuntime)
 
-target_link_libraries (HappyEyeballs PUBLIC dispatch)
+#target_link_libraries (HappyEyeballs PUBLIC dispatch)
 
 
