@@ -16,10 +16,10 @@ typedef enum CTPROTCOL
 
 typedef struct CTURL //Size:  22 or 26; Alignment: 16 bytes
 {
-//#ifdef _WIN32
     //TO DO:  replace this with sockaddr_storage
     //Pre-resolved socket address input or storage for async resolve
-    struct sockaddr_in      addr;           //16 bytes
+    //struct sockaddr_in      addr;           //16 bytes
+    struct sockaddr_storage addr;
 //#endif
     //Server host address string
     char*                   host;           //4 or 8 bytes

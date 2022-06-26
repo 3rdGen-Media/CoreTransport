@@ -173,21 +173,27 @@ void CTSocketInit(void)
 #endif
 }
 
-CTSocket CTSocketCreateUDP(void)
+typedef enum CTSOCKET_IP
+{
+    CTSOCKET_IPv4,
+    CTSOCKET_IPv6
+};
+
+CTSocket CTSocketCreateUDP(int af)
 {
     // Standard unix socket definitions
     CTSocket socketfd = -1;
     //struct linger lin;
     //int iResult;
-    //u_long nonblockingMode = 0;
+    //u_long nonblockingMode = 0;s
     //struct timeval timeout = { 0,0 };
 
 #ifdef _WIN32
     //BOOL     bOptVal = TRUE;
     //int      bOptLen = sizeof(BOOL);
-    socketfd = WSASocket(AF_INET, SOCK_DGRAM, IPPROTO_UDP, NULL, 0, WSA_FLAG_OVERLAPPED);
+    socketfd = WSASocket(af, SOCK_DGRAM, IPPROTO_UDP, NULL, 0, WSA_FLAG_OVERLAPPED);
 #else //defined(__APPLE__)
-    socketfd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    socketfd = socket(af, SOCK_DGRAM, IPPROTO_UDP);
 #endif
 
     // Create the non-blocking unix socket file descriptor for a tcp stream
@@ -196,6 +202,15 @@ CTSocket CTSocketCreateUDP(void)
         fprintf(stderr, "socket(PF_INET, SOCK_STREAM, IPPROTO_TCP) failed with error:  %d", errno);
         return CTSocketError;
     }
+
+    /*
+    //Change the socket option IPV6_V6ONLY to false, so it should be compatible with IPv4
+    if ((setsockopt(socketfd, SOL_SOCKET, IPV6_V6ONLY, 0, sizeof(int))) < 0)
+    {
+        fprintf(stderr, " setsockopt(sd, SOL_SOCKET, IPV6_V6ONLY, 0, sizeof(int)) failed with error:  %d\n", errno);
+        return CTSocketError;
+    }
+    */
 
     // Set linger explicitly off to kill connections on close
     // Note:  linger failure does not explicilty fail the connection
@@ -227,7 +242,7 @@ CTSocket CTSocketCreateUDP(void)
 }
 
 //A helper function to create a socket
-CTSocket CTSocketCreate(int nonblocking)
+CTSocket CTSocketCreate(int af, int nonblocking)
 {
     // Standard unix socket definitions
     CTSocket socketfd;
@@ -241,11 +256,11 @@ CTSocket CTSocketCreate(int nonblocking)
 #ifdef _WIN32
     BOOL     bOptVal = TRUE;
     int      bOptLen = sizeof(BOOL);
-	socketfd = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
+	socketfd = WSASocket(af, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
 #else //defined(__APPLE__)
     bool     bOptVal = true;
     int      bOptLen = sizeof(bool);
-	socketfd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+	socketfd = socket(af, SOCK_STREAM, IPPROTO_TCP);
 #endif
 	// Create the non-blocking unix socket file descriptor for a tcp stream
     if(  socketfd < 0 || socketfd == INVALID_SOCKET )
@@ -253,6 +268,15 @@ CTSocket CTSocketCreate(int nonblocking)
         fprintf(stderr, "socket(PF_INET, SOCK_STREAM, IPPROTO_TCP) [fd=%d] failed with error:  %d", (int)socketfd, errno);
         return CTSocketError;
     }
+
+    /*
+    //Change hange the socket option IPV6_V6ONLY to false, so it should be compatible with IPv4
+    if ((setsockopt(socketfd, SOL_SOCKET, IPV6_V6ONLY, 0, sizeof(int))) < 0)
+    {
+        fprintf(stderr, " setsockopt(sd, SOL_SOCKET, IPV6_V6ONLY, 0, sizeof(int)) failed with error:  %d\n", errno);
+        return CTSocketError;
+    }
+    */
 
     //-------------------------
     // Set the socket I/O mode: In this case FIONBIO

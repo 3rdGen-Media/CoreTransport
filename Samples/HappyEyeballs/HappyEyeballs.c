@@ -111,18 +111,18 @@ CTCursor _reqlCursor;
  ***/
 
 //Define a CTransport API CTTarget C style struct to initiate an HTTPS connection with a CTransport API CTConnection
-static const char* http_server = "3rdgen-sandbox-html-resources.s3.us-west-1.amazonaws.com";//"example.com";// "vtransport - assets.s3.us - west - 1.amazonaws.com";//"example.com";//"mineralism.s3 - us - west - 2.amazonaws.com";
-static const unsigned short	http_port = 443;
+static const char* http_server = "example.com";// "3rdgen-sandbox-html-resources.s3.us-west-1.amazonaws.com";//"example.com";// "vtransport - assets.s3.us - west - 1.amazonaws.com";//"example.com";//"mineralism.s3 - us - west - 2.amazonaws.com";
+static const unsigned short	http_port	 = 443;
 
 //Proxies use a prefix to specify the proxy protocol, defaulting to HTTP Proxy
-//static const char* proxy_server = "socks5://172.20.10.1";// "54.241.100.168";
-//static const unsigned short		proxy_port = 443;// 1080;
+static const char*			proxy_server = "socks5://172.20.10.1";// "54.241.100.168";
+static const unsigned short	proxy_port	 = 443;// 1080;
 
 //Define a CTransport API ReqlService (ie CTTarget) C style struct to initiate a RethinkDB TLS connection with a CTransport API CTConnection
-//static const char* rdb_server = "rdb.3rd-gen.net";
+//static const char* rdb_server = "rdb.server.net";
 //static const unsigned short rdb_port = 28015;
 //static const char* rdb_user = "admin";
-//static const char* rdb_pass = "3rdgen.rdb.4.$";
+//static const char* rdb_pass = "rdb_password";
 
 //These are only relevant for custom DNS resolution libdill, loading the data from these files has not yet been implemented for WIN32 platforms
 char * resolvConfPath = "./resolv.conf";
@@ -165,6 +165,7 @@ char* httpHeaderLengthCallback(struct CTCursor* pCursor, char* buffer, unsigned 
 	else if( pCursor->queryToken%3 == 2)
 		pCursor->contentLength = 572443;
 
+	pCursor->contentLength = 1256;
 	//The cursor headerLength is calculated as follows after this function returns
 	//cursor->headerLength = endOfHeader - buffer;
 	return endOfHeader;
@@ -227,7 +228,7 @@ void sendHTTPRequest(CTCursor* cursor)
 	unsigned long queryStrLength;
 
 	//send request
-	char GET_REQUEST[1024] = "\0";
+	//char GET_REQUEST[1024] = "\0";
 	char * imgName = "wood.png";
 
 	if(httpRequestCount % 3 == 0)
@@ -237,8 +238,8 @@ void sendHTTPRequest(CTCursor* cursor)
 	else if(httpRequestCount % 3 == 2)
 		imgName = "brickwall_normal.jpg";
 
-	//char GET_REQUEST[1024] = "GET /index.html HTTP/1.1\r\nHost: example.com\r\nUser-Agent: CoreTransport\r\nAccept: */*\r\n\r\n\0";
-	sprintf(GET_REQUEST, "GET /img/textures/%s HTTP/1.1\r\nHost: 3rdgen-sandbox-html-resources.s3.us-west-1.amazonaws.com\r\nUser-Agent: CoreTransport\r\nAccept: */*\r\n\r\n", imgName);
+	char GET_REQUEST[1024] = "GET /index.html HTTP/1.1\r\nHost: example.com\r\nUser-Agent: CoreTransport\r\nAccept: */*\r\n\r\n\0";
+	//sprintf(GET_REQUEST, "GET /img/textures/%s HTTP/1.1\r\nHost: 3rdgen-sandbox-html-resources.s3.us-west-1.amazonaws.com\r\nUser-Agent: CoreTransport\r\nAccept: */*\r\n\r\n", imgName);
 	//GET_REQUEST = "GET /img/textures/wood.png HTTP/1.1\r\nHost: 3rdgen-sandbox-html-resources.s3.us-west-1.amazonaws.com\r\nUser-Agent: CoreTransport\r\nAccept: */*\r\n\r\n\0";
 
 	//file path to open
@@ -254,9 +255,9 @@ void sendHTTPRequest(CTCursor* cursor)
 	snprintf(filepath + strlen(filepath), strlen(filepath), "%d", httpRequestCount);
 	
 	if(httpRequestCount % 3 == 0)
-		strcat(filepath, ".png");
+		strcat(filepath, ".txt");
 	else
-		strcat(filepath, ".jpg");
+		strcat(filepath, ".txt");
 		
 	httpRequestCount++;
 
@@ -300,8 +301,8 @@ CTConnectionClosure _httpConnectionClosure = ^int(CTError * err, CTConnection * 
 	
 	fprintf(stderr, "HTTP Connection Success\n");
 	
-	for(i=0; i<30; i++)
-		sendHTTPRequest(&_httpCursor[httpRequestCount % CT_MAX_INFLIGHT_CURSORS]);
+	//for(i=0; i<30; i++)
+	//	sendHTTPRequest(&_httpCursor[httpRequestCount % CT_MAX_INFLIGHT_CURSORS]);
 
 	return err->id;
 };
@@ -424,14 +425,14 @@ int main(void) {
 	//Define https connection target
 	httpTarget.url.host = (char*)http_server;
 	httpTarget.url.port = http_port;
-	httpTarget.proxy.host = NULL;//(char*)proxy_server;
-	httpTarget.proxy.port = 0;//proxy_port;
+	//httpTarget.proxy.host = (char*)proxy_server;
+	//httpTarget.proxy.port = proxy_port;
 	httpTarget.ssl.ca = NULL;//(char*)caPath;
 	httpTarget.ssl.method = CTSSL_TLS_1_2;
 	httpTarget.dns.resconf = (char*)resolvConfPath;
 	httpTarget.dns.nssconf = (char*)nsswitchConfPath;
-	httpTarget.cq = cq;		
-	httpTarget.tq = tq;		
+	httpTarget.cq = cq;
+	httpTarget.tq = tq;
 	httpTarget.rq = rq;
 
 	//Demonstrate CTransport CT C API Connection (No JSON support)

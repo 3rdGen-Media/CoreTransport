@@ -223,10 +223,10 @@ CTRANSPORT_API CTRANSPORT_INLINE void CTSocketInit(void);
 CTRANSPORT_API CTRANSPORT_INLINE int  CTSocketGetError(CTSocket socketfd);
 
 //UDP Sockets
-CTRANSPORT_API CTRANSPORT_INLINE CTSocket CTSocketCreateUDP(void);
+CTRANSPORT_API CTRANSPORT_INLINE CTSocket CTSocketCreateUDP(int af);
 
 //TCP Sockets
-CTRANSPORT_API CTRANSPORT_INLINE CTSocket CTSocketCreate(int nonblocking);
+CTRANSPORT_API CTRANSPORT_INLINE CTSocket CTSocketCreate(int af, int nonblocking);
 CTRANSPORT_API CTRANSPORT_INLINE int 	  CTSocketClose(CTSocket socketfd);
 
 

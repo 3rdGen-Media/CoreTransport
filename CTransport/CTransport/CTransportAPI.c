@@ -1524,7 +1524,8 @@ coroutine int CTSocketConnect(CTSocket socketfd, CTTarget * service)
 {
     //fprintf(stderr, "CTSocketConnect\n");
     //yield();
-    struct sockaddr_in addr;
+    //struct sockaddr_in addr;
+	//struct sockaddr_storage addr;
 
     //Resolve hostname asynchronously   
     /*
@@ -1541,10 +1542,10 @@ coroutine int CTSocketConnect(CTSocket socketfd, CTTarget * service)
     
     // Fill a sockaddr_in socket host address and port (why do we copy the already resolved target addr to this local var?)
     //bzero(&addr, sizeof(addr));
-	memset(&addr, 0, sizeof(addr));
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = service->url.addr.sin_addr.s_addr;//*(in_addr_t*)(service->url.addr.sa_data);//*(in_addr_t*)(host->h_addr);  //set host ip addr
-    addr.sin_port = service->proxy.host ? htons(service->proxy.port) : htons(service->url.port);
+	//memset(&addr, 0, sizeof(addr));
+    //addr.sin_family = AF_INET;
+    //addr.sin_addr.s_addr = ((struct sockaddr_in*)&(service->url.addr))->sin_addr.s_addr;//*(in_addr_t*)(service->url.addr.sa_data);//*(in_addr_t*)(host->h_addr);  //set host ip addr
+    //addr.sin_port = service->proxy.host ? htons(service->proxy.port) : htons(service->url.port);
     
 	char* connect_host = service->proxy.host ? service->proxy.host : service->url.host;
 
@@ -1561,9 +1562,9 @@ coroutine int CTSocketConnect(CTSocket socketfd, CTTarget * service)
     
 	// Connect the bsd socket to the remote server
 #ifdef _WIN32
-	if ( WSAConnect(socketfd, (struct sockaddr*)&addr, sizeof(addr), NULL, NULL, NULL, NULL) == SOCKET_ERROR )
+	if ( WSAConnect(socketfd, (struct sockaddr*)&(service->url.addr), sizeof((service->url.addr)), NULL, NULL, NULL, NULL) == SOCKET_ERROR )
 #else //defined(__APPLE__)
-    if ( connect(socketfd, (struct sockaddr*)&addr, sizeof(addr)) != 0 ) //== SOCKET_ERROR
+    if ( connect(socketfd, (struct sockaddr*)&(service->url.addr), sizeof((service->url.addr)) != 0 ) //== SOCKET_ERROR
 #endif
     {
 		int error = CTSocketError();
@@ -1592,7 +1593,7 @@ int CTSocketConnectOnQueue(CTSocket socketfd, CTTarget* service, CTConnectionClo
 {
 
 	//OSStatus status;
-	struct sockaddr_in addr;
+	//struct sockaddr_in addr;
 	//struct CTConnection conn = { 0 };
 	//struct CTError error = { (CTErrorClass)0,0,0 };    //Reql API client functions will generally return ints as errors
 
@@ -1632,11 +1633,11 @@ int CTSocketConnectOnQueue(CTSocket socketfd, CTTarget* service, CTConnectionClo
 
 	// Fill a sockaddr_in socket host address and port (why do we copy the already resolved target addr to this local var?)
 	//bzero(&addr, sizeof(addr));
-	memset(&addr, 0, sizeof(addr));
-	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = service->url.addr.sin_addr.s_addr;//*(in_addr_t*)(service->url.addr.sa_data);//*(in_addr_t*)(host->h_addr);  //set host ip addr
-	addr.sin_port = htons(target_port);
-	addr.sin_port = service->proxy.host ? htons(service->proxy.port) : htons(service->url.port);
+	//memset(&addr, 0, sizeof(addr));
+	//addr.sin_family = AF_INET;
+	//addr.sin_addr.s_addr = ((struct sockaddr_in*)&(service->url.addr))->sin_addr.s_addr;//*(in_addr_t*)(service->url.addr.sa_data);//*(in_addr_t*)(host->h_addr);  //set host ip addr
+	//addr.sin_port = htons(target_port);
+	//addr.sin_port = service->proxy.host ? htons(service->proxy.port) : htons(service->url.port);
 
 	service->socket = socketfd;
 	
@@ -1666,25 +1667,48 @@ int CTSocketConnectOnQueue(CTSocket socketfd, CTTarget* service, CTConnectionClo
 	
 	/* ConnectEx requires the socket to be initially bound. */
 	{
-		struct sockaddr_in baddr;
-		ZeroMemory(&baddr, sizeof(baddr));
-		baddr.sin_family = AF_INET;
-		baddr.sin_addr.s_addr = INADDR_ANY;
-		baddr.sin_port = 0;
-		int rc = bind(socketfd, (SOCKADDR*)&baddr, sizeof(baddr));
-		if (rc != 0) {
-			fprintf(stderr, "bind failed: %d\n", CTSocketError());
-			CTSocketClose(socketfd);
-			perror(target_host);
-			return CTSocketBindError;
+		if (service->url.addr.ss_family == AF_INET)
+		{
+			struct sockaddr_in baddr;
+			ZeroMemory(&baddr, sizeof(baddr));
+			baddr.sin_family = AF_INET;
+			baddr.sin_addr.s_addr = INADDR_ANY;
+			baddr.sin_port = 0;
+			int rc = bind(socketfd, (SOCKADDR*)&baddr, sizeof(baddr));
+			if (rc != 0) {
+				fprintf(stderr, "bind failed: %d\n", CTSocketError());
+				CTSocketClose(socketfd);
+				perror(target_host);
+				return CTSocketBindError;
+			}
 		}
+		else if (service->url.addr.ss_family == AF_INET6)
+		{
+
+#ifndef INADDR6_ANY
+struct in6_addr INADDR6_ANY = { 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 };
+#endif
+			struct sockaddr_in6 baddr;
+			ZeroMemory(&baddr, sizeof(baddr));
+			baddr.sin6_family = AF_INET6;
+			baddr.sin6_addr = INADDR6_ANY;
+			baddr.sin6_port = 0;
+			int rc = bind(socketfd, (SOCKADDR*)&baddr, sizeof(baddr));
+			if (rc != 0) {
+				fprintf(stderr, "bind failed: %d\n", CTSocketError());
+				CTSocketClose(socketfd);
+				perror(target_host);
+				return CTSocketBindError;
+			}
+		}
+		else assert(1 == 0);
 	}
 
 	//OVERLAPPED ol;
 	//ZeroMemory(&ol, sizeof(ol));
 
 #ifdef _WIN32
-	if (ConnectEx(socketfd, (struct sockaddr*)&addr, sizeof(addr), NULL, 0, NULL, &(overlappedTarget->Overlapped)) == FALSE)
+	if (ConnectEx(socketfd, (struct sockaddr*)&(service->url.addr), sizeof((service->url.addr)), NULL, 0, NULL, &(overlappedTarget->Overlapped)) == FALSE)
 	{
 
 		if (WSAGetLastError() == ERROR_IO_PENDING)
@@ -2613,17 +2637,16 @@ char* HTTPProxyHeaderLengthCallback(struct CTCursor* cursor, char* buffer, unsig
 	char* endOfHeader = strstr(buffer, "\r\n\r\n");
 
 	if (!endOfHeader)
-		return NULL;// assert(1 == 0);
-
+	{
+		cursor->headerLength = 0;
+		cursor->contentLength = 0;
+		return NULL;
+	}
 	//set ptr to end of http header
 	endOfHeader += sizeof("\r\n\r\n") - 1;
-
-	//calculate size of header
-	cursor->headerLength = endOfHeader - buffer;
 	
-	cursor->contentLength = 0;
-	return endOfHeader;
-
+	cursor->contentLength = endOfHeader - buffer;
+	return buffer;
 }
 
 
@@ -2927,7 +2950,7 @@ coroutine int CTProxyHandshake(CTConnection* conn)
 
 	CTError error = { 0 };
 	int status = 0;
-	if (conn->socketContext.txQueue)
+	if (conn->socketContext.cxQueue && conn->socketContext.txQueue)
 	{
 		CTCursor* handshakeCursor = CTGetNextPoolCursor();
 		//send the TLS Handshake first message in an async non-blocking fashion
@@ -2938,7 +2961,10 @@ coroutine int CTProxyHandshake(CTConnection* conn)
 			handshakeCursor->headerLengthCallback = HTTPProxyHeaderLengthCallback;
 			handshakeCursor->responseCallback = HTTPProxyResponseCallback;
 
-			char CONNECT_REQUEST[1024] = "CONNECT example.com:443 HTTP/1.1\r\nHost: example.com\r\nUser-Agent: CoreTransport\r\n\r\n\0";
+			char CONNECT_REQUEST[1024] = "\0";
+			//char CONNECT_REQUEST[1024] = "CONNECT 3rdgen-sandbox-html-resources.s3.us-west-1.amazonaws.com:443 HTTP/1.1\r\nHost: 3rdgen-sandbox-html-resources.s3.us-west-1.amazonaws.com\r\nUser-Agent: CoreTransport\r\n\r\n\0";
+			sprintf(CONNECT_REQUEST, "CONNECT %s:%hu HTTP/1.1\r\nHost: %s\r\nUser-Agent: CoreTransport\r\n\r\n", conn->target->url.host, conn->target->url.port, conn->target->url.host);
+
 			memcpy(handshakeCursor->requestBuffer, CONNECT_REQUEST, strlen(CONNECT_REQUEST));
 			handshakeCursor->overlappedResponse.len = strlen(CONNECT_REQUEST);
 		}
@@ -2969,7 +2995,10 @@ coroutine int CTProxyHandshake(CTConnection* conn)
 		
 		if (proxy_protocol == HTTP)
 		{
-			char CONNECT_REQUEST[1024] = "CONNECT example.com:443 HTTP/1.1\r\nHost: example.com\r\nUser-Agent: CoreTransport\r\n\r\n\0";
+			char CONNECT_REQUEST[1024] = "\0";
+			//char CONNECT_REQUEST[1024] = "CONNECT 3rdgen-sandbox-html-resources.s3.us-west-1.amazonaws.com:80 HTTP/1.1\r\nHost: 3rdgen-sandbox-html-resources.s3.us-west-1.amazonaws.com\r\nUser-Agent: CoreTransport\r\n\r\n\0";			
+			sprintf(CONNECT_REQUEST, "CONNECT %s:%hu HTTP/1.1\r\nHost: %s\r\nUser-Agent: CoreTransport\r\n\r\n", conn->target->url.host, conn->target->url.port, conn->target->url.host);
+
 			char RESPONSE_BUFFER[1024];// = "CONNECT example.com:80 HTTP/1.1\r\nHost: example.com\r\nUser-Agent: CoreTransport\r\n\r\n\0";
 
 			unsigned long sendLength = (unsigned long)strlen(CONNECT_REQUEST);
@@ -2980,7 +3009,7 @@ coroutine int CTProxyHandshake(CTConnection* conn)
 			CTSend(conn, (void*)(char*)CONNECT_REQUEST, &sendLength);
 
 			char* connectRequestResponsePtr = (char*)CTRecv(conn, RESPONSE_BUFFER, &responseLength);
-			fprintf(stderr, "CTProxyHandshake::HTT Proxy Connect RESPONSE_BUFFER = \n\n%s\n\n", connectRequestResponsePtr);
+			fprintf(stderr, "CTProxyHandshake::HTTP Proxy Connect RESPONSE_BUFFER = \n\n%s\n\n", connectRequestResponsePtr);
 			
 			//TO DO:  parse RESPONSE_BUFFER
 
@@ -3300,7 +3329,7 @@ coroutine int CTConnectRoutine(CTTarget * service, CTConnectionClosure callback)
 	fprintf(stderr, "Before CTSocketCreate()\n");
 
     //  Create a [non-blocking] TCP socket and return a socket fd
-    if( (conn.socket = CTSocketCreate(service->cxQueue ? 1 : CTSOCKET_DEFAULT_BLOCKING_OPTION)) < 0)
+    if( (conn.socket = CTSocketCreate(service->url.addr.ss_family, service->cxQueue ? 1 : CTSOCKET_DEFAULT_BLOCKING_OPTION)) < 0)
     {
         error.id = (int)conn.socket; //Note: hope that 64 bit socket handle is within 32 bit range?!
         goto CONN_CALLBACK;
@@ -3543,8 +3572,95 @@ CONN_CALLBACK:
     return error.id;
 }
 
-void populate_sockaddr(int af, int port, char addr[], struct sockaddr_storage* dst, socklen_t* addrlen) {
+int host_ip_version(const char* addr) 
+{
+	char buf[16];
+	if (inet_pton(AF_INET, addr, buf)) {
+		return AF_INET;
+	}
+	else if (inet_pton(AF_INET6, addr, buf)) {
+		return AF_INET6;
+	}
+	return -1;
+}
 
+
+//void populate_sockaddr(int af, int port, char addr[], struct sockaddr_storage* dst, socklen_t* addrlen) {
+void populate_sockaddr_ip(int af, int port, void* ip, struct sockaddr_storage* dst, socklen_t* addrlen)
+{
+	if (af == AF_INET) {
+		struct sockaddr_in* dst_in4 = (struct sockaddr_in*)dst;
+
+		*addrlen = sizeof(*dst_in4);
+		memset(dst_in4, 0, *addrlen);
+		dst_in4->sin_family = af;
+		dst_in4->sin_port = htons(port);
+		//inet_pton(af, addr, &dst_in4->sin_addr);
+		//dst_in4->sin_addr.s_addr = *(unsigned long*)ip;
+		memcpy(&(dst_in4->sin_addr.s_addr), ip, sizeof(unsigned long));
+	}
+	else if (af == AF_INET6) {
+		struct sockaddr_in6* dst_in6 = (struct sockaddr_in6*)dst;
+
+		*addrlen = sizeof(*dst_in6);
+		memset(dst_in6, 0, *addrlen);
+		dst_in6->sin6_family = af;
+		dst_in6->sin6_port = htons(port);
+		// unnecessary because of the memset(): dst_in6->sin6_flowinfo = 0;
+		//inet_pton(af, addr, &dst_in6->sin6_addr);
+		memcpy(&(dst_in6->sin6_addr), ip, sizeof(struct in6_addr));
+
+	} // else ...	
+}
+
+//void populate_sockaddr(int af, int port, char addr[], struct sockaddr_storage* dst, socklen_t* addrlen) {
+void populate_sockaddr_version(int af, int port, char addr[], struct sockaddr_storage* dst, socklen_t* addrlen)
+{
+	if (af == AF_INET) {
+		struct sockaddr_in* dst_in4 = (struct sockaddr_in*)dst;
+
+		*addrlen = sizeof(*dst_in4);
+		memset(dst_in4, 0, *addrlen);
+		dst_in4->sin_family = af;
+		dst_in4->sin_port = htons(port);
+		inet_pton(af, addr, &dst_in4->sin_addr);
+
+	}
+	else if (af == AF_INET6) {
+		struct sockaddr_in6* dst_in6 = (struct sockaddr_in6*)dst;
+
+		*addrlen = sizeof(*dst_in6);
+		memset(dst_in6, 0, *addrlen);
+		dst_in6->sin6_family = af;
+		dst_in6->sin6_port = htons(port);
+		// unnecessary because of the memset(): dst_in6->sin6_flowinfo = 0;
+		inet_pton(af, addr, &dst_in6->sin6_addr);
+	} // else ...	
+}
+
+
+//void populate_sockaddr(int af, int port, char addr[], struct sockaddr_storage* dst, socklen_t* addrlen) {
+void populate_sockaddr(int port, char addr[], struct sockaddr_storage* dst, socklen_t* addrlen) 
+{
+	//attempt to parse as ipv4 first
+	struct sockaddr_in* dst_in4 = (struct sockaddr_in*)dst;
+	*addrlen = sizeof(*dst_in4);
+	memset(dst_in4, 0, *addrlen);
+	dst_in4->sin_family = AF_INET;
+	dst_in4->sin_port = htons(port);
+	
+	if ( inet_pton(AF_INET, addr, &dst_in4->sin_addr) != 1)
+	{
+		struct sockaddr_in6* dst_in6 = (struct sockaddr_in6*)dst;
+		*addrlen = sizeof(*dst_in6);
+		memset(dst_in6, 0, *addrlen);
+		dst_in6->sin6_family = AF_INET6;
+		dst_in6->sin6_port = htons(port);
+		// unnecessary because of the memset(): dst_in6->sin6_flowinfo = 0;
+		assert( inet_pton(AF_INET6, addr, &dst_in6->sin6_addr) == 1 );
+	}
+
+	/*
 	if (af == AF_INET) {
 		struct sockaddr_in* dst_in4 = (struct sockaddr_in*)dst;
 
@@ -3565,6 +3681,7 @@ void populate_sockaddr(int af, int port, char addr[], struct sockaddr_storage* d
 		// unnecessary because of the memset(): dst_in6->sin6_flowinfo = 0;
 		inet_pton(af, addr, &dst_in6->sin6_addr);
 	} // else ...
+	*/
 }
 
 char* DNSResolveHeaderLengthCallback(struct CTCursor* cursor, char* buffer, unsigned long length)
@@ -3591,7 +3708,8 @@ CTCursorCompletionClosure DNSResolveResponseCallback = ^ void(CTError * err, CTC
 
 	socklen_t addrlen;
 	//int DNS_PORT = 53;
-	//populate_sockaddr(AF_INET, (int)DNS_PORT, "8.8.8.8", &(cursor->target->url.addr), &addrlen);
+	//const char* DNS_SERVER_IPv4 = "8.8.8.8";
+	//const char* DNS_SERVER_IPv6 = "2001:4860:4860::8888";
 
 	char* target_host = cursor->target->proxy.host ? cursor->target->proxy.host : cursor->target->url.host;
 	short target_port = cursor->target->proxy.host ? cursor->target->proxy.port : cursor->target->url.port;
@@ -3600,6 +3718,10 @@ CTCursorCompletionClosure DNSResolveResponseCallback = ^ void(CTError * err, CTC
 	if (host_prefix) target_host = host_prefix + 3;
 
 	CTError error = { 0,0,NULL };
+
+	//determine the ip of the host we desire to connect to in order to determine which DNS server to use
+	//const char* DNS_SERVER = cursor->target->url.addr.ss_family == AF_INET6 ? (char*)DNS_SERVER_IPv6 : (char*)DNS_SERVER_IPv4;
+
 	//check the result
 	//int fromlen = sizeof(target->url.addr);
 	int cbReceived = cursor->contentLength + cursor->headerLength;// recvfrom(target->socket, buff, 2048, 0, (struct sockaddr*)&(target->url.addr), &fromlen);
@@ -3636,12 +3758,12 @@ CTCursorCompletionClosure DNSResolveResponseCallback = ^ void(CTError * err, CTC
 	DNS_RECORD* pRecord = NULL;// ffi.new("DNS_RECORD *[1]", nil);
 	WORD dnsLen = (WORD)cbReceived;
 	DNS_STATUS status = DnsExtractRecordsFromMessage_UTF8(pDnsResponseBuff, dnsLen, &(pRecord));
-
+	WORD wType = cursor->target->url.addr.ss_family == AF_INET6 ? DNS_TYPE_AAAA : DNS_TYPE_A;
 	if (status != 0)
 	{
 		fprintf(stderr, "DnsExtractRecordsFromMessage_UTF8 failed with error code: %ld\n", status);
 		//assert(1 == 0);
-		populate_sockaddr(AF_INET, (int)(target_port), target_host, (struct sockaddr_storage*)&(cursor->target->url.addr), &addrlen);
+		populate_sockaddr_version(cursor->target->url.addr.ss_family, (int)(target_port), target_host, (struct sockaddr_storage*)&(cursor->target->url.addr), &addrlen);
 	}
 	else
 	{
@@ -3655,12 +3777,17 @@ CTCursorCompletionClosure DNSResolveResponseCallback = ^ void(CTError * err, CTC
 			//local a = IN_ADDR();
 			//a.S_addr = record.Data.A.IpAddress
 
-			if (pRecordA->wType == DNS_TYPE_A)
+			if (pRecordA->wType == wType)
 			{
-				//TO DO:  we are only handling A records and only the first one
-				populate_sockaddr(AF_INET, (int)(target_port), target_host, (struct sockaddr_storage*)&(cursor->target->url.addr), &addrlen);
-				cursor->target->url.addr.sin_addr.s_addr = pRecordA->Data.A.IpAddress;
-				assert(INADDR_NONE != cursor->target->url.addr.sin_addr.s_addr);
+				//TO DO:  we are only handling A and AAAA records and only the first one
+				void* resolved_ip = wType == DNS_TYPE_AAAA ? (void*)&(pRecordA->Data.AAAA.Ip6Address) : (void*)&(pRecordA->Data.A.IpAddress);
+				populate_sockaddr_ip(cursor->target->url.addr.ss_family, (int)(target_port), resolved_ip, (struct sockaddr_storage*)&(cursor->target->url.addr), &addrlen);
+				//cursor->target->url.addr.sin_addr.s_addr = pRecordA->Data.A.IpAddress;
+				
+				//TO DO:  How to handle assert for AF_INET6 addresses?
+				if(cursor->target->url.addr.ss_family == AF_INET)
+					assert(INADDR_NONE != ((struct sockaddr_in*)&(cursor->target->url.addr))->sin_addr.s_addr);
+				
 				break;
 			}
 			pRecordA = pRecordA->pNext;
@@ -3802,6 +3929,11 @@ coroutine int CTTargetResolveHost(CTTarget* target, CTConnectionClosure callback
 	//struct sockaddr_strorage addr;
 	socklen_t addrlen;
 	int DNS_PORT = 53;
+
+	char* DNS_SERVER_IPv4 = "8.8.8.8";
+	char* DNS_SERVER_IPv6 = "2001:4860:4860:0000:0000:0000:0000:8888";
+	int ip_version = AF_INET6;  //fallback to IPv6 if we can't determine from string
+
 	char* target_host = target->proxy.host ? target->proxy.host : target->url.host;
 	short target_port = target->proxy.host  ? target->proxy.port : target->url.port;
 
@@ -3809,16 +3941,26 @@ coroutine int CTTargetResolveHost(CTTarget* target, CTConnectionClosure callback
 	char* host_prefix = strstr(target_host, "://");
 	if (host_prefix) target_host = host_prefix + 3;
 
-	populate_sockaddr(AF_INET, (int)DNS_PORT, "8.8.8.8", (struct sockaddr_storage*)&(target->url.addr), &addrlen);
+	//determine the ip of the host we desire to connect to in order to determine which DNS server to use
+	ip_version = host_ip_version(target_host);
+	
+	//TO DO:  if ip version could be parsed (because host is an ip address that doesn't require DNS resolution) bypass DNS
 
-	//target->url.addr.sin_addr.s_addr = inet_addr("8.8.8.8");
-	assert(INADDR_NONE != target->url.addr.sin_addr.s_addr);
+	//If the ip version could not be parsed, fallback to IPv6 resolution by default
+	ip_version = ip_version > 0 ? ip_version : AF_INET6; 
+	char* DNS_SERVER = ip_version == AF_INET6 ? (char*)DNS_SERVER_IPv6 : (char*)DNS_SERVER_IPv4;
+
+	populate_sockaddr_version(ip_version, (int)DNS_PORT, DNS_SERVER, (struct sockaddr_storage*)&(target->url.addr), &addrlen);
+	if (target->url.addr.ss_family == AF_INET)
+		assert(INADDR_NONE != ((struct sockaddr_in*)&(target->url.addr))->sin_addr.s_addr);
+	//else if (target->url.addr.ss_family == AF_INET6)
+	//	assert(0xffffffff != ((struct sockaddr_in6*)&(target->url.addr))->sin6_addr);
 
 	fprintf(stderr, "Before CTSocketCreateUDP()\n");
 	fflush(stderr);
 
 	//  Create a [non-blocking] TCP socket and return a socket fd
-	if ((target->socket = CTSocketCreateUDP()) < 0)
+	if ((target->socket = CTSocketCreateUDP(target->url.addr.ss_family)) < 0)
 	{
 		error.id = (int)target->socket; //Note: hope that 64 bit socket handle is within 32 bit range?!
 		goto CONN_CALLBACK;
@@ -3836,21 +3978,7 @@ coroutine int CTTargetResolveHost(CTTarget* target, CTConnectionClosure callback
 		fflush(stderr);
 	}
 
-
-	/*
-	fprintf(stderr, "Before CTSocketCreateEventQueue(0)\n");
-
-	if (CTSocketCreateEventQueue(&(conn.socketContext)) < 0)
-	{
-		fprintf(stderr, "ReqlSocketCreateEventQueue failed\n");
-		error.id = (int)conn.event_queue;
-		goto CONN_CALLBACK;
-	}
-	*/
-
-	//wType = wType or ffi.C.DNS_TYPE_A
 	//msTimeout = msTimeout or 60 * 1000  -- 1 minute
-
 
 	//-- Prepare the DNS request
 	//local dwBuffSize = ffi.new("DWORD[1]", 2048);
@@ -3860,21 +3988,19 @@ coroutine int CTTargetResolveHost(CTTarget* target, CTConnectionClosure callback
 	DWORD dwBuffSize = 2048;
 	//uint8_t buff[2048];
 	char buff[2048];
-	WORD wType = DNS_TYPE_A;
+	WORD wType = ip_version == AF_INET6 ? DNS_TYPE_AAAA : DNS_TYPE_A;
 	BOOL wRecursiveNameQuery = TRUE;
 
 	target->dns.wID = GetTickCount() % 65536;
 
-	//wType = ffi.C.DNS_TYPE_MX - mail records
-	//wType = ffi.C.DNS_TYPE_CNAME
-
 	memset(buff, 0, 2048);
 
 	//TO DO:  Figure out how to write DNS Question manually for fully xplatform goodness
-	//local res = windns_ffi.DnsWriteQuestionToBuffer_UTF8(ffi.cast("DNS_MESSAGE_BUFFER*", buff), dwBuffSize, ffi.cast("char *", strToQuery), wType, wID, true)
 	BOOL res = DnsWriteQuestionToBuffer_UTF8((DNS_MESSAGE_BUFFER*)buff, &dwBuffSize, (char*)(target_host), wType, target->dns.wID, wRecursiveNameQuery);
 	if (res == 0)
 	{
+		fprintf(stderr, "CTTargetResolveHost::DnsWriteQuestionToBuffer_UTF8 failed (dwBuffSize = %ld)\n\n", dwBuffSize);
+
 		error.id = CTDNSError;
 		goto CONN_CALLBACK;
 	}
@@ -3963,9 +4089,7 @@ coroutine int CTTargetResolveHost(CTTarget* target, CTConnectionClosure callback
 		{
 			fprintf(stderr, "DnsExtractRecordsFromMessage_UTF8 failed with error code: %ld\n", status);
 			//assert(1 == 0);
-
-			populate_sockaddr(AF_INET, (int)(target_port), target_host, (struct sockaddr_storage*)&(target->url.addr), &addrlen);
-
+			populate_sockaddr_version(ip_version, (int)(target_port), target_host, (struct sockaddr_storage*)&(target->url.addr), &addrlen);
 		}
 
 		else
@@ -3982,12 +4106,35 @@ coroutine int CTTargetResolveHost(CTTarget* target, CTConnectionClosure callback
 
 				if (pRecordA->wType == wType)
 				{
-					//TO DO:  we are only handling A records and only the first one
-					populate_sockaddr(AF_INET, (int)(target_port), target_host, (struct sockaddr_storage*)&(target->url.addr), &addrlen);
-					target->url.addr.sin_addr.s_addr = pRecordA->Data.A.IpAddress;
-					assert(INADDR_NONE != target->url.addr.sin_addr.s_addr);
+					//TO DO:  we are only handling A and AAAArecords and only the first one
+					void* resolved_ip = wType == DNS_TYPE_AAAA ? (void*)&(pRecordA->Data.AAAA.Ip6Address) : (void*)&(pRecordA->Data.A.IpAddress);
+					populate_sockaddr_ip(ip_version, (int)(target_port), resolved_ip, (struct sockaddr_storage*)&(target->url.addr), &addrlen);
+					//((struct sockaddr_in*)&(target->url.addr))->sin_addr.s_addr = pRecordA->Data.A.IpAddress;
+					
+					//TO DO:  what is the proper assert for AF_INET6 addresses?
+					if (target->url.addr.ss_family == AF_INET)
+						assert(INADDR_NONE != ((struct sockaddr_in*)&(target->url.addr))->sin_addr.s_addr);
+
 					break;
 				}
+				/*
+				else if (pRecordA->wType == DNS_TYPE_CNAME)
+				{
+					fprintf(stderr, "CTTargetResolveHost::DnsExtractRecordsFromMessage_UTF8::DNS_TYPE_CNAME pNameHost = %s\n", pRecordA->Data.CNAME.pNameHost);
+
+					void* resolved_ip = wType == DNS_TYPE_AAAA ? (void*)&(pRecordA->Data.AAAA.Ip6Address) : (void*)&(pRecordA->Data.A.IpAddress);
+					populate_sockaddr_ip(ip_version, (int)(target_port), resolved_ip, (struct sockaddr_storage*)&(target->url.addr), &addrlen);
+					//((struct sockaddr_in*)&(target->url.addr))->sin_addr.s_addr = pRecordA->Data.A.IpAddress;
+
+					//TO DO:  what is the proper assert for AF_INET6 addresses?
+					if (target->url.addr.ss_family == AF_INET)
+						assert(INADDR_NONE != ((struct sockaddr_in*)&(target->url.addr))->sin_addr.s_addr);
+
+					break;
+
+				}
+				*/
+
 				pRecordA = pRecordA->pNext;
 			}
 

@@ -234,7 +234,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>$(VLD_DIR)\lib\Win64;..\lib\x64;$(WOLFSSL_DIR)\x64\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(VLD_DIR)\lib\Win64;..\lib\x64;$(WOLFSSL_DIR)\Debug\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>CAuthd.lib;wolfssl.lib</AdditionalDependencies>
     </Lib>
     <PostBuildEvent>
@@ -284,10 +284,12 @@ exit 0</Command>
       <Command>if not exist ..\include\CoreTransport\CTransport mkdir ..\include\CoreTransport\CTransport 
 copy .\CTransport\*.h ..\include\CoreTransport\CTransport 
 copy .\*.h ..\include\CoreTransport
+if not exist ..\include\CoreTransport\protobuf mkdir ..\include\CoreTransport\protobuf
+copy .\protobuf\*.h ..\include\CoreTransport\protobuf
 exit 0</Command>
     </PostBuildEvent>
     <Lib>
-      <AdditionalLibraryDirectories>..\lib\x64;$(WOLFSSL_DIR)\x64\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\lib\x64;$(WOLFSSL_DIR)\Release\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>CAuth.lib;wolfssl.lib</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
