@@ -17,9 +17,9 @@ CoreTransport is a no-compromise cross-platform pure C library (with wrapper API
   </tr>
   <tr width ="100%">
     <td width="49%">Async non-blocking DNS resolve</td>
-    <td width="17%">IPv4,&nbsp;&nbsp;<s>IPv6</s></td>
-    <td width="17%">IPv4,&nbsp;&nbsp;<s>IPv6</s></td>
-    <td width="17%">IPv4,&nbsp;&nbsp;<s>IPv6</s></td>
+    <td width="17%">IPv4,&nbsp;&nbsp;IPv6</td>
+    <td width="17%">IPv4,&nbsp;&nbsp;IPv6</td>
+    <td width="17%">IPv4,&nbsp;&nbsp;IPv6</td>
   </tr>
   <tr width ="100%">
     <td width="49%">Async non-blocking TLS negotiation via platform provided encryption with fallback to 3rd party embedded support</td>
@@ -60,8 +60,8 @@ CoreTransport is a no-compromise cross-platform pure C library (with wrapper API
   <tr width ="100%">
     <td width="49%">Tunneling via proxy connections</td>
     <td width="17%">HTTP,&nbsp;&nbsp;SOCKS5</td>
-    <td width="17%"><s>HTTP</s>,&nbsp;&nbsp;<s>SOCKS5</s></td>
-    <td width="17%"><s>HTTP</s>,&nbsp;&nbsp;<s>SOCKS5</s></td>
+    <td width="17%">HTTP,&nbsp;&nbsp;SOCKS5</td>
+    <td width="17%">HTTP,&nbsp;&nbsp;SOCKS5</td>
   </tr>
   <tr width ="100%">
     <td width="49%">Numa Siloing</td>
