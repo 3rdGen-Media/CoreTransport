@@ -282,7 +282,7 @@ void* CTRecv(CTConnection* conn, void * msg, unsigned long * msgLength)
         return decryptedMessagePtr;
     }
 	*/
-	if (conn->target->ssl.method > 0)//CTSSL_NONE)
+	if (conn->target->ssl.method > CTSSL_NONE)
 	{
 		ret = CTSSLRead(conn->socket, conn->sslContext, msg, &remainingBufferSize);
 
@@ -435,6 +435,9 @@ void* CTRecvBytes(CTConnection* conn, void * msg, unsigned long * msgLength)
 			switch (CTSocketError()) 
 			{	
 				case EFAULT:
+					assert(1==0);
+					return NULL;
+				case EWOULDBLOCK:
 					return NULL;
 				default:
 					//fprintf(stderr, stderr, "general error\n");
@@ -948,11 +951,12 @@ uint64_t CTCursorSendOnQueue(CTCursor * cursor, char ** queryBufPtr, unsigned lo
 	CTOverlappedStage stage = cursor->overlappedResponse.stage;
 	char* queryBuf = *queryBufPtr;// cursor->overlappedResponse.stage;
 
-	if( cursor->conn->target->ssl.method == 0)
+	if( cursor->conn->target->ssl.method == CTSSL_NONE)
 		stage = CT_OVERLAPPED_SEND; //we need to bypass encrypt bc sthis is the ssl handshake
 
 #ifdef CTRANSPORT_WOLFSSL
-	else{
+	else if( stage != CT_OVERLAPPED_SEND )
+	{
 		//CTCursor* handshakeCursor = CTGetNextPoolCursor();
 		//memset(handshakeCursor, 0, sizeof(CTCursor));
 
@@ -1543,7 +1547,7 @@ coroutine int CTSocketConnect(CTSocket socketfd, CTTarget * service)
     // Fill a sockaddr_in socket host address and port (why do we copy the already resolved target addr to this local var?)
     //bzero(&addr, sizeof(addr));
 	//memset(&addr, 0, sizeof(addr));
-    //addr.sin_family = AF_INET;
+    //addr.sin_family = service->url.addr.ss_family;
     //addr.sin_addr.s_addr = ((struct sockaddr_in*)&(service->url.addr))->sin_addr.s_addr;//*(in_addr_t*)(service->url.addr.sa_data);//*(in_addr_t*)(host->h_addr);  //set host ip addr
     //addr.sin_port = service->proxy.host ? htons(service->proxy.port) : htons(service->url.port);
     
@@ -1564,7 +1568,7 @@ coroutine int CTSocketConnect(CTSocket socketfd, CTTarget * service)
 #ifdef _WIN32
 	if ( WSAConnect(socketfd, (struct sockaddr*)&(service->url.addr), sizeof((service->url.addr)), NULL, NULL, NULL, NULL) == SOCKET_ERROR )
 #else //defined(__APPLE__)
-    if ( connect(socketfd, (struct sockaddr*)&(service->url.addr), sizeof((service->url.addr)) != 0 ) //== SOCKET_ERROR
+    if ( connect(socketfd, (struct sockaddr*)&(service->url.addr), service->url.addr.ss_family == AF_INET6 ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in)) != 0 )
 #endif
     {
 		int error = CTSocketError();
@@ -2558,8 +2562,6 @@ CTCursorCompletionClosure SSLFirstMessageQueryCallback = ^ void(CTError * err, C
 };
 
 
-#ifdef _WIN32
-
 typedef struct CTSocks4ConnectMessage {
 	uint8_t version;// = 0x04; //SOCKS version 4 (obviously)
 	uint8_t command;// = 0x01; //1 is TCP CONNECT command
@@ -3008,13 +3010,24 @@ coroutine int CTProxyHandshake(CTConnection* conn)
 
 			CTSend(conn, (void*)(char*)CONNECT_REQUEST, &sendLength);
 
-			char* connectRequestResponsePtr = (char*)CTRecv(conn, RESPONSE_BUFFER, &responseLength);
+			char * connectRequestResponsePtr = NULL;
+			while ( ( connectRequestResponsePtr = (char*)CTRecvBytes(conn, RESPONSE_BUFFER, &responseLength)) == NULL)
+			{
+				if( CTSocketError() == EWOULDBLOCK) 
+				{
+					yield();
+#ifdef __APPLE__
+					CFRunLoopWakeUp(CFRunLoopGetCurrent());
+#endif
+					continue;	
+				}
+				break;
+			}
 			fprintf(stderr, "CTProxyHandshake::HTTP Proxy Connect RESPONSE_BUFFER = \n\n%s\n\n", connectRequestResponsePtr);
-			
+
 			//TO DO:  parse RESPONSE_BUFFER
 
 			conn->target->ssl.method = ssl_method;
-
 		}
 		else
 		{
@@ -3034,9 +3047,6 @@ coroutine int CTProxyHandshake(CTConnection* conn)
 
 	return CTSuccess;
 }
-
-#endif
-
 
 coroutine int CTSSLRoutine(CTConnection *conn, char * hostname, char * caPath)
 {
@@ -3440,25 +3450,9 @@ coroutine int CTConnectRoutine(CTTarget * service, CTConnectionClosure callback)
     
 	//if the client specified tx, rx queues on the target as input
 	//copy them to the socket context now for the blocking ssl handshake routine if no cxQueue was specified
-	//conn.socketContext.cq = service->cq; //wait until after the tls handshake
+	//conn.socketContext.cq = service->cq; //wait until after the tls handshake to do this copy
 	conn.socketContext.tq = service->tq;
 	conn.socketContext.rq = service->rq;
-
-	//On BSD platforms, we will associate the socket with the rxQueue prior to the ssl handshake for all paths
-	//Why? Because I haven't implemented support for a blocking WolfSSL implementation?
-#ifndef _WIN32 
-	struct kevent kev;
-	EV_SET(&kev, conn.socket, EVFILT_READ, EV_DELETE, 0, 0, NULL);
-	kevent(service->cxQueue, &kev, 1, NULL, 0, NULL);
-	EV_SET(&kev, conn.socket, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
-	kevent(service->cxQueue, &kev, 1, NULL, 0, NULL);
-
-	//fprintf(stderr, "CTConnectRoutine()::oxQueue = %d\n\n", conn.socketContext.oxQueue);
-
-	//subscribe to socket read events on rxQueue
-	EV_SET(&kev, conn.socket, EVFILT_READ, EV_ADD | EV_ENABLE , 0, 0, (void*)(uint64_t)(conn.socketContext.rxPipe[CT_INCOMING_PIPE]));
-	kevent(conn.socketContext.rxQueue, &kev, 1, NULL, 0, NULL);
-#endif
 
     //There is some short order work that would be good to parallelize regarding loading the cert and saving it to keychain
     //However, the SSLHandshake loop has already been optimized with yields for every asynchronous call
@@ -3472,9 +3466,12 @@ coroutine int CTConnectRoutine(CTTarget * service, CTConnectionClosure callback)
 	{
 		conn.target = service;
 		//conn.socketContext.cq = service->cq;
-#ifdef _WIN32
-		CTProxyHandshake(&conn);
-#endif
+		if( (status = CTProxyHandshake(&conn)) != 0 )
+		{
+			fprintf(stderr, "CTProxyHandshake failed with error: %d\n", (int)status );
+        	error.id = (int)status;
+        	goto CONN_CALLBACK;
+		}
 	}
     else if( service->ssl.method > 0 && (status = CTSSLRoutine(&conn, conn.socketContext.host, service->ssl.ca)) != 0 )
     {
@@ -3495,7 +3492,7 @@ coroutine int CTConnectRoutine(CTTarget * service, CTConnectionClosure callback)
 		ULONG_PTR dwCompletionKey = (ULONG_PTR)NULL;
 		CreateIoCompletionPort((HANDLE)conn.socket, conn.socketContext.rxQueue, dwCompletionKey, 1);
 #else
-		/*
+		
 		//remove connection queue read/write event subscription from kqueue
 		struct kevent kev;
 		EV_SET(&kev, conn.socket, EVFILT_READ, EV_DELETE, 0, 0, NULL);
@@ -3508,7 +3505,7 @@ coroutine int CTConnectRoutine(CTTarget * service, CTConnectionClosure callback)
 		//subscribe to socket read events on rxQueue
 		EV_SET(&kev, conn.socket, EVFILT_READ, EV_ADD | EV_ENABLE , 0, 0, (void*)(conn.socketContext.rxPipe[CT_INCOMING_PIPE]));
 		kevent(conn.socketContext.rxQueue, &kev, 1, NULL, 0, NULL);
-		*/
+		
 
 		//subscribe to overlapped cursor events on oxQueue
 		//EV_SET(&kev, CTQUEUE_ACTIVE_CURSOR, EVFILT_USER, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, context_ptr);
@@ -4164,7 +4161,7 @@ coroutine int CTTargetResolveHost(CTTarget* target, CTConnectionClosure callback
 	//Launch asynchronous query using modified version of Sustrik's libdill DNS implementation
 	struct dill_ipaddr addr[1];
 	struct dns_addrinfo* ai = NULL;
-	if (dill_ipaddr_dns_query_ai(&ai, addr, 1, target_host, target_port, DILL_IPADDR_IPV4, target->dns.resconf, target->dns.nssconf) != 0 || ai == NULL)
+	if (dill_ipaddr_dns_query_ai(&ai, &(target->url.addr), 1, target_host, target_port, DILL_IPADDR_IPV4, target->dns.resconf, target->dns.nssconf) != 0 || ai == NULL)
 	{
 		fprintf(stderr, "target->dns.resconf = %s", target->dns.resconf);
 		fprintf(stderr, "dill_ipaddr_dns_query_ai failed with errno:  %d", errno);
@@ -4176,7 +4173,7 @@ coroutine int CTTargetResolveHost(CTTarget* target, CTConnectionClosure callback
 	if (target->cxQueue)
 	{
 		target->ctx = ai;
-		struct sockaddr_in* ptr = (struct sockaddr_in*)addr;//(addr[0]);
+		struct sockaddr_storage* ptr = (struct sockaddr_storage*)addr;//(addr[0]);
 		target->url.addr = *ptr;//(struct sockaddr_in*)addresses;
 		
 		//TO DO: figure out how to maintain using the same cursor for the connection DNS resolve and TLS handshake...
@@ -4212,7 +4209,7 @@ coroutine int CTTargetResolveHost(CTTarget* target, CTConnectionClosure callback
 		yield();
 
 		int numResolvedAddresses = 0;
-		if ((numResolvedAddresses = dill_ipaddr_dns_query_wait_ai(ai, addr, 1, target_port, DILL_IPADDR_IPV4, -1)) < 1)
+		if ((numResolvedAddresses = dill_ipaddr_dns_query_wait_ai(ai, &(target->url.addr), 1, target_port, DILL_IPADDR_IPV4, -1)) < 1)
 		{
 			//fprintf(stderr, "dill_ipaddr_dns_query_wait_ai failed to resolve any IPV4 addresses!");
 			CTError err = { CTDriverErrorClass, CTDNSError, NULL };
@@ -4221,8 +4218,8 @@ coroutine int CTTargetResolveHost(CTTarget* target, CTConnectionClosure callback
 		}
 
 		fprintf(stderr, "DNS resolved %d ip address(es)\n", numResolvedAddresses);
-		struct sockaddr_in* ptr = (struct sockaddr_in*)addr;//(addr[0]);
-		target->url.addr = *ptr;//(struct sockaddr_in*)addresses;
+		//struct sockaddr_storage* ptr = (struct sockaddr_storage*)addr;//(addr[0]);
+		//target->url.addr = *ptr;//(struct sockaddr_in*)addresses;
 
 		return CTConnectRoutine(target, callback);
 	}

@@ -268,7 +268,7 @@ void* __stdcall CT_Dequeue_Resolve_Connect_Handshake(LPVOID lpParameter)
 			}
 
 			fprintf(stderr, "\nCT_Dequeue_Resolve_Connect_Handshake::DNS resolved %d ip address(es)\n", numResolvedAddresses);
-			struct sockaddr_in* ptr = (struct sockaddr_in*)addr;//(addr[0]);
+			struct sockaddr_storage* ptr = (struct sockaddr_storage*)addr;//(addr[0]);
 			cursor->target->url.addr = *ptr;//(struct sockaddr_in*)addresses;
 
 			closeCursor = cursor;
@@ -423,8 +423,6 @@ void* __stdcall CT_Dequeue_Resolve_Connect_Handshake(LPVOID lpParameter)
 
 			if (conn->target->proxy.host)
 			{
-				assert(1==0);
-#if 0
 				//Initate the Async SSL Handshake scheduling from this thread (ie cxQueue) to rxQueue and txQueue threads
 				if ((status = CTProxyHandshake(conn)) != 0)
 				{
@@ -433,7 +431,7 @@ void* __stdcall CT_Dequeue_Resolve_Connect_Handshake(LPVOID lpParameter)
 					goto CONN_CALLBACK;
 					//return status;
 				}
-#endif
+
 				//if we are running the handshake asynchronously on a queue, don't return connection to client yet
 				if (conn->socketContext.txQueue)
 					continue;
