@@ -258,7 +258,7 @@ void* __stdcall CT_Dequeue_Resolve_Connect_Handshake(LPVOID lpParameter)
 			struct dns_addrinfo* ai = (struct dns_addrinfo*)(cursor->target->ctx);
 
 			int numResolvedAddresses = 0;
-			if ((numResolvedAddresses = dill_ipaddr_dns_query_wait_ai(ai, addr, 1, target_port, DILL_IPADDR_IPV4, -1)) < 1)
+			if ((numResolvedAddresses = dill_ipaddr_dns_query_wait_ai(ai, &(cursor->target->url.addr), 1, target_port, cursor->target->url.addr.ss_family == AF_INET6 ? DILL_IPADDR_IPV6 : DILL_IPADDR_IPV4, -1)) < 1)
 			{
 				fprintf(stderr, "\nCT_Dequeue_Resolve_Connect_Handshake::dill_ipaddr_dns_query_wait_ai failed to resolve any IPV4 addresses!\n");
 				error.errClass = CTDriverErrorClass;
@@ -268,8 +268,8 @@ void* __stdcall CT_Dequeue_Resolve_Connect_Handshake(LPVOID lpParameter)
 			}
 
 			fprintf(stderr, "\nCT_Dequeue_Resolve_Connect_Handshake::DNS resolved %d ip address(es)\n", numResolvedAddresses);
-			struct sockaddr_storage* ptr = (struct sockaddr_storage*)addr;//(addr[0]);
-			cursor->target->url.addr = *ptr;//(struct sockaddr_in*)addresses;
+			//struct sockaddr_storage* ptr = (struct sockaddr_storage*)addr;//(addr[0]);
+			//cursor->target->url.addr = *ptr;//(struct sockaddr_in*)addresses;
 
 			closeCursor = cursor;
 			//increment the connection response count

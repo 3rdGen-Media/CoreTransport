@@ -173,11 +173,13 @@ void CTSocketInit(void)
 #endif
 }
 
+/*
 typedef enum CTSOCKET_IP
 {
     CTSOCKET_IPv4,
     CTSOCKET_IPv6
-};
+}CTSOCKET_IP;
+*/
 
 CTSocket CTSocketCreateUDP(int af)
 {
