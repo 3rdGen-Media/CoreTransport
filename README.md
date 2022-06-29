@@ -52,7 +52,7 @@ CoreTransport is a no-compromise cross-platform pure C library (with wrapper API
     <td width="17%">Completion<br/>Closures</td>
   </tr>
   <tr width ="100%">
-    <td width="49%">Streaming downloads for consumption by an accelerated graphics pipeline or real-time hardware pipeline</td>
+    <td width="49%">Streaming downloads for consumption by an accelerated graphics or real-time hardware pipeline</td>
     <td width="17%">Progress<br/>Closures&nbsp;&nbsp;</td>
     <td width="17%">Progress<br/>Closures&nbsp;&nbsp;</td>
     <td width="17%">Progress<br/>Closures&nbsp;&nbsp;</td>
