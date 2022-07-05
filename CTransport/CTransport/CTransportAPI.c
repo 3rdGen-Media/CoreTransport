@@ -1284,15 +1284,7 @@ CTClientError CTCursorAsyncRecv(CTOverlappedResponse** overlappedResponsePtr, vo
 	//Question:  Can we avoid zeroing this memory every time?
 	//Anser:	 Yes -- sort of -- we only need to zero the overlapped portion (whether we are reusing the OVERLAPPED struct or not...and we are) 
 	ZeroMemory(overlappedResponse, sizeof(WSAOVERLAPPED)); //this is critical!
-#ifdef _WIN32
-	overlappedResponse->Overlapped.hEvent = CreateEvent(NULL, 0, 0, NULL); //Manual vs Automatic Reset Events Affect GetQueued... Operation!!!
-#else
-	struct kevent kev[2] = {{0}, {0}};
-	EV_SET(&kev[0], (uintptr_t)(((CTCursor*)overlappedResponse->cursor)->queryToken), EVFILT_USER, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, NULL);
-	EV_SET(&kev[1], (uintptr_t)(((CTCursor*)overlappedResponse->cursor)->queryToken), EVFILT_USER, EV_ADD | EV_ENABLE | EV_ONESHOT, NOTE_FFCOPY|NOTE_TRIGGER|0x1, 0,  &(overlappedResponse->Overlapped) );
-	overlappedResponse->Overlapped.hEvent = kev[1];
-	//EV_SET( &(overlappedResponse->Overlapped.hEvent), CTKQUEUE_OVERLAPPED_EVENT, EVFILT_USER, EV_ADD | EV_ENABLE | EV_ONESHOT, NOTE_FFCOPY|NOTE_TRIGGER|0x1, 0,  &(overlappedResponse->Overlapped) );
-#endif
+
 	overlappedResponse->wsaBuf.buf = (char*)msg + offset;//(char*)(conn->response_buf[queryToken%2]);
 	overlappedResponse->wsaBuf.len = *msgLength;
 	overlappedResponse->buf = (char*)msg;
@@ -1301,6 +1293,42 @@ CTClientError CTCursorAsyncRecv(CTOverlappedResponse** overlappedResponsePtr, vo
 	//overlappedResponse->queryToken = queryToken;
 	//overlappedResponse->cursor = (void*)cursor;
 	overlappedResponse->Flags = 0;
+
+#ifdef _WIN32
+	overlappedResponse->Overlapped.hEvent = CreateEvent(NULL, 0, 0, NULL); //Manual vs Automatic Reset Events Affect GetQueued... Operation!!!
+#elif 0
+	struct kevent kev[2] = {{0}, {0}};
+	EV_SET(&kev[0], (uintptr_t)(((CTCursor*)overlappedResponse->cursor)->queryToken), EVFILT_USER, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, NULL);
+	EV_SET(&kev[1], (uintptr_t)(((CTCursor*)overlappedResponse->cursor)->queryToken), EVFILT_USER, EV_ADD | EV_ENABLE | EV_ONESHOT, NOTE_FFCOPY|NOTE_TRIGGER|0x1, 0,  &(overlappedResponse->Overlapped) );
+	overlappedResponse->Overlapped.hEvent = kev[1];
+	//EV_SET( &(overlappedResponse->Overlapped.hEvent), CTKQUEUE_OVERLAPPED_EVENT, EVFILT_USER, EV_ADD | EV_ENABLE | EV_ONESHOT, NOTE_FFCOPY|NOTE_TRIGGER|0x1, 0,  &(overlappedResponse->Overlapped) );
+#else
+
+	
+	struct aiocb * aiocbPtr = &(overlappedResponse->Overlapped.hAIO); 
+	struct aiocb *list = NULL;
+
+	memset( &(overlappedResponse->Overlapped.hAIO), 0, sizeof(struct aiocb));
+	
+	overlappedResponse->Overlapped.hAIO.aio_nbytes = overlappedResponse->wsaBuf.len;
+	overlappedResponse->Overlapped.hAIO.aio_buf = overlappedResponse->wsaBuf.buf;
+	overlappedResponse->Overlapped.hAIO.aio_fildes = ((CTCursor*)overlappedResponse->cursor)->conn->socket;
+	overlappedResponse->Overlapped.hAIO.aio_offset = 0;//overlappedResponse->wsaBuf.buf;
+	//overlappedResponse->Overlapped.hAIO.aio_lio_opcode = LIO_READ;
+	//overlappedResponse->Overlapped.hEvent.__spare2__ = (void*)overlappedResponse;
+	//overlappedResponse->Overlapped.hAIO.aio_sigevent = {SIGEV_SIGNAL, SIGRTMIN + overlappedResponse->cursor->queryToken, overlappedResponse};
+
+	overlappedResponse->Overlapped.hAIO.aio_sigevent.sigev_notify_kqueue = ((CTCursor*)overlappedResponse->cursor)->conn->socketContext.rxQueue;
+	overlappedResponse->Overlapped.hAIO.aio_sigevent.sigev_value.sival_ptr = overlappedResponse;
+	overlappedResponse->Overlapped.hAIO.aio_sigevent.sigev_notify = SIGEV_KEVENT;//SIGEV_SIGNAL;
+#ifdef AIO_KEVENT_FLAG_REAP
+	overlappedResponse->Overlapped.hAIO.aio_sigevent.sigev_notify_kevent_flags = EV_CLEAR | EV_ONESHOT | AIO_KEVENT_FLAG_REAP;
+#else
+	overlappedResponse->Overlapped.hAIO.aio_sigevent.sigev_notify_kevent_flags = EV_CLEAR | EV_ONESHOT;
+#endif
+
+#endif
+	
 
 
 	//Issue the async receive
@@ -1318,14 +1346,14 @@ CTClientError CTCursorAsyncRecv(CTOverlappedResponse** overlappedResponsePtr, vo
 		if( err != WSA_IO_PENDING )
 		{
 			//TO DO: move to an error log
-			fprintf(stderr,  "****CTAsyncRecv::WSARecv failed with error %d \n",  WSAGetLastError() );	
+			fprintf(stderr,  "****CTCursorAsyncRecv::WSARecv failed with error %d \n",  WSAGetLastError() );	
             assert(1 == 0);
 		} 
 		
 		//forward the winsock system error to the client
 		return (CTClientError)WSAGetLastError();
 	}
-#else// defined(__APPLE__)
+#elif 0// defined(__APPLE__)
 	//TO DO?
 	//schedule ovelrapped kevent with kqueue w/ inifinite timeoute
 	struct timespec _ts;
@@ -1341,6 +1369,22 @@ CTClientError CTCursorAsyncRecv(CTOverlappedResponse** overlappedResponsePtr, vo
     kevent(((CTCursor*)overlappedResponse->cursor)->conn->socketContext.rxQueue, &(kev[0]), 2, NULL, 0, ts);
 	//kevent(((CTCursor*)overlappedResponse->cursor)->conn->socketContext.oxQueue, &(overlappedResponse->Overlapped.hEvent), 1, NULL, 0, ts);
 	*msgLength = 0;
+	return CTSocketIOPending;
+#else
+	if( aio_read( aiocbPtr ) < 0)
+	{
+		//WSA_IO_PENDING
+		int err = errno;
+		//if( err != EWOULDBLOCK )
+		//{
+			//TO DO: move to an error log
+			fprintf(stderr,  "****CTCursorAsyncRecv::aio_read failed with error %d \n",  errno );	
+            assert(1 == 0);
+		//} 
+		
+		//forward the winsock system error to the client
+		return (CTClientError)errno;
+	}
 	return CTSocketIOPending;
 #endif
 
@@ -1489,30 +1533,95 @@ CTClientError CTCursorRecvOnQueue(CTOverlappedResponse** overlappedResponsePtr, 
 		fprintf(stderr, "\nCTCursorRecvOnQueue::PostQueuedCompletionStatus failed with error:  %ld\n", GetLastError());
 		return (CTClientError)GetLastError();
 	}
-#else
+#elif 0
 	//TO DO?
 	//schedule ovelrapped kevent with kqueue w/ inifinite timeoute
 	struct timespec _ts;
     struct timespec *ts = NULL;
 	
-    //if (timeout != UINT_MAX) {
-    //    ts = &_ts;
-    //    ts->tv_sec = 0;//(timeout - (timeout % 1000)) / 1000;
-    //    ts->tv_nsec = (timeout /*% 1000*/);
-    //}
-	
 	//write to pipe being read by thread running rxQueue
-	int ret = write(((CTCursor*)overlappedResponse->cursor)->conn->socketContext.rxPipe[CT_OUTGOING_PIPE], overlappedResponse, sizeof(CTOverlappedResponse));
-
-	if( ret == -1)
+	int ret = 0;
+	if( (ret = write(((CTCursor*)overlappedResponse->cursor)->conn->socketContext.rxPipe[CT_OUTGOING_PIPE], overlappedResponse, sizeof(CTOverlappedResponse))) == -1)
 	{
 		fprintf(stderr, "CTCursorRecvOnQueue()::write to pipe failed with error (%d)\n\n", errno);
 		assert(1==0);
 	}
+
     //struct kevent kev;
 	//fprintf(stderr, "CTCursorRecvOnQueue()::oxQueue = %d\n\n", ((CTCursor*)overlappedResponse->cursor)->conn->socketContext.oxQueue);
 	//kevent(((CTCursor*)overlappedResponse->cursor)->conn->socketContext.oxQueue, &(kev[0]), 2, NULL, 0, ts);
     //kevent(((CTCursor*)overlappedResponse->cursor)->conn->socketContext.oxQueue, &(overlappedResponse->Overlapped.hEvent), 1, NULL, 0, ts); 
+#else
+
+	//struct aiocb aiOverlapped = {0};
+	//overlappedResponse->Overlapped.hAIO = ;
+	
+	struct aiocb * aiocbPtr = &(overlappedResponse->Overlapped.hAIO); 
+	struct aiocb *list = NULL;
+
+	memset( &(overlappedResponse->Overlapped.hAIO), 0, sizeof(struct aiocb));
+	
+	overlappedResponse->Overlapped.hAIO.aio_nbytes = 0;//overlappedResponse->wsaBuf.len;
+	overlappedResponse->Overlapped.hAIO.aio_buf = overlappedResponse->wsaBuf.buf;
+	overlappedResponse->Overlapped.hAIO.aio_fildes = ((CTCursor*)overlappedResponse->cursor)->conn->socket;
+	overlappedResponse->Overlapped.hAIO.aio_offset = 0;//overlappedResponse->wsaBuf.buf;
+	//overlappedResponse->Overlapped.hAIO.aio_lio_opcode = LIO_READ;
+	//overlappedResponse->Overlapped.hEvent.__spare2__ = (void*)overlappedResponse;
+	//overlappedResponse->Overlapped.hAIO.aio_sigevent = {SIGEV_SIGNAL, SIGRTMIN + overlappedResponse->cursor->queryToken, overlappedResponse};
+
+	overlappedResponse->Overlapped.hAIO.aio_sigevent.sigev_notify_kqueue = ((CTCursor*)overlappedResponse->cursor)->conn->socketContext.rxQueue;
+	overlappedResponse->Overlapped.hAIO.aio_sigevent.sigev_value.sival_ptr = overlappedResponse;
+	overlappedResponse->Overlapped.hAIO.aio_sigevent.sigev_notify = SIGEV_KEVENT;//SIGEV_SIGNAL;
+
+#ifdef AIO_KEVENT_FLAG_REAP
+	overlappedResponse->Overlapped.hAIO.aio_sigevent.sigev_notify_kevent_flags = EV_CLEAR | EV_ONESHOT | AIO_KEVENT_FLAG_REAP;
+#else
+	overlappedResponse->Overlapped.hAIO.aio_sigevent.sigev_notify_kevent_flags = EV_CLEAR | EV_ONESHOT;
+#endif
+	//overlappedResponse->Overlapped.hAIO.aio_sigevent.sigev_signo = ((CTCursor*)(overlappedResponse->cursor))->queryToken + SIGRTMIN;
+	//overlappedResponse->Overlapped.hAIO.aio_sigevent.sigev_value.sival_ptr = overlappedResponse;
+
+	
+	fprintf(stderr, "CTCursorRecvOnQueue()::socket = %d, aio_fildes = %d\n\n", ((CTCursor*)overlappedResponse->cursor)->conn->socket, overlappedResponse->Overlapped.hAIO.aio_fildes );
+
+	//EV_SET(&(overlappedResponse->Overlapped.hEvent), &aiocbPtr, EVFILT_LIO, EV_DISPATCH, 0, 0, (void*)overlappedResponse);
+	//kevent( ((CTCursor*)overlappedResponse->cursor)->conn->socketContext.rxQueue, &(overlappedResponse->Overlapped.hEvent), 1, NULL, 0, NULL);
+
+	//lio_listio(int mode, struct aiocb * const list[], int nent, struct	sigevent *sig);
+	
+	/*
+	if( lio_listio( LIO_NOWAIT, &aiocbPtr, 1, &(aiocbPtr->aio_sigevent)) < 0 )
+	{
+		int err = errno;
+		//if( err != EWOULDBLOCK )
+		//{
+			//TO DO: move to an error log
+			fprintf(stderr,  "****CTCursorRecvOnQueue::lio_listio failed with error %d \n",  errno );	
+            assert(1 == 0);
+		//} 
+		
+		//forward the winsock system error to the client
+		return (CTClientError)errno;
+		
+	}
+	*/
+
+	
+	if( aio_read( aiocbPtr ) < 0)
+	{
+		//WSA_IO_PENDING
+		int err = errno;
+		//if( err != EWOULDBLOCK )
+		//{
+			//TO DO: move to an error log
+			fprintf(stderr,  "****CTCursorRecvOnQueue::aio_read failed with error %d \n",  errno );	
+            assert(1 == 0);
+		//} 
+		
+		//forward the winsock system error to the client
+		return (CTClientError)errno;
+	}
+	
 #endif
 
 	//ReqlSuccess will indicate the async operation finished immediately
@@ -3035,7 +3144,7 @@ coroutine int CTProxyHandshake(CTConnection* conn)
 		}
 
 		//do synchronous ssl routine
-		if (conn->target->ssl.method > 0 && (status = CTSSLRoutine(conn, conn->socketContext.host, conn->target->ssl.ca)) != 0)
+		if (conn->target->ssl.method > CTSSL_NONE && (status = CTSSLRoutine(conn, conn->socketContext.host, conn->target->ssl.ca)) != 0)
 		{
 			fprintf(stderr, "CTProxyHandshake::CTSSLRoutine failed with error: %d\n", (int)status);
 			error.id = CTSSLHandshakeError;
@@ -3473,7 +3582,7 @@ coroutine int CTConnectRoutine(CTTarget * service, CTConnectionClosure callback)
         	goto CONN_CALLBACK;
 		}
 	}
-    else if( service->ssl.method > 0 && (status = CTSSLRoutine(&conn, conn.socketContext.host, service->ssl.ca)) != 0 )
+    else if( service->ssl.method > CTSSL_NONE && (status = CTSSLRoutine(&conn, conn.socketContext.host, service->ssl.ca)) != 0 )
     {
         fprintf(stderr, "CTSSLRoutine failed with error: %d\n", (int)status );
         error.id = CTSSLHandshakeError;
@@ -3503,13 +3612,12 @@ coroutine int CTConnectRoutine(CTTarget * service, CTConnectionClosure callback)
 		//fprintf(stderr, "CTConnectRoutine()::oxQueue = %d\n\n", conn.socketContext.oxQueue);
 	
 		//subscribe to socket read events on rxQueue
+#if 0 	//kqueue sans aio path
 		EV_SET(&kev, conn.socket, EVFILT_READ, EV_ADD | EV_ENABLE , 0, 0, (void*)(uint64_t)(conn.socketContext.rxPipe[CT_INCOMING_PIPE]));
 		kevent(conn.socketContext.rxQueue, &kev, 1, NULL, 0, NULL);
-		
-
-		//subscribe to overlapped cursor events on oxQueue
-		//EV_SET(&kev, CTQUEUE_ACTIVE_CURSOR, EVFILT_USER, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, context_ptr);
-		//kevent(conn.socketContext.oxQueue, &kev, 1, NULL, 0, NULL);
+#else
+		//NOTHING TO DO HERE
+#endif		
 		
 		//add tx queue events
 		if( conn.socketContext.txQueue) 
@@ -3944,7 +4052,7 @@ coroutine int CTTargetResolveHost(CTTarget* target, CTConnectionClosure callback
 	//TO DO:  if ip version could be parsed (because host is an ip address that doesn't require DNS resolution) bypass DNS
 
 	//If the ip version could not be parsed, fallback to IPv6 resolution by default
-	ip_version = ip_version > 0 ? ip_version : AF_INET; 
+	ip_version = ip_version > 0 ? ip_version : AF_INET6; 
 	char* DNS_SERVER = ip_version == AF_INET6 ? (char*)DNS_SERVER_IPv6 : (char*)DNS_SERVER_IPv4;
 
 	populate_sockaddr_version(ip_version, (int)DNS_PORT, DNS_SERVER, (struct sockaddr_storage*)&(target->url.addr), &addrlen);

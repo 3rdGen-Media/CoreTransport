@@ -112,7 +112,7 @@ CTCursor _reqlCursor;
 
 //Define a CTransport API CTTarget C style struct to initiate an HTTPS connection with a CTransport API CTConnection
 static const char* 			http_server = "3rdgen-sandbox-html-resources.s3.us-west-1.amazonaws.com";//"example.com";// "vtransport - assets.s3.us - west - 1.amazonaws.com";//"example.com";//"mineralism.s3 - us - west - 2.amazonaws.com";
-static const unsigned short	http_port	= 443;
+static const unsigned short	http_port	= 80;
 
 //Proxies use a prefix to specify the proxy protocol, defaulting to HTTP Proxy
 static const char*			proxy_server = "http://172.20.10.1";// "54.241.100.168";
@@ -428,7 +428,7 @@ int main(void) {
 	//httpTarget.proxy.host = (char*)proxy_server;
 	//httpTarget.proxy.port = proxy_port;
 	httpTarget.ssl.ca = NULL;//(char*)caPath;
-	httpTarget.ssl.method = CTSSL_TLS_1_2;
+	httpTarget.ssl.method = CTSSL_NONE;//CTSSL_TLS_1_2;
 	httpTarget.dns.resconf = (char*)resolvConfPath;
 	httpTarget.dns.nssconf = (char*)nsswitchConfPath;
 	httpTarget.cq = cq;

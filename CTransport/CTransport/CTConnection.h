@@ -12,6 +12,21 @@ extern "C" {
 
 
 //Win32 -> BSD Overlapped Compatibility
+/*
+typedef struct _OVERLAPPED {
+  ULONG_PTR Internal;
+  ULONG_PTR InternalHigh;
+  union {
+    struct {
+      DWORD Offset;
+      DWORD OffsetHigh;
+    } DUMMYSTRUCTNAME;
+    PVOID Pointer;
+  } DUMMYUNIONNAME;
+  HANDLE    hEvent;
+} OVERLAPPED, *LPOVERLAPPED;
+*/
+
 #ifndef _WIN32
 typedef int DWORD;
 typedef struct WSABUF
@@ -20,6 +35,7 @@ typedef struct WSABUF
 	char* 		  buf;
 }WSABUF;
 typedef struct WSAOVERLAPPED{
+	struct aiocb  hAIO;
 	struct kevent hEvent;
 }WSAOVERLAPPED;
 #define ZeroMemory(x, y) memset(x, 0, y)

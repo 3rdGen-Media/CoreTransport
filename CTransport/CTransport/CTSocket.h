@@ -17,6 +17,10 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
+#ifdef __FreeBSD__
+#include <aio.h>
+#endif
+
 //create an alias for ioctl a la Win32
 #ifndef ioctlsocket
 #define ioctlsocket ioctl

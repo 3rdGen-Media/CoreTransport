@@ -396,9 +396,11 @@ void* __stdcall CT_Dequeue_Resolve_Connect_Handshake(LPVOID lpParameter)
 			EV_SET(&kev, conn->socket, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
 			kevent(overlappedTarget->target->cxQueue, &kev, 1, NULL, 0, NULL);
 		
+#if 0 		//kqueue sans aio path
 			//subscribe to socket read events on rxQueue
 			EV_SET(&kev, conn->socket, EVFILT_READ, EV_ADD | EV_ENABLE , 0, 0, (void*)(uint64_t)(overlappedTarget->target->rxPipe[CT_INCOMING_PIPE]));
 			kevent(overlappedTarget->target->rxQueue, &kev, 1, NULL, 0, NULL);
+#endif
 
 #endif
 			//Copy tx, rx completion port queue from target to connection and attach them to the socket handle for async writing and async reading, respectively
@@ -537,6 +539,8 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 	CTOverlappedResponse* overlappedResponse = NULL;
 	CTOverlappedResponse* nextOverlappedResponse = NULL;
 
+	struct aiocb* aioEvent = NULL;
+
 	unsigned long NumBytesRecv = 0;
 	unsigned long ioctlBytes = 0;
 
@@ -549,6 +553,9 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 	unsigned long extraBufferOffset = 0;
 	CTSSLStatus scRet = 0;
 	CTClientError ctError = CTSuccess;
+
+	struct timespec ts = {0};
+
 
 	CTKernelQueue * rq = ((CTKernelQueue*)lpParameter);
 	CTKernelQueueType rxQueue = rq->kq;
@@ -585,6 +592,15 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 	while(1)
 	{    
 		int ret = 0;
+		ssize_t aioBytes = -1;
+		
+		struct aiocb aio;
+		bzero(&aio, sizeof(aio));
+		aioEvent = &aio;
+		//aio.aio_sigevent.sigev_notify_kqueue = 13;
+		//aio.aio_sigevent.sigev_value.sival_ptr = overlappedResponse;
+		//aio.aio_sigevent.sigev_notify = SIGEV_KEVENT;//SIGEV_SIGNAL;
+
 		struct kevent kev[2] = {{0}, {0}};
 		memset(&overlappedEvent, 0, sizeof(struct kevent));
 		//kev[0].filter = EVFILT_USER;
@@ -598,16 +614,62 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 
 		fprintf(stderr, "\nCT_Dequeue_Recv_Decrypt::Waiting for cursor event\n");
 
-		//Synchronously wait for a cursor  event by idling until we receive kevent from our kqueue
-		/*
-
-		if( (ret = kqueue_wait_with_timeout(activeCursorQueue, &(kev[0]), 1, 0)) < 1 )
+		//wait for lio_listio/aio_read completion event with zero timeout 
+		
+		/*	
+		if( (aioBytes = aio_waitcomplete(&aioEvent, NULL)) == -1)
 		{
-			fprintf(stderr, "\nCT_Dequeue_Recv_Decrypt::kqueue_wait_with_timeout 1 failed with ret (%d).\n", ret);
 			assert(1==0);
 		}
+		//fprintf(stderr, "\nCT_Dequeue_Recv_Decrypt::After aio_waitcomplete\n");
 		*/
-	
+		
+		if( (ret = kqueue_wait_with_timeout(rxQueue, &(kev[0]), 1, CTSOCKET_MAX_TIMEOUT)) < 0 )
+		{
+			fprintf(stderr, "\nCT_Dequeue_Recv_Decrypt::kqueue_wait_with_timeout aio rxQueue failed with ret (%d) and errno (%d).\n", ret, errno);
+			assert(1==0);
+		}
+
+		if(ret == 1)
+		{
+			//make sure we got the active cursor event
+			if( kev[0].filter == EVFILT_AIO )
+			{
+				overlappedResponse = (CTOverlappedResponse*)(kev[0].udata);
+				struct aiocb * aioEventPtr = &(overlappedResponse->Overlapped.hAIO); 
+				assert( kev[0].ident == (uintptr_t)aioEventPtr );
+				//assert( aiocbPtr->aio_nbytes == 0 );
+			}
+			else if( kev[0].filter == EVFILT_LIO )
+			{
+				assert(1==0);
+			}
+			else
+				assert(1==0);
+		}
+		else
+			assert(1==0);
+		
+		//Get the overlapped struct associated with the asychronous AIO call
+		overlappedResponse = (CTOverlappedResponse*)(kev[0].udata);
+		//overlappedResponse = (CTOverlappedResponse*)(aioEvent->aio_sigevent.sigev_value.sival_ptr);
+
+		//Get the cursor/connection that has been pinned on the overlapped
+		cursor = (CTCursor*)overlappedResponse->cursor;
+
+		//Retrieve the number of bytes provided from the socket buffer by IOCP
+#ifdef AIO_KEVENT_FLAG_REAP
+		NumBytesRecv = (unsigned long)(kev[0].data);
+#else		
+		if( (aioBytes = aio_return( &(overlappedResponse->Overlapped.hAIO))) < 0 ) assert( aioBytes >= 0 );
+		NumBytesRecv = (unsigned long)aioBytes;
+#endif
+		assert(overlappedResponse);
+		assert(cursor);
+
+		fprintf(stderr, "\nCT_Dequeue_Recv_Decrypt::Read cursor (%lu) from rxQueue\n", cursor->queryToken);
+
+		/*
 		//wait for active cursor and read events with zero timeout 
 		if( (ret = kqueue_wait_with_timeout(rxQueue, &(kev[0]), 2, 0)) < 0 )
 		{
@@ -622,20 +684,6 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 				assert( kev[0].filter == EVFILT_READ);
 				kev[1] = kev[0];
 				memset(&kev[0], 0, sizeof(struct kevent));
-
-				/*
-				//wait for active cursor event with infinite timeout 
-				if( (ret = kqueue_wait_with_timeout(rxQueue, &(kev[0]), 1, CTSOCKET_MAX_TIMEOUT)) < 1 && )
-				{
-					fprintf(stderr, "\nCT_Dequeue_Recv_Decrypt::kqueue_wait_with_timeout 1.5 failed with ret (%d) and errno (%d).\n", ret, errno);
-					assert(1==0);
-				}
-				assert(ret == 1);
-
-				//make sure kev[0] is the active cursor event
-				assert( kev[0].filter == EVFILT_USER);
-				assert( kev[1].filter == EVFILT_READ);
-				*/
 			}
 			else
 				assert( kev[0].filter == EVFILT_USER);
@@ -653,12 +701,12 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 			assert( kev[1].filter == EVFILT_READ);
 		}
 
-		if( kev[0].filter == EVFILT_USER )
-		{
-			//assert(kev[0].filter == EVFILT_USER );//&& kev[0].ident == CTKQUEUE_OVERLAPPED_EVENT);
 
+		if( kev[0].filter == EVFILT_USER ) {
+		
 			//Get the overlapped struct associated with the asychronous IOCP call
 			overlappedResponse = (CTOverlappedResponse*)(kev[0].udata);
+			//overlappedResponse = (CTOverlappedReponse*)aioEvent->aio_sigevent.sigev_value.sival_ptr;
 
 			//Get the cursor/connection that has been pinned on the overlapped
 			cursor = (CTCursor*)overlappedResponse->cursor;
@@ -672,7 +720,7 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 		{
 			fprintf(stderr, "\nCT_Dequeue_Recv_Decrypt::Waiting for overlapped pipe\n");
 
-			/* Grab any events written to the pipe from the crTimeServer */
+			// Grab any events written to the pipe from the txQueue
 			if( (ret = kqueue_wait_with_timeout(pendingCursorQueue, &kev[0], 1, CTSOCKET_MAX_TIMEOUT)) < 1 )
 			{
 				fprintf(stderr, "\nCT_Dequeue_Recv_Decrypt::kqueue_wait_with_timeout 0 failed with ret (%d).\n", ret);
@@ -695,7 +743,7 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 			//assert(cursor->queryToken == 0);
 			fprintf(stderr, "\nCT_Dequeue_Recv_Decrypt::Read cursor (%lu) from rxPipe\n", cursor->queryToken);
 		}
-	
+
 		fprintf(stderr, "\nCT_Dequeue_Recv_Decrypt::Waiting for read event\n");
 
 		//Wait for kqueue notification that bytes are available for reading on rxQueue
@@ -724,8 +772,10 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 		assert((kev[1].udata));	
 		assert(rxPipe[CT_INCOMING_PIPE] == (CTKernelQueueType)(uint64_t)(kev[1].udata) );
 		NumBytesRecv = kev[1].data;
+		*/
 
-		if( kev[0].ident != CTSOCKET_EVT_TIMEOUT )
+		//if( kev[0].ident != CTSOCKET_EVT_TIMEOUT ) 
+		if( overlappedResponse )
 		{			
 			//Cursor requests are always queued onto the connection's decrypt thread (ie this one) to be scheduled
 			//so every overlapped sent to this decrypt thread is handled here first.
@@ -757,11 +807,29 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 						fprintf(stderr, "CTDecryptResponseCallback::PostThreadMessage failed with error: %d", GetLastError());
 					}
 					*/
+
+					//write to pipe being read by thread running rxQueue
+					int ret = 0;
+					if( (ret = write(cursor->conn->socketContext.rxPipe[CT_OUTGOING_PIPE], overlappedResponse, sizeof(CTOverlappedResponse))) == -1)
+					{
+						fprintf(stderr, "CT_Dequeue_Recv_Decrypt::write to pipe failed with error (%d)\n\n", errno);
+						assert(1==0);
+					}
 				}
 				else
 				{
 					fprintf(stderr, "CTCursorAsyncRecv\n");
-					/*
+
+					int ioRet = ioctlsocket(cursor->conn->socket, FIONREAD, &ioctlBytes);
+					assert(NumBytesRecv == 0);
+					//if( NumBytesRecv == 0) NumBytesRecv = 32768;
+
+					fprintf(stderr, "**** CT_Dequeue_Recv_Decrypt::NumBytesRecv C status = %lu\n", NumBytesRecv);
+					fprintf(stderr, "**** CT_Dequeue_Recv_Decrypt::ictlsocket C status = %d\n", ioRet);
+					fprintf(stderr, "**** CT_Dequeue_Recv_Decrypt::ictlsocket C = %lu\n", ioctlBytes);
+					
+					NumBytesRecv = cBufferSize;
+					
 					if ((ctError = CTCursorAsyncRecv(&overlappedResponse, (void*)(cursor->file.buffer), 0, &NumBytesRecv)) != CTSocketIOPending)
 					{
 						//the async operation returned immediately
@@ -775,27 +843,15 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 							fprintf(stderr, "CTConnection::CTDecryptResponseCallback::CTAsyncRecv failed with CTDriverError = %d\n", ctError);
 						}
 					}
-					*/
 
-					
-					
-					// Sync Wait for query response on ReqlConnection socket
-					//unsigned long recv_length = NumBytesRecv;
-					//char * responsePtr = CTRecv( cursor->conn, cursor->file.buffer, &recv_length );
-					//assert(responsePtr);
-					//assert(recv_length > 0);
-					//assert(recv_length == NumBytesRecv);
-
-					//overlappedResponse->wsaBuf.buf = cursor->file.buffer + recv_length;
-					//fprintf( stderr, "Response:\n\n%.*s", (int)NumBytesRecv, cursor->file.buffer);
-					//else cursor->conn->rxCursorQueueCount++;
-					cursor->conn->responseCount++;
 
 				}
+				cursor->conn->responseCount++;
+				continue;
 
-				//continue;
 			}
 
+			/*
 			//Determine how many bytes are available on the socket for reading
 			//fprintf(stderr, "\nCT_Dequeue_Recv_Decrypt::Bytes Available\n");
 
@@ -809,54 +865,20 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 			
 			NumBytesRecv = ioctlBytes;
 
+			// Sync Wait for query response on ReqlConnection socket
+			unsigned long recv_length = NumBytesRecv;
+			char * responsePtr = CTRecvBytes( cursor->conn, overlappedResponse->wsaBuf.buf, &recv_length );
+			if( !responsePtr ) responsePtr = CTRecvBytes( cursor->conn, overlappedResponse->wsaBuf.buf, &recv_length );
 
+			assert(responsePtr);
+			assert(recv_length > 0);
+			//fprintf(stderr, "**** CT_Dequeue_Recv_Decrypt::CTRecv bytes = %lu\n", recv_length);
+			//assert(recv_length == NumBytesRecv);
 
-			//else
-			//{
-				//fprintf(stderr, "CT_Dequeue_Recv_Decrypt::Scheduling Cursor (%d) via ...", (int)cursor->queryToken);
-				//fprintf(stderr, "OVERLAPPED continue\n");
-				/*
-				NumBytesRecv = overlappedResponse->wsaBuf.buf - overlappedResponse->buf;
-	
-				//Wait for kqueue notification that bytes are available for reading on rxQueue
-				kev[1].ident = cursor->conn->socket;			
-				if( ret == 1  && (ret = kqueue_wait_with_timeout(rxQueue, &(kev[1]), 1, CTSOCKET_MAX_TIMEOUT)) != 1 )
-				{
-					fprintf(stderr, "\nCT_Dequeue_Recv_Decrypt::kqueue_wait_with_timeout 2 failed with ret (%d).\n", ret);
-					assert(1==0);
-				}
+			//assert(recv_length == NumByte)
+			NumBytesRecv = recv_length;
+			*/
 
-				assert( kev[1].filter == (EVFILT_READ) );
-				assert( kev[1].ident == cursor->conn->socket );	
-
-				//Determine how many bytes are available on the socket for reading
-				fprintf(stderr, "\nCT_Dequeue_Recv_Decrypt::Bytes Available\n");
-
-				int ioRet = ioctlsocket(cursor->conn->socket, FIONREAD, &NumBytesRecv);
-				assert(NumBytesRecv > 0);
-				//if( NumBytesRecv == 0) NumBytesRecv = 32768;
-
-				fprintf(stderr, "**** CT_Dequeue_Recv_Decrypt::ictlsocket C status = %d\n", (int)ioRet);
-				fprintf(stderr, "**** CT_Dequeue_Recv_Decrypt::ictlsocket C = %d\n", (int)NumBytesRecv);
-				*/
-				
-				// Sync Wait for query response on ReqlConnection socket
-				unsigned long recv_length = NumBytesRecv;
-				char * responsePtr = CTRecvBytes( cursor->conn, overlappedResponse->wsaBuf.buf, &recv_length );
-				if( !responsePtr ) responsePtr = CTRecvBytes( cursor->conn, overlappedResponse->wsaBuf.buf, &recv_length );
-
-				assert(responsePtr);
-				assert(recv_length > 0);
-				//fprintf(stderr, "**** CT_Dequeue_Recv_Decrypt::CTRecv bytes = %lu\n", recv_length);
-				//assert(recv_length == NumBytesRecv);
-
-				//assert(recv_length == NumByte)
-				NumBytesRecv = recv_length;
-
-
-
-			//}
-			
 
 			NumBytesRecv += overlappedResponse->wsaBuf.buf - overlappedResponse->buf;
 			//overlappedResponse->buf[NumBytesRecv] = '\0';
@@ -988,7 +1010,7 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 							fprintf(stderr, "CT_Dequeue_Recv_Decrypt::cursor = (%lu)\n", (unsigned long)cursor->queryToken);
 							fprintf(stderr, "CT_Dequeue_Recv_Decrypt::nextCursor = (%lu)\n", (unsigned long)nextCursor->queryToken);
 							
-							nextCursor->conn->responseCount++;		
+							//nextCursor->conn->responseCount++;		
 							if (cursor->contentLength < overlappedResponse->buf - cursor->file.buffer)
 							{
 								fprintf(stderr, "CT_Deque_Recv_Decrypt::CT_OVERLAPPED_RECV::vagina (%ld)\n", (overlappedResponse->buf - cursor->file.buffer));
@@ -1136,7 +1158,7 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 						//closeCursor->conn->rxCursorQueueCount--;
 						closeCursor->conn->responseCount--;
 
-						//unsubscribe rxQueue from closeCursor's event
+						//unsubscribe rxQueue from closeCursor's event (only really needed for kqueue sans aio path)
 						EV_SET(&kev[0], (uintptr_t )(closeCursor->queryToken), EVFILT_USER, EV_DELETE, 0, 0, NULL);
 						kevent(rxQueue, &kev[0], 1, NULL, 0, NULL);
 
@@ -1346,7 +1368,7 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 								fprintf(stderr, "CT_Dequeue_Recv_Decrypt::cursor = (%lu)\n", (unsigned long)cursor->queryToken);
 								fprintf(stderr, "CT_Dequeue_Recv_Decrypt::nextCursor = (%lu)\n", (unsigned long)nextCursor->queryToken);
 
-								nextCursor->conn->responseCount++;		
+								//nextCursor->conn->responseCount++;		
 								if (cursor->contentLength < overlappedResponse->buf - cursor->file.buffer)
 								{
 									fprintf(stderr, "CT_Deque_Recv_Decrypt::CT_OVERLAPPED_EXECUTE::vagina (%ld)\n", (overlappedResponse->buf - cursor->file.buffer));
@@ -1490,7 +1512,7 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 							//closeCursor->conn->rxCursorQueueCount--;
 							closeCursor->conn->responseCount--;
 
-							//unsubscribe rxQueue from closeCursor's event
+							//unsubscribe rxQueue from closeCursor's event (only really needed for kqueue sans aio path)
 							EV_SET(&kev[0], (uintptr_t )(closeCursor->queryToken), EVFILT_USER, EV_DELETE, 0, 0, NULL);
 							kevent(rxQueue, &kev[0], 1, NULL, 0, NULL);
 
