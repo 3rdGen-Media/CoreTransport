@@ -196,8 +196,8 @@ typedef struct ReqlQueryCtx
 typedef CTError ReqlError;
 typedef CTTarget ReqlService;
 typedef CTClientError ReqlDriverError;
-typedef CTKernelQueue ReqlThreadQueue;
-typedef CTDispatchSource ReqlDispatchSource;
+//typedef CTKernelQueue ReqlThreadQueue;
+//typedef CTDispatchSource ReqlDispatchSource;
 typedef CTConnection ReqlConnection;
 
 //error redefs
@@ -233,6 +233,6 @@ CTRANSPORT_API CTRANSPORT_INLINE uint64_t ReqlStopQueryCtx     ( ReqlQueryContex
 
 CTRANSPORT_API CTRANSPORT_INLINE int   CTReQLHandshakeProcessMagicNumberResponse (char* mnBuffer, size_t mnBufferLen);
 CTRANSPORT_API CTRANSPORT_INLINE void* CTReQLHandshakeProcessFirstMessageResponse(char* sFirstMessagePtr, size_t sFirstMessageLen, char* password);
-CTRANSPORT_API CTRANSPORT_INLINE int CTReQLHandshakeProcessFinalMessageResponse(char* sFinalMessagePtr, size_t sFinalMessageLen, char* base64SS);
+CTRANSPORT_API CTRANSPORT_INLINE int   CTReQLHandshakeProcessFinalMessageResponse(char* sFinalMessagePtr, size_t sFinalMessageLen, char* base64SS);
 
 #endif

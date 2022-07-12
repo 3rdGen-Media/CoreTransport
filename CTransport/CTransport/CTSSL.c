@@ -4253,19 +4253,61 @@ CTSSLStatus CTSSLRead( CTSocket socketfd, CTSSLContextRef sslContextRef, void * 
 
 {
 
+	CTSSLStatus scRet;
+
 #ifdef CTRANSPORT_WOLFSSL
-	assert(1 == 0);
+
+	int err = 0;
+	char buffer[80];
+
+	CTSSLDecryptTransient transient = { socketfd, *msgLength, 0, msg};
+
+	//fprintf(stderr, "CTSSLDecryptMessage2::CoreTransport supplying (%lu) bytes to WolfSSL for decryption...\n", *msgLength);
+	
+	//Let WolfSSL Decrypt as many bytes from our encrypted input buffer ass possible in a single pass to wolfSSL_read
+	wolfSSL_SetIOReadCtx(sslContextRef->ctx, &transient);
+	scRet = wolfSSL_read(sslContextRef->ctx, (char*)msg /* + totalDecryptedBytes*/, *msgLength);//- totalDecryptedBytes);
+	if (scRet <= 0) //WolfSSL returned error
+	{		
+		err = wolfSSL_get_error(sslContextRef->ctx, 0);
+		wolfSSL_ERR_error_string(err, buffer);
+		//fprintf(stderr, "CTSSLDecryptMessage2: wolfSSL failed to read (%d): \n\n%s\n\n", wolfSSL_get_error(sslContextRef->ctx, 0), buffer);
+
+		//HANDLE INCOMPLETE MESSAGE: the buffer didn't have as many bytes as WolfSSL needed for decryption
+		if (err == WOLFSSL_ERROR_WANT_READ )
+		{
+			//SCHANNEL IMPLEMENTATION FOR REFERENCE
+			//*msgLength = hasData * Buffers[1].cbBuffer + hasMissing * Buffers[0].cbBuffer;
+			//*extraBuffer = (char*)(hasExtra * (uintptr_t)Buffers[3].pvBuffer);
+			//*extraBytes = (scRet != SEC_E_OK) * (*extraBytes) + hasExtra * Buffers[3].cbBuffer;
+
+			//WOLFSSL ANALOG IMPLEMENTATION
+			*msgLength = *msgLength - transient.totalBytesProcessed;// transient.bytesToDecrypt;// totalDecryptedBytes;
+			//*extraBytes = transient.bytesToDecrypt;// transient.bytesToDecrypt;
+			//*extraBuffer = (char*)msg + transient.totalBytesProcessed;// : NULL;
+			scRet = SEC_E_INCOMPLETE_MESSAGE;
+		}		
+		else
+			assert(1==0);
+	}
+	else //WolfSSL returned decrypted bytes
+	{
+		//*extraBytes = *msgLength - transient.totalBytesProcessed;
+		//*extraBuffer = *extraBytes > 0 ? (char*)msg + transient.totalBytesProcessed : NULL;
+		*msgLength = (unsigned long)scRet;
+		scRet = SEC_E_OK;	//play nice with our existing SCHANNEL API
+	}
+	//wolfSSL_SetIOReadCtx(sslContextRef->ctx, &sockfd);
+	return scRet;
 #elif defined( CTRANSPORT_USE_MBED_TLS )
 	struct timeval m_timeInterval;
 	FD_SET ReadSet;
-	CTSSLStatus scRet = 0;
+	//CTSSLStatus scRet = 0;
 	//NOTE:  CTransport uses blocking sockets but asynchronous operation
 	//This is not a problem when using IOCP on WIN32, because IOCP + WSARecv takes care of reading from the socket before notifying us that data is available to do encryption...
 	//However, because MBEDTLS only provides decryption through a routine that also reads from the socket, we must prevent IOCP from reading from the socket and just have it notify us when data is available
 	//But then, we still have the issue of not knowing when we have finished reading a full message from the socket without blocking calls, so in that case, when a msgLenght of zero is input to this function
 	//We use to determine whether there is data available for reading or none at all
-	
-	
 	
 	if( *msgLength == 0 )
 	{
@@ -4343,11 +4385,11 @@ CTSSLStatus CTSSLRead( CTSocket socketfd, CTSSLContextRef sslContextRef, void * 
 	return scRet;
 #elif defined(_WIN32)
 
-  //SecBuffer                ExtraBuffer;
-  //SecBuffer        *pExtraBuffer;
-  CTSSLStatus    scRet;				// unsigned long cbBuffer;    // Size of the buffer, in bytes
- 
-  unsigned long              cbIoBuffer, cbData, cbIoBufferLength;
+	//SecBuffer    	ExtraBuffer;
+	//SecBuffer    	*pExtraBuffer;
+	//CTSSLStatus   scRet;				
+	//unsigned long cbBuffer;    // Size of the buffer, in bytes 
+  	unsigned long	cbIoBuffer, cbData, cbIoBufferLength;
   
 	// Read data from server until done.
     cbIoBuffer = 0;
@@ -4424,6 +4466,8 @@ int CTSSLWrite( CTSocket socketfd, CTSSLContextRef sslContextRef, void * msg, un
 // The encrypted message is encrypted in place, overwriting the original contents of its buffer.
 {
 	int errOrBytesWritten = 0;
+
+	fprintf(stderr, "CTSSLWrite::preparing to send: \n\n%.*s\n", (int)(*msgLength), (char*)msg);
 #ifdef CTRANSPORT_WOLFSSL
 
 	//Set transient to inform our custom wolfssl callback not to send in a handshake context

@@ -3,7 +3,7 @@
 //Pthread TLS context
 struct ReqlQueryContext *ReqlQueryGetContext(void) {
 
-#ifndef _WIN32
+#ifdef __APPLE__
     int rc = pthread_once(&reql_keyonce, ReqlQueryContextMakeKey);
     assert(rc == 0);
     struct ReqlQueryContext *ctx = pthread_getspecific(reql_key);
@@ -247,7 +247,7 @@ CTRANSPORT_API CTRANSPORT_INLINE int CTReQLHandshakeProcessMagicNumberResponse(c
         //return VTSASLHandshakeError;
     }
 
-    return CTSuccess;
+    return (int)(successVal - mnResponsePtr) + 4 + 2;
 
 }
 
@@ -341,7 +341,7 @@ CTRANSPORT_API CTRANSPORT_INLINE void* CTReQLHandshakeProcessFirstMessageRespons
 
     
     //char* SCRAM_AUTH_MESSAGE_PTR = (char*)&(SCRAM_AUTH_MESSAGE[0]);
-    char* SCRAM_AUTH_MESSAGE_PTR = sFirstMessagePtr + 256;//firstMsgCursor->requestBuffer + 256;
+    char* SCRAM_AUTH_MESSAGE_PTR = sFirstMessagePtr + 512;//firstMsgCursor->requestBuffer + 256;
 
     //void* base64SSPtr = base64SS;
     unsigned long AuthMessageLengthCopy = strlen(SCRAM_AUTH_MESSAGE_PTR);// AuthMessageLength;
@@ -441,7 +441,7 @@ CTRANSPORT_API CTRANSPORT_INLINE void* CTReQLHandshakeProcessFirstMessageRespons
 
     //The Client Proof Bytes need to be Base64 encoded
     base64ProofLength = 0;
-    base64Proof = cr_utf8_to_base64(clientProof, CC_SHA256_DIGEST_LENGTH, 0, &base64ProofLength);
+    base64Proof = cr_utf8_to_base64((const void*)clientProof, CC_SHA256_DIGEST_LENGTH, 0, &base64ProofLength);
     assert(base64Proof && base64ProofLength > 0);
 
     //The Client Proof Bytes need to be Base64 encoded
@@ -457,9 +457,10 @@ CTRANSPORT_API CTRANSPORT_INLINE void* CTReQLHandshakeProcessFirstMessageRespons
     fprintf(stderr, "Base64 Server Signature:  %s\n\n", (char*)base64SS);
 
     //Add the client proof to the end of the client-final-message
-    sprintf(CLIENT_FINAL_MESSAGE_JSON, "{\"authentication\":\"%s,p=%.*s\"}", CLIENT_FINAL_MESSAGE, (int)base64ProofLength, (char*)base64Proof);
+    int msgLength = sprintf(CLIENT_FINAL_MESSAGE_JSON, "{\"authentication\":\"%s,p=%.*s\"}", CLIENT_FINAL_MESSAGE, (int)base64ProofLength, (char*)base64Proof);
     fprintf(stderr, "CLIENT_FINAL_MESSAGE_JSON = \n\n%s\n\n", CLIENT_FINAL_MESSAGE_JSON);
 
+    CLIENT_FINAL_MESSAGE_JSON[msgLength] = '\0';
     //Send the client-final-message wrapped in json
     //CLIENT_FINAL_MESSAGE_JSON[strlen(CLIENT_FINAL_MESSAGE_JSON)] = '\0';
     //VTSend(r, CLIENT_FINAL_MESSAGE_JSON, strlen(CLIENT_FINAL_MESSAGE_JSON) + 1);  //Note:  JSON always needs the extra null character to determine EOF!!!

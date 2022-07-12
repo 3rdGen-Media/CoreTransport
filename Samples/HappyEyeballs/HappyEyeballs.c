@@ -119,10 +119,10 @@ static const char*			proxy_server = "http://172.20.10.1";// "54.241.100.168";
 static const unsigned short	proxy_port	 = 443;// 1080;
 
 //Define a CTransport API ReqlService (ie CTTarget) C style struct to initiate a RethinkDB TLS connection with a CTransport API CTConnection
-//static const char* rdb_server = "rdb.server.net";
-//static const unsigned short rdb_port = 28015;
-//static const char* rdb_user = "admin";
-//static const char* rdb_pass = "rdb_password";
+static const char* rdb_server = "rdb.server.net";
+static const unsigned short rdb_port = 28015;
+static const char* rdb_user = "rdb_username";
+static const char* rdb_pass = "rdb_password";
 
 //These are only relevant for custom DNS resolution libdill, loading the data from these files has not yet been implemented for WIN32 platforms
 char * resolvConfPath = "./resolv.conf";
@@ -147,7 +147,7 @@ char* httpHeaderLengthCallback(struct CTCursor* pCursor, char* buffer, unsigned 
 	//connection's tcp stream to CoreTransport decrypt/recv thread
 	char* endOfHeader = strstr(buffer, "\r\n\r\n");
 	
-	if (!endOfHeader) 
+	if (!endOfHeader)
 	{
 		pCursor->headerLength = 0;
 		pCursor->contentLength = 0;
@@ -301,9 +301,90 @@ CTConnectionClosure _httpConnectionClosure = ^int(CTError * err, CTConnection * 
 	
 	fprintf(stderr, "HTTP Connection Success\n");
 	
-	for(i=0; i<30; i++)
-		sendHTTPRequest(&_httpCursor[httpRequestCount % CT_MAX_INFLIGHT_CURSORS]);
+	//for(i=0; i<30; i++)
+	//	sendHTTPRequest(&_httpCursor[httpRequestCount % CT_MAX_INFLIGHT_CURSORS]);
 
+	return err->id;
+};
+
+
+//int _reqlHandshakeClosure(CTError* err, ReqlConnection* conn) {
+CTConnectionClosure _reqlHandshakeClosure = ^ int(CTError * err, CTConnection * conn) {
+
+	assert(conn == &_reqlConn);
+	if (err->id == 0 && conn) { /*_reqlConn = conn;*/ }
+	else
+	{
+		printf("CTReQLAsyncLHandshake failed!\n");
+		CTCloseConnection(&_reqlConn);
+		CTSSLCleanup();
+		err->id = CTSASLHandshakeError;
+		return err->id;
+	}
+	//createConnectionResponsBufferQueue(_reqlConn);
+	printf("CTReQLAsyncLHandshake Success\n");
+
+	return err->id;
+};
+
+//int _reqlConnectionClosure(CTError* err, CTConnection* conn) {
+CTConnectionClosure _reqlConnectionClosure = ^ int(CTError * err, CTConnection * conn) {
+
+	//status
+	int status;
+
+	//TO DO:  Parse error status
+	assert(err->id == ReqlSuccess);
+
+	//Copy CTConnection object memory from coroutine stack
+	//to application memory (or the connection will go out of scope when this funciton exits)
+	//FYI, do not use the pointer memory after this!!!
+	_reqlConn = *conn;
+	_reqlConn.response_overlap_buffer_length = 0;
+
+	fprintf(stderr, "ReQL Connection Success\n");
+
+	//  Now Perform RethinkDB ReQL SASL Layer Auth Handshake (using SCRAM HMAC SHA-256 Auth) over TCP
+	//  It is always safe to use Async ReQL Handshake after connection
+	if (1)
+	{
+		if ((status = CTReQLAsyncHandshake(&_reqlConn, _reqlConn.target, _reqlHandshakeClosure)) != CTSuccess)
+		{
+			assert(1 == 0);
+		}
+	}
+	else if ( (status = CTReQLHandshake(&_reqlConn, _reqlConn.target)) != CTSuccess)
+	{
+		printf("CTReQLSASLHandshake failed!\n");
+		CTCloseConnection(&_reqlConn);
+		CTSSLCleanup();
+		err->id = CTSASLHandshakeError;
+		return err->id;
+	}
+
+	/*
+	 createCursorResponseBuffers(&_reqlCursor, filepath);
+	 _reqlCursor.headerLengthCallback = reqlHeaderLengthCallback;
+	 _reqlCursor.responseCallback = reqlResponseCallback;
+
+	//1  Create a single worker thread, respectively, for the CTConnection's (Socket) Tx and Rx Queues
+	//   We associate our associated processing callbacks for each by associating the callback with the thread(s) we associate with the queues
+	//   Note:  On Win32, "Queues" are actually IO Completion Ports
+	for( i = 0; i <1; ++i)
+	{
+		//On Darwin Platforms we utilize a thread pool implementation through GCD that listens for available data on the socket
+		//and provides us with a dispatch_queue on a dedicated pool thread for reading
+		//On Win32 platforms we create a thread/pool of threads to associate an io completion port
+		//When Win32 sees that data is available for read it will read for us and provide the buffers to us on the completion port thread/pool
+		hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CT_Dequeue_Recv_Decrypt, _reqlConn.socketContext.rxQueue, 0, NULL);
+		CloseHandle(hThread);
+
+		hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CT_Dequeue_Encrypt_Send, _reqlConn.socketContext.txQueue, 0, NULL);
+		CloseHandle(hThread);
+	}
+	*/
+
+	printf("REQL Connection Success\n");
 	return err->id;
 };
 
@@ -393,7 +474,7 @@ int main(void) {
 
 	//Declare Targets (ie specify TCP connection endpoints + options)
     CTTarget httpTarget = { 0 };
-	//CTTarget reqlService = { 0 };	
+	CTTarget reqlService = { 0 };	
 
 	//Connection & Cursor Pool Initialization
 	CTCreateConnectionPool(&(HAPPYEYEBALLS_CONNECTION_POOL[0]), HAPPYEYEBALLS_MAX_INFLIGHT_CONNECTIONS);
@@ -435,20 +516,39 @@ int main(void) {
 	httpTarget.tq = tq;
 	httpTarget.rq = rq;
 
+
+	//Define RethinkDB service connection target
+	//We are doing SCRAM authentication over TLS required by RethinkDB
+	//For SCHANNEL SSL Cert Verification, the certficate needs to be installed in the system CA trusted authorities store
+	//For WolfSSL, MBEDTLS and SecureTransport Cert Verification, the path to the certificate can be passed 
+	reqlService.url.host = (char*)rdb_server;
+	reqlService.url.port = rdb_port;
+	//reqlService.proxy.host = (char*)proxy_server;
+	//reqlService.proxy.port = proxy_port;
+	reqlService.user = (char*)rdb_user;
+	reqlService.password = (char*)rdb_pass;
+	reqlService.ssl.ca = (char*)caPath;
+	reqlService.ssl.method = CTSSL_TLS_1_2;
+	reqlService.dns.resconf = (char*)resolvConfPath;
+	reqlService.dns.nssconf = (char*)nsswitchConfPath;
+	reqlService.cq = cq;
+	reqlService.tq = tq;
+	reqlService.rq = rq;
+
 	//Demonstrate CTransport CT C API Connection (No JSON support)
 	//On Darwin/BSD platforms, when no cxQueue is specified the Core Transport connection routine operates asynchronously on a single thread to by integrating libdill coroutines with an arbitrary runloop thread's e.g. CFRunLoop or SystemKeyboardEventLoop
 	//On WIN32, when no cxQueue is specified we only have synchronous/blocking connection support, but this can be easily thrown onto a background thread at startup (or just use a cxQueue to post to the iocp queue responsible for connections)
-	coroutine_bundle = CTransport.connect(&httpTarget, _httpConnectionClosure);
-	//CTransport.connect(&reqlService, _reqlConnectionClosure);
-
+	//coroutine_bundle = CTransport.connect(&httpTarget, _httpConnectionClosure);
+	coroutine_bundle = CTransport.connect(&reqlService, _reqlConnectionClosure);
+	
 	//Start a runloop on the main thread for the duration of the application
 	SystemKeyboardEventLoop();
 
 	//TO DO:  Wait for asynchronous threads to shutdown
 
 	//Clean up socket connections (Note: closing a socket will remove all associated kevents on kqueues)
-	//CTCloseConnection(&_httpConn);
 	CTCloseConnection(&_httpConn);
+	//CTCloseConnection(&_reqlConn);
 
 	//Clean Up Global/Thread Auth Memory
 	ca_scram_cleanup();

@@ -258,7 +258,7 @@ void* __stdcall CT_Dequeue_Resolve_Connect_Handshake(LPVOID lpParameter)
 			struct dns_addrinfo* ai = (struct dns_addrinfo*)(cursor->target->ctx);
 
 			int numResolvedAddresses = 0;
-			if ((numResolvedAddresses = dill_ipaddr_dns_query_wait_ai(ai, &(cursor->target->url.addr), 1, target_port, cursor->target->url.addr.ss_family == AF_INET6 ? DILL_IPADDR_IPV6 : DILL_IPADDR_IPV4, -1)) < 1)
+			if ((numResolvedAddresses = dill_ipaddr_dns_query_wait_ai(ai, (struct dill_ipaddr *)&(cursor->target->url.addr), 1, target_port, cursor->target->url.addr.ss_family == AF_INET6 ? DILL_IPADDR_IPV6 : DILL_IPADDR_IPV4, -1)) < 1)
 			{
 				fprintf(stderr, "\nCT_Dequeue_Resolve_Connect_Handshake::dill_ipaddr_dns_query_wait_ai failed to resolve any IPV4 addresses!\n");
 				error.errClass = CTDriverErrorClass;
@@ -1299,7 +1299,8 @@ void* __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 								//NumBytesRemaining -= cursor->headerLength;			//this line is only relevant for non-TLS path
 							}
 						}
-						assert(cursor->contentLength > 0);
+
+						if (cursor->headerLength >  0) assert(cursor->contentLength > 0);
 
 						fprintf(stderr, "CT_Deque_Recv_Decrypt::Check cursor->contentLength (%d, %d) \n\n", (int)cursor->contentLength, (int)(overlappedResponse->buf - cursor->file.buffer));
 						if (cursor->contentLength > 0 && ((int)cursor->contentLength) <= (int)(overlappedResponse->buf - cursor->file.buffer))
@@ -1777,8 +1778,9 @@ void* __stdcall CT_Dequeue_Encrypt_Send(LPVOID lpParameter)
 				overlappedResponse->cursor = (void*)cursor;
 				overlappedResponse->len = cBufferSize;
 				overlappedResponse->stage = schedule_stage;// CT_OVERLAPPED_SCHEDULE;
-
-				CTCursorRecvOnQueue(&overlappedResponse, (void*)(cursor->file.buffer), 0, &recvMsgLength);
+				
+				if( cursor->headerLengthCallback != 0 )
+					CTCursorRecvOnQueue(&overlappedResponse, (void*)(cursor->file.buffer), 0, &recvMsgLength);
 			}
 			
 		}

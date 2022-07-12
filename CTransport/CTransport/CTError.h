@@ -58,6 +58,7 @@ typedef enum CTErrorClass
 #define CTEINPROGRESS EINPROGRESS
 #endif
 
+
 typedef enum CTClientError
 {
 #ifdef CTRANSPORT_USE_MBED_TLS

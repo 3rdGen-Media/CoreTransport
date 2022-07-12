@@ -116,7 +116,7 @@ CTRANSPORT_API CTRANSPORT_INLINE coroutine int CTSSLRoutine(CTConnection* conn, 
 CTRANSPORT_API CTRANSPORT_INLINE coroutine int CTProxyHandshake(CTConnection* conn);
 
 CTRANSPORT_API CTRANSPORT_INLINE coroutine int CTTargetResolveHost(CTTarget* target, CTConnectionClosure callback);
-CTRANSPORT_API CTRANSPORT_INLINE int CTReQLHandshake( CTConnection * r, CTTarget * service);
+CTRANSPORT_API CTRANSPORT_INLINE coroutine int CTReQLHandshake( CTConnection * r, CTTarget * service);
 CTRANSPORT_API CTRANSPORT_INLINE int CTReQLAsyncHandshake(CTConnection* conn, CTTarget* service, CTConnectionClosure callback);
 CTRANSPORT_API CTRANSPORT_INLINE int CTCloseConnection( CTConnection * conn );
 
@@ -124,7 +124,7 @@ CTRANSPORT_API CTRANSPORT_INLINE int CTCloseSSLSocket(CTSSLContextRef sslContext
 
 //Blocking Send/Receive network buffer over CTConnection dedicated platform TCP socket
 CTRANSPORT_API CTRANSPORT_INLINE int   CTSend(CTConnection * conn, void * msg, unsigned long * msgLength );
-CTRANSPORT_API CTRANSPORT_INLINE void* CTRecv(CTConnection * conn, void * msg, unsigned long * msgLength);
+CTRANSPORT_API CTRANSPORT_INLINE coroutine void* CTRecv(CTConnection * conn, void * msg, unsigned long * msgLength);
 CTRANSPORT_API CTRANSPORT_INLINE void* CTRecvBytes(CTConnection * conn, void * msg, unsigned long * msgLength);
 
 #ifdef _WIN32

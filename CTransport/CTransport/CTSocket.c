@@ -144,10 +144,9 @@ CTThread CTThreadCreate(CTKernelQueue* threadPoolQueue, CTThreadRoutine threadRo
 void CTThreadClose(CTThread* thread)
 {
 #ifdef _WIN32
-    if (thread && *thread && *thread != INVALID_HANDLE_VALUE)
-        CloseHandle(*thread);
+    if (thread && *thread && *thread != INVALID_HANDLE_VALUE) CloseHandle(*thread);
 #else
-    //pthread TO DO?
+    if( thread && *thread ) pthread_detach(*thread);
 #endif
 }
 
@@ -364,8 +363,6 @@ CTSocket CTSocketCreate(int af, int nonblocking)
  ***/
 int CTSocketGetError(CTSocket socketfd)
 {
-    fprintf(stderr, "CTSocketGetError\n\n");
-
     //fprintf(stderr, "ReqlGetSocketError\n");
     int result = 0;
     //get the result of the socket connection

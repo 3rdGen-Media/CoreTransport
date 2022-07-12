@@ -17,6 +17,7 @@ add_library (
         CTransport/CTSSL.c
         CTransport/CTransportAPI.c
         CTransport/CTQueue.c
+        CTransport/CTReQL.c
 )
 
 #Tell CMake to use custom name for generated target lib/exe
@@ -49,10 +50,10 @@ add_custom_command(TARGET CTransport POST_BUILD
     COMMENT "Copying CTransport Source Headers to CoreTransport/include/CTransport directory."
 )
 
-#add_custom_command(TARGET CTransport POST_BUILD
-#    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/protobuf/*.h ${CMAKE_CURRENT_SOURCE_DIR}/../include/CoreTransport/protobuf
-#    COMMENT "Copying Protobuf Source Headers to CoreTransport/include/CTransport directory."
-#)
+add_custom_command(TARGET CTransport POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/protobuf/*.h ${CMAKE_CURRENT_SOURCE_DIR}/../include/CoreTransport/protobuf
+    COMMENT "Copying Protobuf Source Headers to CoreTransport/include/CTransport directory."
+)
 
 add_custom_command(TARGET CTransport POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/CTransport.h ${CMAKE_CURRENT_SOURCE_DIR}/../include/CoreTransport

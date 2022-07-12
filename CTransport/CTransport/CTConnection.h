@@ -257,7 +257,7 @@ typedef struct CTTarget     //TO DO:  calculate size and alignment
 	//		 so perhaps move them into the CTURL struct
 	char* user;                    //8 bytes
 	char* password;                //8 bytes
-
+	char* key;					   //8 bytes
 	//explicit padding
 	unsigned char padding[2];
 }CTTarget;

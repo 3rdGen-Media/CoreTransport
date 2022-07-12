@@ -105,10 +105,7 @@ extern "C" {
 #include "CTransport/CTQueue.h"
 
 //Exposed API and Protocols extensions
-#ifdef _WIN32
 #include "CTransport/CTReQL.h"
-#endif
-
 #include "CTransport/CTransportAPI.h"
 
 #ifdef __cplusplus

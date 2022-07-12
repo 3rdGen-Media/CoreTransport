@@ -258,7 +258,7 @@ void CTSetCursorPoolIndex(int index)
  *  for an EOF read event and return the buffer to the calling function
  ***/
 
-void* CTRecv(CTConnection* conn, void * msg, unsigned long * msgLength)
+coroutine void* CTRecv(CTConnection* conn, void * msg, unsigned long * msgLength)
 {
     //OSStatus status;
     int ret; 
@@ -284,10 +284,24 @@ void* CTRecv(CTConnection* conn, void * msg, unsigned long * msgLength)
 	*/
 	if (conn->target->ssl.method > CTSSL_NONE)
 	{
-		ret = CTSSLRead(conn->socket, conn->sslContext, msg, &remainingBufferSize);
+		CTSSLStatus scRet;
+#ifndef _WIN32
+		while( 1 )
+#endif
+		{
+		scRet = CTSSLRead(conn->socket, conn->sslContext, msg, &remainingBufferSize);
 
-		if (ret != 0)
-			ret = 0;
+		if (scRet != 0)
+		{
+			if( scRet == SEC_E_INCOMPLETE_MESSAGE)
+			{
+				yield();
+				continue;
+			}
+			else
+				assert(1==0);
+
+		}
 		else
 		{
 #ifdef CTRANSPORT_WOLFSSL
@@ -300,21 +314,29 @@ void* CTRecv(CTConnection* conn, void * msg, unsigned long * msgLength)
 			decryptedMessagePtr = msg;
 #endif
 		}
+		break;
+		}
 	}
 	else
 	{
-		ret = (size_t)recv(conn->socket, (char*)msg, remainingBufferSize, 0 );
-#ifdef _WIN32
-		if(ret == SOCKET_ERROR)
-#else
-		if( ret < 0 )
+#ifndef _WIN32
+		while( 1 )
 #endif
 		{
-			fprintf(stderr, "**** CTRecv::Error %d reading data from server\n", CTSocketError());
+		if( (ret = (size_t)recv(conn->socket, (char*)msg, remainingBufferSize, 0 )) < 0 )
+		{
 			switch (CTSocketError()) 
 			{	
+#ifndef _WIN32
+				case EWOULDBLOCK:
+					yield();
+					continue;
+#endif
+				fprintf(stderr, "**** CTRecv::Error %d reading data from server\n", CTSocketError());
 				case EFAULT:
 					return NULL;
+
+				
 				default:
 					//fprintf(stderr, stderr, "general error\n");
 					//return WOLFSSL_CBIO_ERR_GENERAL;
@@ -332,6 +354,9 @@ void* CTRecv(CTConnection* conn, void * msg, unsigned long * msgLength)
 			//scRet = SEC_E_INTERNAL_ERROR;
 			return NULL;
 			assert(1 == 0);
+		}
+		else
+			break;
 		}
 		fprintf(stderr, "CTRecv::%d bytes of data received\n\n", ret);//, (char*)msg);
 		decryptedMessagePtr = (char*)msg;
@@ -1874,8 +1899,7 @@ struct in6_addr INADDR6_ANY = { 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0
 //const char* authKey = "\"authentication\"";
 //const char * successKey = "\"success\"";
 
-#ifdef _WIN32
-int CTReQLHandshake(CTConnection * r, CTTarget* service)
+coroutine int CTReQLHandshake(CTConnection * r, CTTarget* service)
 {
 	    OSStatus status;
 
@@ -1995,19 +2019,21 @@ int CTReQLHandshake(CTConnection * r, CTTarget* service)
     //  Asynchronously send (ie non-blocking send) both magic number and client-first-message-json
     //  buffers in succession over the (non-blocking) socket TLS+TCP connection
 
+   	sendLength = (unsigned long)strlen(CLIENT_FIRST_MESSAGE_JSON) + 1;
     CTSend(r, (void*)REQL_MAGIC_NUMBER_BUF, &magicNumberLength);
-   
-    //yield();
-    
+
+	yield();
+
 	//  Synchronously Wait for magic number response and SCRAM server-first-message
     //  --For now we just care about getting 'success: true' from the magic number response
     //  --The server-first-message contains salt, iteration count and a server nonce appended to our nonce for use in SCRAM HMAC SHA-256 Auth
     mnResponsePtr = (char*)CTRecv(r, MAGIC_NUMBER_RESPONSE_JSON, &magicNumberResponseLength);
     
-	sendLength = (unsigned long)strlen(CLIENT_FIRST_MESSAGE_JSON) + 1;
 	CTSend(r, CLIENT_FIRST_MESSAGE_JSON, &sendLength);  //Note:  Raw JSON messages sent to ReQL Server always needs the extra null character to determine EOF!!!
-																				 //       However, Reql Query Messages must NOT contain the additional null character
-	
+														//       However, Reql Query Messages must NOT contain the additional null character
+	yield();
+
+
 	sFirstMessagePtr = (char*)CTRecv(r, SERVER_FIRST_MESSAGE_JSON, &readLength);
     fprintf(stderr, "MAGIC_NUMBER_RESPONSE_JSON = \n\n%s\n\n", mnResponsePtr);
 	fprintf(stderr, "SERVER_FIRST_MESSAGE_JSON = \n\n%s\n\n", sFirstMessagePtr);
@@ -2238,11 +2264,75 @@ char* ReQLHandshakeHeaderLengthCallback(struct CTCursor* cursor, char* buffer, u
 	return endOfHeader;
 }
 
+char* ReQLFirstMessageHeaderLengthCallback(struct CTCursor* cursor, char* buffer, unsigned long length)
+{
+	fprintf(stderr, "ReQLFirstMessageHeaderLengthCallback...\n\n");
+
+//TO DO:  parse any existing errors first
+	struct CTError error = { (CTErrorClass)0,0,0 };    //Reql API client functions will generally return ints as errors
+	int mnResponseLength, remainingLength;
+	if ( (mnResponseLength = CTReQLHandshakeProcessMagicNumberResponse(buffer, strlen(buffer))) < 1)
+	{
+#ifdef CTRANSPORT_WOLFSSL
+		if (mnResponseLength == SSL_ERROR_WANT_READ)
+		{
+			assert(1 == 0);
+			return buffer;// CTSuccess;
+		}
+		else if (mnResponseLength == SSL_ERROR_WANT_WRITE)
+		{
+			assert(1 == 0);
+			return buffer;// CTSuccess;
+		}
+#endif
+		assert(1==0);
+		return buffer;
+		/*
+		//ReqlSSLCertificateDestroy(&rootCertRef);
+		fprintf(stderr, "CTReQLHandshakeProcessMagicNumberResponse failed with status:  %d\n", error.id);
+		error.id = CTSASLHandshakeError;
+		//CTCloseSSLSocket(cursor->conn->sslContext, cursor->conn->socket);
+		cursor->conn->target->callback(&error, cursor->conn);
+		*/
+	}
+
+	//mnResponseLength = error.id;
+	//remainingLength = strlen(cursor->requestBuffer + mnResponseLength);
+	//memmove(cursor->requestBuffer, cursor->requestBuffer + mnResponseLength, remainingLength);
+	//cursor->requestBuffer[remainingLength] = '\0';
+
+	//wait until we've decrypted the entire magic number response + at least some of the server first response
+	//if ( mnResponseLength == length )
+	//	return NULL;
+
+	//the purpose of this function is to return the end of the header in the 
+	//connection's tcp stream to CoreTransport decrypt/recv thread
+	char* endOfHeader = buffer + mnResponseLength;
+
+	fprintf(stderr, "length (%zu) mnLength (%d)\n", length, mnResponseLength);
+	//The client *must* set the cursor's contentLength property
+	//to aid CoreTransport in knowing when to stop reading from the socket
+	//assert(1==0);
+	//if (cursor->contentLength == 0)q
+	cursor->contentLength = length - mnResponseLength;// 5 + 88 + 5 + 4583 + 5 + 333 + 5 + 4;// length;// ((ReqlQueryMessageHeader*)buffer)->length;
+	//cursor->contentLength = length;//strlen( "{\"authentication\":\"r=X,s=X,i=X\",\"success\":true}" );
+	
+	if( cursor->contentLength == 0 )
+	{
+		fprintf(stderr, "booger\n");
+		//{"authentication":"r=7ISWwRL2wnqJmKeu0iPlK/09jn/gAoRiw9VGK+w6,s=DZDcz6Ex1HIK/NSV4ymuqw==,i=4096","success":true}
+		cursor->contentLength = 113;//strlen( "{\"authentication\":\"r=X,s=X,i=X\",\"success\":true}" );
+	}
+	
+	//The cursor headerLength is calculated as follows after this function returns
+	return endOfHeader;
+}
+
 
 //void ReQLMagicNumberResponseCallback(CTError* err, CTCursor* cursor){
 CTCursorCompletionClosure ReQLMagicNumberResponseCallback = ^ void(CTError * err, CTCursor * cursor) {
 
-	fprintf(stderr, "ReQLFirstMessageResponseCallback header:  \n\n%.*s\n\n", (int)cursor->headerLength, cursor->requestBuffer);
+	fprintf(stderr, "ReQLMagicNumberResponseCallback header:  \n\n%.*s\n\n", (int)cursor->headerLength, cursor->requestBuffer);
 
 	//TO DO:  parse any existing errors first
 	struct CTError error = { (CTErrorClass)0,0,0 };    //Reql API client functions will generally return ints as errors
@@ -2274,14 +2364,17 @@ CTCursorCompletionClosure ReQLMagicNumberResponseCallback = ^ void(CTError * err
 //void ReQLFinalMessageResponseCallback(CTError* err, CTCursor* cursor)
 CTCursorCompletionClosure ReQLFinalMessageResponseCallback = ^ void(CTError * err, CTCursor * cursor) {
 
-	fprintf(stderr, "ReQLSecondMessageResponseCallback header:  \n\n%.*s\n\n", (int)cursor->headerLength, cursor->requestBuffer);
+	fprintf(stderr, "ReQLFinalMessageResponseCallback header:  \n\n%.*s\n\n", (int)cursor->headerLength, cursor->requestBuffer);
 	
 	//TO DO:  parse any existing errors first
 	struct CTError error = { (CTErrorClass)0,0,0 };    //Reql API client functions will generally return ints as errors
 
-	char* base64SSPtr = NULL;//
-	memcpy(&base64SSPtr, &(cursor->requestBuffer[65536 - sizeof(char*)]), sizeof(char*));
-	if ((error.id = CTReQLHandshakeProcessFinalMessageResponse(cursor->requestBuffer, strlen(cursor->requestBuffer), base64SSPtr)) != CTSuccess)
+	//char* base64SSPtr = NULL;//
+	//memcpy(&base64SSPtr, &(cursor->requestBuffer[65536 - sizeof(char*)]), sizeof(char*));
+	//assert(base64SSPtr);
+	//fprintf(stderr, "base64SSPtr = %s\n", base64SSPtr);
+	
+	if ((error.id = CTReQLHandshakeProcessFinalMessageResponse(cursor->requestBuffer, strlen(cursor->requestBuffer), cursor->conn->service->key)) != CTSuccess)
 	{
 #ifdef CTRANSPORT_WOLFSSL
 		if (error.id == SSL_ERROR_WANT_READ)
@@ -2310,19 +2403,18 @@ CTCursorCompletionClosure ReQLFinalMessageResponseCallback = ^ void(CTError * er
 //void ReQLFirstMessageResponseCallback(CTError* err, CTCursor* cursor)
 CTCursorCompletionClosure ReQLFirstMessageResponseCallback = ^ void(CTError * err, CTCursor * cursor) {
 
-	fprintf(stderr, "ReQLFirstMessageResponseCallback header:  \n\n%.*s\n\n", (int)cursor->headerLength, cursor->requestBuffer);
-	
+	//memmove( cursor->requestBuffer, cursor->requestBuffer + cursor->headerLength, cursor->contentLength);
+	fprintf(stderr, "ReQLFirstMessageResponseCallback header:  \n\n%.*s\n\n", (int)cursor->contentLength, cursor->requestBuffer);
+	//fprintf(stderr, "ReQLFirstMessageResponseCallback header:  \n\n%.*s\n\n", (int)cursor->contentLength, cursor->requestBuffer + cursor->headerLength);
+
+
+
 	//TO DO:  parse any existing errors first
 	struct CTError error = { (CTErrorClass)0,0,0 };    //Reql API client functions will generally return ints as errors
 
-	//typedef union BytePtrUnion
-	//{
-
-	//}
-
-	char* base64SSPtr = NULL;// &(cursor->requestBuffer[65536 - sizeof(void*)]);
+	//char* base64SSPtr = NULL;// &(cursor->requestBuffer[65536 - sizeof(void*)]);
 	//if ((ret = CTSSLHandshakeProcessFirstResponse(cursor, cursor->conn->socket, cursor->conn->sslContext)) != noErr)
-	if (( base64SSPtr = CTReQLHandshakeProcessFirstMessageResponse(cursor->requestBuffer, strlen(cursor->requestBuffer), cursor->conn->service->password)) == NULL)
+	if (( cursor->conn->service->key = CTReQLHandshakeProcessFirstMessageResponse(cursor->requestBuffer,cursor->contentLength, cursor->conn->service->password)) == NULL)
 	{
 #ifdef CTRANSPORT_WOLFSSL
 		//TO DO:  unimplmented for wolfssl, come back to this
@@ -2349,7 +2441,9 @@ CTCursorCompletionClosure ReQLFirstMessageResponseCallback = ^ void(CTError * er
 	}
 
 	//copy the base64 address to storage for use by next async handshake message
-	memcpy(&(cursor->requestBuffer[65536 - sizeof(char*)]), &base64SSPtr, sizeof(char*));
+	//memcpy(&(cursor->requestBuffer[65536 - sizeof(char*)]), &base64SSPtr, sizeof(char*));
+
+	cursor->headerLength = cursor->contentLength = 0;
 
 	cursor->headerLengthCallback = ReQLHandshakeHeaderLengthCallback; //we'll use same headerLenghtCallback for all ReQLHandshake messages in the sequence
 	cursor->responseCallback = ReQLFinalMessageResponseCallback;	   //the response itself will be specific to processing the actual message at each stage
@@ -2386,7 +2480,7 @@ int CTReQLAsyncHandshake(CTConnection* conn, CTTarget* service, CTConnectionClos
 	memset(handshakeCursor, 0, sizeof(CTCursor));
 	memset(firstMsgCursor, 0, sizeof(CTCursor));
 
-	char* SCRAM_AUTH_MESSAGE = firstMsgCursor->requestBuffer + 256;
+	char* SCRAM_AUTH_MESSAGE = firstMsgCursor->requestBuffer + 512;  //Note: this is a terrible magic number trick that caused days of headache with TLS
 	SCRAM_AUTH_MESSAGE[0] = '\0';
 	fprintf(stderr, "CTReQLAsyncHandshake begin\n\n");
 	//  Generate a random client nonce for sasl scram sha 256 required by RethinkDB 2.3
@@ -2432,13 +2526,13 @@ int CTReQLAsyncHandshake(CTConnection* conn, CTTarget* service, CTConnectionClos
 
 
 	//send the TLS Handshake first message in an async non-blocking fashion
-	handshakeCursor->headerLengthCallback = ReQLHandshakeHeaderLengthCallback; //we'll use same headerLenghtCallback for all ReQLHandshake messages in the sequence
-	handshakeCursor->responseCallback = ReQLMagicNumberResponseCallback;	   //the response itself will be specific to processing the actual message at each stage
+	handshakeCursor->headerLengthCallback = 0;//ReQLHandshakeHeaderLengthCallback;  //we'll use same headerLenghtCallback for all ReQLHandshake messages in the sequence
+	handshakeCursor->responseCallback =  	0;//ReQLMagicNumberResponseCallback;	//the response itself will be specific to processing the actual message at each stage
 
-	firstMsgCursor->headerLengthCallback = ReQLHandshakeHeaderLengthCallback; //we'll use same headerLenghtCallback for all ReQLHandshake messages in the sequence
-	firstMsgCursor->responseCallback = ReQLFirstMessageResponseCallback;	   //the response itself will be specific to processing the actual message at each stage
+	firstMsgCursor->headerLengthCallback = 	ReQLFirstMessageHeaderLengthCallback;
+	firstMsgCursor->responseCallback = 		ReQLFirstMessageResponseCallback;		//the response itself will be specific to processing the actual message at each stage
 
-																			   //copy the magic number to the handshake cursor request buffer
+	//copy the magic number to the handshake cursor request buffer
 	memcpy(handshakeCursor->requestBuffer, REQL_MAGIC_NUMBER_BUF, 4);
 	memcpy(firstMsgCursor->requestBuffer, CLIENT_FIRST_MESSAGE_JSON, strlen(CLIENT_FIRST_MESSAGE_JSON) + 1);
 
@@ -2463,7 +2557,6 @@ int CTReQLAsyncHandshake(CTConnection* conn, CTTarget* service, CTConnectionClos
 
 	return CTSuccess;
 };
-#endif 
 
 /*
 coroutine int CTSSLRoutineSendFirstMessage(CTConnection* conn, char* hostname, char* caPath)
@@ -4052,7 +4145,7 @@ coroutine int CTTargetResolveHost(CTTarget* target, CTConnectionClosure callback
 	//TO DO:  if ip version could be parsed (because host is an ip address that doesn't require DNS resolution) bypass DNS
 
 	//If the ip version could not be parsed, fallback to IPv6 resolution by default
-	ip_version = ip_version > 0 ? ip_version : AF_INET6; 
+	ip_version = ip_version > 0 ? ip_version : AF_INET; 
 	char* DNS_SERVER = ip_version == AF_INET6 ? (char*)DNS_SERVER_IPv6 : (char*)DNS_SERVER_IPv4;
 
 	populate_sockaddr_version(ip_version, (int)DNS_PORT, DNS_SERVER, (struct sockaddr_storage*)&(target->url.addr), &addrlen);
@@ -4269,7 +4362,7 @@ coroutine int CTTargetResolveHost(CTTarget* target, CTConnectionClosure callback
 	//Launch asynchronous query using modified version of Sustrik's libdill DNS implementation
 	//struct dill_ipaddr addr[1];
 	struct dns_addrinfo* ai = NULL;
-	if (dill_ipaddr_dns_query_ai(&ai, &(target->url.addr), 1, target_host, target_port, ip_version == AF_INET6 ? DILL_IPADDR_IPV6 : DILL_IPADDR_IPV4, target->dns.resconf, target->dns.nssconf) != 0 || ai == NULL)
+	if (dill_ipaddr_dns_query_ai(&ai, (struct dill_ipaddr *)&(target->url.addr), 1, target_host, target_port, ip_version == AF_INET6 ? DILL_IPADDR_IPV6 : DILL_IPADDR_IPV4, target->dns.resconf, target->dns.nssconf) != 0 || ai == NULL)
 	{
 		fprintf(stderr, "target->dns.resconf = %s", target->dns.resconf);
 		fprintf(stderr, "dill_ipaddr_dns_query_ai failed with errno:  %d", errno);
@@ -4315,7 +4408,7 @@ coroutine int CTTargetResolveHost(CTTarget* target, CTConnectionClosure callback
 		yield();
 
 		int numResolvedAddresses = 0;
-		if ((numResolvedAddresses = dill_ipaddr_dns_query_wait_ai(ai, &(target->url.addr), 1, target_port, ip_version == AF_INET6 ? DILL_IPADDR_IPV6 : DILL_IPADDR_IPV4, -1)) < 1)
+		if ((numResolvedAddresses = dill_ipaddr_dns_query_wait_ai(ai, (struct dill_ipaddr *)&(target->url.addr), 1, target_port, ip_version == AF_INET6 ? DILL_IPADDR_IPV6 : DILL_IPADDR_IPV4, -1)) < 1)
 		{
 			fprintf(stderr, "dill_ipaddr_dns_query_wait_ai failed to resolve any IPV4 addresses!");
 			CTError err = { CTDriverErrorClass, CTDNSError, NULL };
