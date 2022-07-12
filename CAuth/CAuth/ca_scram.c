@@ -75,6 +75,20 @@ HCRYPTPROV   ca_scramCryptProv;
 
 #elif defined(__APPLE__)
 #include <MacTypes.h>
+
+#elif defined(__FreeBSD__)
+
+struct cryptodev_ctx 
+{
+	int      cfd;
+	struct   session2_op sess;
+	uint16_t alignmask;
+};
+
+int                  g_cryptoDevice     = -1;
+struct cryptodev_ctx g_cryptoHash       = {0};
+struct cryptodev_ctx g_cryptoHMAC       = {0};
+
 #endif
 
 
@@ -130,6 +144,7 @@ static unsigned char base64DecodeLookup[256] =
 //
 #define BINARY_UNIT_SIZE 3
 #define BASE64_UNIT_SIZE 4
+
 
 //
 // cr_base64_to_utf8
@@ -411,6 +426,114 @@ void ca_scram_init_rng_algorithm()
 }
 */
 
+#ifdef __FreeBSD__ //cryptodev SHA256 HASH + HMAC API
+
+int cryptodev_sha256_ctx_init(struct cryptodev_ctx* ctx, int cfd, const char *key, unsigned int key_size)
+{
+#ifdef CIOCGSESSION2
+    struct crypt_find_op fop = {0};
+#elif defined(CIOCGSESSINFO)
+    struct session_info_op siop = {0};
+#endif
+
+	memset(ctx, 0, sizeof(*ctx));
+	ctx->cfd = cfd;
+
+	if (key == NULL)
+		ctx->sess.mac = CRYPTO_SHA2_256;
+	else 
+	{		
+		//struct session_op {
+		//       uint32_t	cipher;	   /* e.g. CRYPTO_AES_CBC */
+		//       uint32_t	mac;	   /* e.g. CRYPTO_SHA2_256_HMAC	*/
+		//       uint32_t	keylen;	   /* cipher key */
+		//       const void *key;
+		//       int mackeylen;	   /* mac key */
+		//       const void *mackey;
+		//       uint32_t	ses;	   /* returns: ses # */
+		//};
+
+		//ctx->sess.cipher = CRYPTO_AES_CBC;
+		//ctx->sess.keylen = key_size;
+		//ctx->sess.key = (void*)key;
+
+		ctx->sess.mac = CRYPTO_SHA2_256_HMAC;
+		ctx->sess.mackeylen = key_size;
+		ctx->sess.mackey = (void*)key;
+	}
+
+#ifdef CIOCGSESSION2
+	if (ioctl(ctx->cfd, CIOCGSESSION2, &ctx->sess)) {
+		perror("ioctl(CIOCGSESSION2) 1");
+		return -1;
+	}
+#else
+	if (ioctl(ctx->cfd, CIOCGSESSION, &ctx->sess)) {
+		perror("ioctl(CIOCGSESSION) 1");
+		return -1;
+	}
+#endif
+
+#ifdef CIOCGSESSION2
+	fop.crid = ctx->sess.crid;
+	if (ioctl(ctx->cfd, CIOCFINDDEV , &fop)) {
+		perror("ioctl(CIOCFINDDEV)");
+		return -1;
+	}
+
+	//printf("CIOCGSESSION2 Driver Name: %.*s\n", (int)strlen(fop.name), fop.name);
+
+#elif defined(CIOCGSESSINFO)
+	siop.ses = ctx->sess.ses;
+	if (ioctl(ctx->cfd, CIOCGSESSINFO, &siop)) {
+		perror("ioctl(CIOCGSESSINFO)");
+		return -1;
+	}
+	
+	/*printf("Alignmask is %x\n", (unsigned int)siop.alignmask);*/
+	ctx->alignmask = siop.alignmask;
+#endif
+
+	return 0;
+}
+
+void cryptodev_sha256_ctx_deinit(struct cryptodev_ctx* ctx) 
+{
+	if (ioctl(ctx->cfd, CIOCFSESSION, &ctx->sess.ses)) {
+		perror("ioctl(CIOCFSESSION)");
+	}
+}
+
+int cryptodev_sha256_hash(struct cryptodev_ctx* ctx, const void* text, size_t size, void* digest)
+{
+	struct crypt_op cryp;
+	void* p;
+	
+	/* check text and ciphertext alignment */
+	if (ctx->alignmask) {
+		p = (void*)(((unsigned long)text + ctx->alignmask) & ~ctx->alignmask);
+		if (text != p) {
+			fprintf(stderr, "text is not aligned\n");
+			return -1;
+		}
+	}
+
+	memset(&cryp, 0, sizeof(cryp));
+
+	/* Encrypt data.in to data.encrypted */
+	cryp.ses = ctx->sess.ses;
+	cryp.len = size;
+	cryp.src = (void*)text;
+	cryp.mac = digest;
+	if (ioctl(ctx->cfd, CIOCCRYPT, &cryp)) {
+		perror("ioctl(CIOCCRYPT)");
+		return -1;
+	}
+
+	return 0;
+}
+#endif
+
 void ca_scram_init_hmac_algorithm()
 {
 
@@ -451,6 +574,8 @@ void ca_scram_init_hmac_algorithm()
         fprintf(stderr, "ca_scram_hmac_init::**** memory allocation failed\n");
         return;
     }
+#elif defined (__FreeBSD__)
+    cryptodev_sha256_ctx_init(&g_cryptoHash, g_cryptoDevice, NULL, 0);
 #endif
 }
 
@@ -511,9 +636,21 @@ void ca_scram_init_hash_algorithm()
 #endif
 }
 
+void ca_scram_init_device()
+{
+#ifdef __FreeBSD__
+    /* Open the crypto device */
+	g_cryptoDevice = open("/dev/crypto", O_RDWR, 0);
+	if (g_cryptoDevice < 0) {
+		perror("ca_scram_init_device::open(/dev/crypto)");
+		return;
+	}
+#endif
+}
 
 void ca_scram_init()
 {
+    ca_scram_init_device();
 	//ca_scram_init_rng_algorithm();
 	ca_scram_init_hmac_algorithm();
 	ca_scram_init_hash_algorithm();
@@ -542,6 +679,18 @@ void ca_scram_cleanup()
         HeapFree(GetProcessHeap(), 0, g_pbHMACHashObject);
     if (g_pbHMACHash)
         HeapFree(GetProcessHeap(), 0, g_pbHMACHash);
+#elif defined( __FreeBSD__ )
+
+    //clean up /dev/crypto sha256 global hash context
+	cryptodev_sha256_ctx_deinit(&g_cryptoHash);
+
+    //close /dev/crypto
+	if (close(g_cryptoDevice) == -1) 
+    {
+		perror("close(g_cryptoDevice)");
+		return;
+	}
+
 #endif
 }
 
@@ -647,6 +796,58 @@ void ca_scram_hash(const char * data, size_t dataLength, char * hashBuffer)
 #elif defined(__APPLE__)
     //the return value is the 3rd input ptr
     CC_SHA256((const void*)data, (CC_LONG)dataLength, (unsigned char*)hashBuffer);
+#elif defined(__FreeBSD__)
+
+    //int cfd = -1, i;
+	//struct cryptodev_ctx ctx = {0};
+	
+	/* Open the crypto device */
+    /*
+	cfd = open("/dev/crypto", O_RDWR, 0);
+	if (cfd < 0) {
+		perror("ca_scram_hash::open(/dev/crypto)");
+		return;
+	}
+    */
+
+	/* Clone file descriptor */
+	//if (ioctl(fd, CRIOGET, &cfd)) {
+	//	perror("ioctl(CRIOGET)");
+	//	return 1;
+	//}
+
+	/* Set close-on-exec (not really neede here) */
+	/*
+    if (fcntl(g_cryptoDevice, F_SETFD, 1) == -1) {
+		perror("ca_scram_hash::fcntl(F_SETFD)");
+		return;
+	}
+    */
+
+	//cryptodev_sha256_ctx_init(&ctx, g_cryptoDevice, NULL, 0);
+	cryptodev_sha256_hash(&g_cryptoHash, data, dataLength, hashBuffer);
+	//cryptodev_sha256_ctx_deinit(&ctx);
+
+    /*
+	printf("ca_scram_hash::hashBuffer: ");
+	for (i = 0; i < 20; i++) {
+		printf("%02x:", digest[i]);
+	}
+	printf("\n");
+	
+	if (memcmp(digest, expected, 20) != 0) {
+		fprintf(stderr, "SHA1 hashing failed\n");
+		return 1;
+	}
+    */
+    
+	/* Close cloned descriptor */
+    /*
+	if (close(cfd)) {
+		perror("close(cfd)");
+		return;
+	}
+    */
 #endif
 }
 
@@ -728,6 +929,62 @@ void ca_scram_hmac(const char * secretKey, size_t secretKeyLen, const char * dat
 	*/
 #elif defined(__APPLE__)
     CCHmac(kCCHmacAlgSHA256, secretKey, secretKeyLen, data, dataLen, hmacBuffer);
+#elif defined(__FreeBSD__) //cryptodev kernel api
+    
+    int i;
+    //int cfd = -1;
+	struct cryptodev_ctx ctx = {0};
+
+    /* Open the crypto device */
+    /*
+	cfd = open("/dev/crypto", O_RDWR, 0);
+	if (cfd < 0) {
+		perror("ca_scram_hmac::open(/dev/crypto)");
+		return;
+	}
+    */
+
+	/* Clone file descriptor */
+	//if (ioctl(fd, CRIOGET, &cfd)) {
+	//	perror("ioctl(CRIOGET)");
+	//	return 1;
+	//}
+    
+    //cfd = dup(g_cryptoDevice);
+    //assert(cfd != -1);
+	
+	/* Set close-on-exec (not really neede here) */
+    /*
+	if (fcntl(g_cryptoDevice, F_SETFD, 1) == -1) {
+		perror("ca_scram_hmac::fcntl(F_SETFD)");
+		return;
+	}
+    */
+    
+	cryptodev_sha256_ctx_init(&ctx, g_cryptoDevice, secretKey, secretKeyLen);
+	cryptodev_sha256_hash(&ctx, data, dataLen, hmacBuffer);
+	cryptodev_sha256_ctx_deinit(&ctx);
+
+    /*
+	printf("ca_scram_hmac::hmacBuffer: ");
+	for (i = 0; i < 20; i++) {
+		printf("%02x:", digest[i]);
+	}
+	printf("\n");
+	
+	if (memcmp(digest, expected, 20) != 0) {
+		fprintf(stderr, "SHA1 hashing failed\n");
+		return 1;
+	}
+    */
+
+	/* Close cloned descriptor */
+    /*
+	if (close(cfd)) {
+		perror("close(cfd)");
+		return;
+	}
+    */
 #endif
 }
 
@@ -766,9 +1023,15 @@ void ca_scram_salt_password(char * pw, size_t pwLen, char * salt, size_t saltLen
     for(i = 1; i < ni; i++)
     {
         ca_scram_hmac( pw, pwLen, hmacBuffer[(i-1)%2], CC_SHA256_DIGEST_LENGTH, hmacBuffer[i%2] );
+
         //each byte of the previous output must be XOR'd with that of the previous output
         for(charIndex=0; charIndex<CC_SHA256_DIGEST_LENGTH; charIndex++)
+        {
             saltedPassword[charIndex] = (char)(saltedPassword[charIndex] ^ hmacBuffer[i%2][charIndex]);
+            //fprintf(stderr, "%d\n", charIndex);
+        }
+        //fprintf(stderr, "iteration:%d\n", i);
+
     }
 
 	free(saltMod);

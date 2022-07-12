@@ -44,12 +44,13 @@
 #define THREADPROC WINAPI   //What does this do again?
 
 #elif defined(__FreeBSD__)
+#include <unistd.h> //file i/o
+#include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
 #include <sys/random.h>
 #include <crypto/cryptodev.h>
 #include <errno.h>
-
 #endif
 
 #ifdef __cplusplus
