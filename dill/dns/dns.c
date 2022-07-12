@@ -5975,7 +5975,8 @@ retry:
 	case DNS_SO_UDP_INIT:
 		so->state++;
 	case DNS_SO_UDP_CONN:
-		if (0 != connect(so->udp, (struct sockaddr *)&so->remote, dns_sa_len(&so->remote)))
+		so->remote.ss_len = dns_sa_len(&so->remote); //for to eliminate valgrind warning
+		if (0 != connect(so->udp, (struct sockaddr *)&so->remote, so->remote.ss_len))
 			goto soerr;
 
 		so->state++;

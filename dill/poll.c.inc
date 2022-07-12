@@ -74,6 +74,7 @@ int dill_ctx_pollset_init(struct dill_ctx_pollset *ctx) {
     /* Allocate largest possible pollset. */
     ctx->pollset_size = 0;
     ctx->pollset = malloc(sizeof(struct pollfd) * ctx->nfdinfos);
+    memset(ctx->pollset, 0, sizeof(struct pollfd) * ctx->nfdinfos); //eliminate valgrind warning
     if(dill_slow(!ctx->pollset)) {err = ENOMEM; goto error1;}
     ctx->fdinfos = malloc(sizeof(struct dill_fdinfo) * ctx->nfdinfos);
     if(dill_slow(!ctx->fdinfos)) {err = ENOMEM; goto error2;}
