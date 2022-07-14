@@ -285,9 +285,9 @@ coroutine void* CTRecv(CTConnection* conn, void * msg, unsigned long * msgLength
 	if (conn->target->ssl.method > CTSSL_NONE)
 	{
 		CTSSLStatus scRet;
-#ifndef _WIN32
+//#ifndef _WIN32
 		while( 1 )
-#endif
+//#endif
 		{
 		scRet = CTSSLRead(conn->socket, conn->sslContext, msg, &remainingBufferSize);
 
@@ -319,9 +319,9 @@ coroutine void* CTRecv(CTConnection* conn, void * msg, unsigned long * msgLength
 	}
 	else
 	{
-#ifndef _WIN32
+//#ifndef _WIN32
 		while( 1 )
-#endif
+//#endif
 		{
 		if( (ret = (size_t)recv(conn->socket, (char*)msg, remainingBufferSize, 0 )) < 0 )
 		{

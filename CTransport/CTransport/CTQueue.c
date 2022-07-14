@@ -2994,7 +2994,8 @@ unsigned long __stdcall CT_Dequeue_Encrypt_Send(LPVOID lpParameter)
 				}
 				*/
 
-				CTCursorRecvOnQueue(&overlappedResponse, (void*)(cursor->file.buffer), 0, &recvMsgLength);
+				if (cursor->headerLengthCallback != 0)
+					CTCursorRecvOnQueue(&overlappedResponse, (void*)(cursor->file.buffer), 0, &recvMsgLength);
 				//Manual encryption is is left here commented out as an example
 				//scRet = CTSSLEncryptMessage(overlappedConn->conn->sslContext, overlappedConn->conn->response_buf, &NumBytesRecv);
 				//if( scRet == CTSSLContextExpired ) break; // Server signaled end of session
