@@ -73,8 +73,11 @@ namespace CoreTransport
 		std::pair<CXConnectionClosureFunc, void*> pendingConnectionForKey(CTTarget * target);
 
 
-		static int _CXURLSessionConnectionCallback(CTError* err, CTConnection* conn)
-		{
+#ifdef __clang__
+		CTConnectionClosure _CXURLSessionConnectionCallback = ^ int(CTError * err, CTConnection * conn) {
+#else
+		static int _CXURLSessionConnectionCallback(CTError * err, CTConnection * conn) {
+#endif
 			//conn should always exist, so it can contain the input CTTarget pointer
 			//which contains the client context
 			assert(conn);
@@ -146,7 +149,7 @@ namespace CoreTransport
 			callback(err, cxConnection);
 
 			return err->id;
-		}
+		};
 
 		template<typename CXConnectionClosure>
 		void connect(CTTarget* target, CXConnectionClosure callback)

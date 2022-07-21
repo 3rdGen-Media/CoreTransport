@@ -75,7 +75,7 @@ CTClientError CXURLRequest::SendWithQueue(CTConnection* conn, void * msg, unsign
 	//Post the overlapped object message asynchronously to the socket transmit thread queue using Win32 Overlapped IO and IOCP
 	if (!PostQueuedCompletionStatus(conn->socketContext.txQueue, *msgLength, dwCompletionKey, &(overlappedQuery->Overlapped)))
 	{
-		fprintf(stderr, "\nCXReQLSendWithQueue::PostQueuedCompletionStatus failed with error:  %d\n", GetLastError());
+		fprintf(stderr, "\nCXReQLSendWithQueue::PostQueuedCompletionStatus failed with error:  %ld\n", GetLastError());
 		return (ReqlDriverError)GetLastError();
 	}
 
@@ -114,7 +114,7 @@ uint64_t CXURLRequest::SendRequestWithCursorOnQueue(std::shared_ptr<CXCursor> cx
 {
 
 	//a string/stream for serializing the json query to char*	
-	unsigned long requestHeaderLength, requestLength;
+	unsigned long requestLength;
 	//int32_t requestLength;
 
 	
@@ -186,7 +186,7 @@ uint64_t CXURLRequest::SendRequestWithCursorOnQueue(std::shared_ptr<CXCursor> cx
 	
 	std::cout << "CXURLRequest::SendRequestWithTokenOnQueue Parsing HTTP Headers...\n";
 	
-	for( it; it!=endIt; ++it)
+	for( ;it!=endIt; ++it)
 	{
 
 		std::cout << it->first << ": " << it->second << "\n";
@@ -223,7 +223,8 @@ uint64_t CXURLRequest::SendRequestWithCursorOnQueue(std::shared_ptr<CXCursor> cx
 		requestBuffer += strlen("Content-Length: ");
 
 		char contentLengthStr[6];
-		_itoa((int)_contentLength, contentLengthStr, 10);
+		//_itoa((int)_contentLength, contentLengthStr, 10);
+		snprintf(contentLengthStr, 6, "%d", (int)_contentLength);
 
 		memcpy(requestBuffer, contentLengthStr, strlen(contentLengthStr));
 		requestBuffer += strlen(contentLengthStr);

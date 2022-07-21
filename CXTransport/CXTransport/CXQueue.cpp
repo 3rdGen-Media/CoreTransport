@@ -1,12 +1,11 @@
 #include "../CXTransport.h"
 
 
-unsigned long __stdcall CX_Dequeue_Resovle_Connect_Handshake(LPVOID lpParameter)
+unsigned long __stdcall CX_Dequeue_Resolve_Connect_Handshake(LPVOID lpParameter)
 {
 	int i;
 	OSStatus status;
 	ULONG_PTR CompletionKey;	//when to use completion key?
-	uint64_t queryToken = 0;
 	OVERLAPPED_ENTRY ovl_entry[CX_MAX_INFLIGHT_CONNECT_PACKETS];
 	ULONG nPaquetsDequeued;
 
@@ -17,20 +16,16 @@ unsigned long __stdcall CX_Dequeue_Resovle_Connect_Handshake(LPVOID lpParameter)
 	//CTOverlappedResponse* overlappedResponse = NULL;
 
 	unsigned long NumBytesTransferred = 0;
-	unsigned long recvMsgLength = 0;
-
-	CTSSLStatus scRet = 0;
-	CTClientError ctError = CTSuccess;
 
 	//we passed the completion port handle as the lp parameter
-	HANDLE hCompletionPort = (HANDLE)lpParameter;
+	CTKernelQueueType hCompletionPort = *(CTKernelQueueType*)lpParameter;
 	CTConnection* conn = NULL;
-	unsigned long cBufferSize = ct_system_allocation_granularity();
+	//unsigned long cBufferSize = ct_system_allocation_granularity();
 
 	CTCursor* closeCursor = NULL;
 	CTError err = { (CTErrorClass)0,0,NULL };
 
-	fprintf(stderr, "CTConnectThread Begin\n");
+	fprintf(stderr, "CX_Dequeue_Resolve_Connect_Handshake Begin\n");
 
 	//TO DO:  Optimize number of packets dequeued at once
 	while (1)
@@ -84,7 +79,7 @@ unsigned long __stdcall CX_Dequeue_Resovle_Connect_Handshake(LPVOID lpParameter)
 
 						memcpy(cursor->requestBuffer, cursor->file.buffer, cursor->headerLength);
 
-						fprintf(stderr, "CTDecryptResponseCallbacK::Header = \n\n%.*s\n\n", cursor->headerLength, cursor->requestBuffer);
+						fprintf(stderr, "CTDecryptResponseCallback::Header = \n\n%.*s\n\n", (int)cursor->headerLength, cursor->requestBuffer);
 
 						//copy body to start of buffer to overwrite header 
 						memcpy(cursor->file.buffer, endOfHeader, NumBytesTransferred - cursor->headerLength);
@@ -159,7 +154,7 @@ unsigned long __stdcall CX_Dequeue_Resovle_Connect_Handshake(LPVOID lpParameter)
 
 				//For Executing
 				FILE_COMPLETION_INFORMATION  socketCompletionInfo = { NULL, NULL };// { overlappedTarget->target->cxQueue, dwCompletionKey };
-				ULONG fcpLen = sizeof(FILE_COMPLETION_INFORMATION);
+				//ULONG fcpLen = sizeof(FILE_COMPLETION_INFORMATION);
 
 				//Load library if needed...
 				//	ntdll = LoadLibrary("ntdll.dll");
@@ -178,10 +173,13 @@ unsigned long __stdcall CX_Dequeue_Resovle_Connect_Handshake(LPVOID lpParameter)
 					return 0;
 				}
 
-				//Copy tx, rx completion port queue from target to connection and attach them to the socket handle for async writing and async reading, respectively
+				//Copy cx, tx, rx completion port queue from target to connection and attach them to the socket handle for async writing and async reading, respectively
 				//We assume that since we are executing on a cxQueue placed on the target by the user, they will have also specified their own txQueue, rxQueue as well
-				conn->socketContext.txQueue = overlappedTarget->target->txQueue;// CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
-				conn->socketContext.rxQueue = overlappedTarget->target->rxQueue;// CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, dwCompletionKey, 0);
+				conn->socketContext.cq = overlappedTarget->target->cq; //CTSSLRoutine needs to see a connection queue in order to enter async vs sync handshake pipeline
+				conn->socketContext.tq = overlappedTarget->target->tq;
+				conn->socketContext.rq = overlappedTarget->target->rq;
+
+				//Associate the socket with the dedicated read queue
 				CreateIoCompletionPort((HANDLE)conn->socket, conn->socketContext.rxQueue, dwCompletionKey, 1);
 
 
@@ -196,10 +194,9 @@ unsigned long __stdcall CX_Dequeue_Resovle_Connect_Handshake(LPVOID lpParameter)
 				//put the connection callback on the service so we can ride it through the async handshake
 				conn->target = overlappedTarget->target;
 
-
 				if (conn->target->proxy.host)
 				{
-					//Initate the Async SSL Handshake scheduling from this thread (ie cxQueue) to rxQueue and txQueue threads
+					//Initate the Proxy Handshake scheduling from this thread (ie cxQueue) to rxQueue and txQueue threads
 					if ((status = CTProxyHandshake(conn)) != 0)
 					{
 						fprintf(stderr, "CTConnection::CTConnectThread::CTSSLRoutine failed with error: %d\n", (int)status);
@@ -302,7 +299,7 @@ unsigned long __stdcall CX_Dequeue_Resovle_Connect_Handshake(LPVOID lpParameter)
 unsigned long __stdcall CX_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 {
 	int i;
-	ULONG CompletionKey;
+	//ULONG CompletionKey;
 
 	OVERLAPPED_ENTRY ovl_entry[CX_MAX_INFLIGHT_DECRYPT_PACKETS];
 	ULONG nPaquetsDequeued;
@@ -317,11 +314,10 @@ unsigned long __stdcall CX_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 	unsigned long extraBufferOffset = 0;
 
 	CTSSLStatus scRet = 0;
-	//CTClientError reqlError = CTSuccess;	
 	CTClientError ctError = CTSuccess;
 
 	CXConnection* cxConn = NULL;// (CXConnection*)lpParameter;
-	HANDLE hCompletionPort = (HANDLE)lpParameter; // cxConn->responseQueue();
+	CTKernelQueueType hCompletionPort = *(CTKernelQueueType*)lpParameter;
 
 	CTCursor* cursor = NULL;
 	CTCursor* nextCursor = NULL;
@@ -333,8 +329,6 @@ unsigned long __stdcall CX_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 	CTError err = { (CTErrorClass)0,0,NULL };
 	unsigned long currentThreadID = GetCurrentThreadId();
 
-	//unsigned long headerLength;
-	//unsigned long contentLength;
 #ifdef _DEBUG
 	fprintf(stderr, "CXConnection::DecryptResponseCallback Begin\n");
 #endif
@@ -381,7 +375,7 @@ unsigned long __stdcall CX_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 			//		for the cursor's response
 			if (overlappedResponse->stage > -1 && overlappedResponse->stage < 3)
 			{
-				fprintf(stderr, "CX_Dequeue_Recv_Decrypt::Scheduling Cursor (%d) via ...", cursor->queryToken);
+				fprintf(stderr, "CX_Dequeue_Recv_Decrypt::Scheduling Cursor (%llu) via ...", cursor->queryToken);
 
 				//set the overlapped message type to indicate that scheduling for the current
 				//overlapped/cursor has already been processed
@@ -392,7 +386,7 @@ unsigned long __stdcall CX_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 					if (PostThreadMessage(currentThreadID, WM_USER + cursor->queryToken, 0, (LPARAM)cursor) < 1)
 					{
 						//cursor->conn->rxCursorQueueCount++;
-						fprintf(stderr, "CTDecryptResponseCallback::PostThreadMessage failed with error: %d", GetLastError());
+						fprintf(stderr, "CTDecryptResponseCallback::PostThreadMessage failed with error: %lu", GetLastError());
 					}
 				}
 				else
@@ -429,7 +423,7 @@ unsigned long __stdcall CX_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 				//Get the cursor/connection
 				//cursor = (CTCursor*)overlappedResponse->cursor;
 			NumBytesRecv += overlappedResponse->wsaBuf.buf - overlappedResponse->buf;
-			fprintf(stderr, "Cursor Response Count (%d) NumBytesRecv (%d)\n\n", cursor->conn->responseCount, NumBytesRecv);
+			fprintf(stderr, "Cursor Response Count (%lld) NumBytesRecv (%lu)\n\n", cursor->conn->responseCount, NumBytesRecv);
 
 			PrevBytesRecvd = NumBytesRecv;	 //store the recvd bytes value from the overlapped
 			NumBytesRemaining = cBufferSize; //we can never decrypt more bytes than the size of our buffer, and likely schannel will still separate that into chunks
@@ -476,7 +470,7 @@ unsigned long __stdcall CX_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 						{
 							cursor->headerLength = endOfHeader - (cursor->file.buffer);
 
-							fprintf(stderr, "CT_Deque_Recv_Decrypt::CT_OVERLAPPED_RECV Header (%llu) = \n\n%.*s\n\n", ((ReqlQueryMessageHeader*)(cursor->file.buffer))->token, cursor->headerLength, cursor->file.buffer);
+							fprintf(stderr, "CT_Deque_Recv_Decrypt::CT_OVERLAPPED_RECV Header (%llu) = \n\n%.*s\n\n", ((ReqlQueryMessageHeader*)(cursor->file.buffer))->token, (int)cursor->headerLength, cursor->file.buffer);
 
 							if (cursor->headerLength > 0)
 								memcpy(cursor->requestBuffer, cursor->file.buffer, cursor->headerLength);
@@ -491,7 +485,7 @@ unsigned long __stdcall CX_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 								else
 								{
 									memcpy(cursor->file.buffer, endOfHeader, NumBytesRecv - cursor->headerLength);
-									fprintf(stderr, "CT_Deque_Recv_Decrypt::CT_OVERLAPPED_RECV Body (%d) = \n\n%.*s\n\n", cursor->contentLength, cursor->contentLength, cursor->file.buffer);
+									fprintf(stderr, "CT_Deque_Recv_Decrypt::CT_OVERLAPPED_RECV Body (%lu) = \n\n%.*s\n\n", cursor->contentLength, (int)cursor->contentLength, cursor->file.buffer);
 								}
 							}
 							overlappedResponse->buf -= cursor->headerLength;
@@ -564,13 +558,13 @@ unsigned long __stdcall CX_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 
 													memcpy(nextCursor->requestBuffer, nextCursor->file.buffer, nextCursor->headerLength);
 
-													fprintf(stderr, "CT_Deque_Recv_Decrypt::CT_OVERLAPPED_RECV nextCursor->Header (%llu) = \n\n%.*s\n\n", ((ReqlQueryMessageHeader*)(nextCursor->file.buffer))->token, nextCursor->headerLength, nextCursor->requestBuffer);
+													fprintf(stderr, "CT_Deque_Recv_Decrypt::CT_OVERLAPPED_RECV nextCursor->Header (%llu) = \n\n%.*s\n\n", ((ReqlQueryMessageHeader*)(nextCursor->file.buffer))->token, (int)nextCursor->headerLength, nextCursor->requestBuffer);
 
 													//copy body to start of buffer to overwrite header 
 													if (cursor->conn->response_overlap_buffer_length > nextCursor->headerLength && endOfHeader != nextCursor->file.buffer)
 													{
 														memcpy(nextCursor->file.buffer, endOfHeader, cursor->conn->response_overlap_buffer_length - nextCursor->headerLength);
-														fprintf(stderr, "CT_Deque_Recv_Decrypt::CT_OVERLAPPED_RECV nextCursor->Body (%d) = \n\n%.*s\n\n", cursor->conn->response_overlap_buffer_length, nextCursor->contentLength, nextCursor->file.buffer);
+														fprintf(stderr, "CT_Deque_Recv_Decrypt::CT_OVERLAPPED_RECV nextCursor->Body (%llu) = \n\n%.*s\n\n", cursor->conn->response_overlap_buffer_length, (int)nextCursor->contentLength, nextCursor->file.buffer);
 
 													}
 													//else if( cursor->conn->response_overlap_buffer_length == nextCursor->headerLength)
@@ -587,12 +581,14 @@ unsigned long __stdcall CX_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 
 
 												}
+												nextCursor->overlappedResponse.buf = nextCursor->file.buffer + cursor->conn->response_overlap_buffer_length;
+
 											}
 										}
 
 										//extraBufferOffset = cursor->conn->response_overlap_buffer_length;
 										//NumBytesRemaining -= cursor->headerLength;
-										nextCursor->overlappedResponse.buf = nextCursor->file.buffer + cursor->conn->response_overlap_buffer_length;
+										//nextCursor->overlappedResponse.buf = nextCursor->file.buffer + cursor->conn->response_overlap_buffer_length;
 										//if (nextCursor->queryToken == 99) assert(1 == 0);
 
 
@@ -620,7 +616,7 @@ unsigned long __stdcall CX_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 									}
 									else //failure
 									{
-										fprintf(stderr, "CTConnection::CT_OVERLAPPED_RECV::CTAsyncRecv (new cursor) failed with CTDriverError = %d\n", scRet);
+										fprintf(stderr, "CTConnection::CT_OVERLAPPED_RECV::CTAsyncRecv (new cursor) failed with CTDriverError = %ld\n", scRet);
 									}
 								}
 								nextCursor = NULL;
@@ -667,9 +663,13 @@ unsigned long __stdcall CX_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 					}
 					else
 					{
-						NumBytesRecv = NumBytesRemaining;
-						NumBytesRemaining = cBufferSize - NumBytesRecv;
-						if ((scRet = CTCursorAsyncRecv(&overlappedResponse, cursor->file.buffer, NumBytesRecv, &NumBytesRemaining)) != CTSocketIOPending)
+						//NumBytesRecv = NumBytesRemaining;
+						//NumBytesRemaining = cBufferSize - NumBytesRecv;
+						//if ((scRet = CTCursorAsyncRecv(&overlappedResponse, cursor->file.buffer, NumBytesRecv, &NumBytesRemaining)) != CTSocketIOPending)
+
+						//TO DO:  make sure this change works on WIN32
+						NumBytesRemaining = cBufferSize;
+						if ((scRet = CTCursorAsyncRecv(&overlappedResponse, overlappedResponse->buf, 0, &NumBytesRemaining)) != CTSocketIOPending)
 						{
 							//the async operation returned immediately
 							if (scRet == CTSuccess)
@@ -680,14 +680,14 @@ unsigned long __stdcall CX_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 							}
 							else //failure
 							{
-								fprintf(stderr, "CTConnection::DecryptResponseCallback::CTAsyncRecv failed with CTDriverError = %d\n", scRet);
+								fprintf(stderr, "CTConnection::DecryptResponseCallback::CTAsyncRecv failed with CTDriverError = %ld\n", scRet);
 								assert(1 == 0);
 							}
 						}
 						//NumBytesRemaining = 0;
 						break;
 					}
-					continue;
+					//continue;
 				}
 			}
 
@@ -778,7 +778,7 @@ unsigned long __stdcall CX_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 								//assert(nextCursorMsg.message == WM_USER + (UINT)cursor->queryToken + 1);
 								assert(nextCursor);
 #endif						
-								fprintf(stderr, "CX_Dequeue_Recv_Decrypt::PeekMessage Removed Cursor (%d)\n", nextCursor->queryToken);
+								fprintf(stderr, "CX_Dequeue_Recv_Decrypt::PeekMessage Removed Cursor (%llu)\n", nextCursor->queryToken);
 
 								if (cursor->contentLength < overlappedResponse->buf - cursor->file.buffer)
 								{
@@ -862,13 +862,13 @@ unsigned long __stdcall CX_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 
 									}
 								}
-								if (NumBytesRemaining == 0)
+								if (nextCursor && NumBytesRemaining == 0)
 								{
 									fprintf(stderr, "penis");
 
 									NumBytesRecv = cBufferSize;;
 									overlappedResponse = &(nextCursor->overlappedResponse);
-									if ((scRet = CTCursorAsyncRecv(&(overlappedResponse), (void*)(nextCursor->file.buffer + cursor->conn->response_overlap_buffer_length - nextCursor->headerLength), 0, &NumBytesRecv)) != CTSocketIOPending)
+									if ((scRet = CTCursorAsyncRecv(&(overlappedResponse), (void*)(nextCursor->file.buffer /* + cursor->conn->response_overlap_buffer_length - nextCursor->headerLength*/), 0, &NumBytesRecv)) != CTSocketIOPending)
 									{
 										//the async operation returned immediately
 										if (scRet == CTSuccess)
@@ -878,7 +878,7 @@ unsigned long __stdcall CX_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 										}
 										else //failure
 										{
-											fprintf(stderr, "CTConnection::DecryptResponseCallback::CTAsyncRecv (new cursor) failed with CTDriverError = %d\n", scRet);
+											fprintf(stderr, "CTConnection::DecryptResponseCallback::CTAsyncRecv (new cursor) failed with CTDriverError = %ld\n", scRet);
 										}
 									}
 									nextCursor = NULL;
@@ -934,7 +934,7 @@ unsigned long __stdcall CX_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 								}
 								else //failure
 								{
-									fprintf(stderr, "CTConnection::DecryptResponseCallback::CTAsyncRecv failed with CTDriverError = %d\n", scRet);
+									fprintf(stderr, "CTConnection::DecryptResponseCallback::CTAsyncRecv failed with CTDriverError = %ld\n", scRet);
 									break;
 								}
 							}
@@ -975,7 +975,7 @@ unsigned long __stdcall CX_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 						}
 						else //failure
 						{
-							fprintf(stderr, "CTConnection::DecryptResponseCallback::CTAsyncRecv failed with CTDriverError = %d\n", scRet);
+							fprintf(stderr, "CTConnection::DecryptResponseCallback::CTAsyncRecv failed with CTDriverError = %ld\n", scRet);
 							break;
 						}
 					}
@@ -1023,6 +1023,7 @@ unsigned long __stdcall CX_Dequeue_Encrypt_Send(LPVOID lpParameter)
 	OVERLAPPED_ENTRY ovl_entry[CX_MAX_INFLIGHT_ENCRYPT_PACKETS];
 	ULONG nPaquetsDequeued;
 
+	CTCursor* cursor = NULL;
 	CTOverlappedResponse* overlappedRequest = NULL;
 	CTOverlappedResponse* overlappedResponse = NULL;
 
@@ -1030,12 +1031,12 @@ unsigned long __stdcall CX_Dequeue_Encrypt_Send(LPVOID lpParameter)
 	unsigned long recvMsgLength = 0;
 
 	CTSSLStatus scRet = 0;
-	CTClientError ctError = CTSuccess;
+	//CTClientError ctError = CTSuccess;
 	CTError err = { (CTErrorClass)0,0,NULL };
 
 
 	//CXConnection* cxConn = NULL;// (CXConnection*)lpParameter;
-	HANDLE hCompletionPort = (HANDLE)lpParameter; // cxConn->queryQueue();
+	CTKernelQueueType hCompletionPort = *(CTKernelQueueType*)lpParameter;
 
 	unsigned long cBufferSize = ct_system_allocation_granularity();
 
@@ -1066,7 +1067,7 @@ unsigned long __stdcall CX_Dequeue_Encrypt_Send(LPVOID lpParameter)
 			{
 				//Get the cursor/connection
 				//Get a the CTCursor from the overlappedRequest struct, retrieve the overlapped response struct memory, and store reference to the CTCursor in the about-to-be-queued overlappedResponse
-				CTCursor* cursor = (CTCursor*)(overlappedRequest->cursor);
+				cursor = (CTCursor*)(overlappedRequest->cursor);
 				//std::shared_ptr<CXCursor> cxCursor = cxConn->getRequestCursorForKey(cursor->queryToken);
 
 #ifdef _DEBUG
@@ -1148,7 +1149,8 @@ unsigned long __stdcall CX_Dequeue_Encrypt_Send(LPVOID lpParameter)
 				}
 				*/
 
-				CTCursorRecvOnQueue(&overlappedResponse, (void*)(cursor->file.buffer), 0, &recvMsgLength);
+				//if (cursor->headerLengthCallback != 0)
+					CTCursorRecvOnQueue(&overlappedResponse, (void*)(cursor->file.buffer), 0, &recvMsgLength);
 
 				//Manual encryption is is left here commented out as an example
 				//scRet = CTSSLEncryptMessage(overlappedConn->conn->sslContext, overlappedConn->conn->response_buf, &NumBytesRecv);

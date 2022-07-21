@@ -240,8 +240,6 @@ uint64_t CTCursorSendRequestOnQueue(CTCursor * cursor, uint64_t requestToken)
 
 void createCursorResponseBuffers(CTCursor* cursor, const char* filepath)
 {
-	//unsigned long ctBufferSize = ct_system_allocation_granularity(); //+ sizeof(CTOverlappedResponse); 
-
 	if (!filepath)
 		filepath = "map.jpg\0";
 	cursor->file.path = (char*)filepath;
@@ -251,6 +249,8 @@ void createCursorResponseBuffers(CTCursor* cursor, const char* filepath)
 
 	memset(cursor->file.buffer, 0, ct_system_allocation_granularity() * 256UL);
 	
+	//_cursor->file.buffer = _cursor->requestBuffer;
+
 #ifdef _DEBUG
 	assert(cursor->file.buffer);
 #endif
@@ -389,7 +389,8 @@ void sendReqlQuery(CTCursor* cursor)
 
 	memset(cursor, 0, sizeof(CTCursor));
 
-	_itoa(httpRequestCount, filepath + strlen(filepath), 10);
+	//_itoa(httpRequestCount, filepath + strlen(filepath), 10);
+	snprintf(filepath + strlen(filepath), strlen(filepath), "%d", httpRequestCount);
 
 	strcat(filepath, ".txt");
 	httpRequestCount++;

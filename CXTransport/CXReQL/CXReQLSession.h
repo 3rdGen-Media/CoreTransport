@@ -83,8 +83,6 @@ namespace CoreTransport
 			//which contains the client context
 			assert(conn);
 
-			int status = CTSuccess;
-
 			//Return variables
 			CXConnectionClosureFunc callback;
 			CXConnection* cxConnection = NULL;

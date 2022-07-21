@@ -18,7 +18,6 @@ CXURLSession::~CXURLSession()
 
 std::pair<CXConnectionClosureFunc, void*> CXURLSession::pendingConnectionForKey(CTTarget* target)
 {
-	int x = 1;
 	return _pendingConnections.at(target);
 }
 

@@ -23,9 +23,8 @@ private:
 
 namespace CoreTransport
 {
-	typedef class CXConnection;
-
-
+	//typedef class CXConnection;
+	class CXConnection;
 
 	class CXTRANSPORT_API CXCursor
 	{

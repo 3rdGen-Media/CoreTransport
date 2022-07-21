@@ -14,9 +14,9 @@ namespace CoreTransport
 //#define CX_PAGE_SIZE				4096L //only use this to hard code or test changes in page size
 #define	CX_MAX_INFLIGHT_QUERIES	8L
 
-#define CX_MAX_INFLIGHT_CONNECT_PACKETS 1L
-#define CX_MAX_INFLIGHT_DECRYPT_PACKETS 2L
-#define CX_MAX_INFLIGHT_ENCRYPT_PACKETS 1L
+//#define CX_MAX_INFLIGHT_CONNECT_PACKETS 1L
+//#define CX_MAX_INFLIGHT_DECRYPT_PACKETS 2L
+//#define CX_MAX_INFLIGHT_ENCRYPT_PACKETS 1L
 
 #define CX_QUERY_BUFF_PAGES		8L	//the number of system pages that will be used to calculate the size of a single query buffer
 #define CX_REQUEST_BUFF_PAGE	CX_QUERY_BUFF_PAGES
@@ -48,10 +48,11 @@ static unsigned long					CX_RESPONSE_BUFF_SIZE  = 0;	//Response buffer size will
 			void addRequestCursorForKey(std::shared_ptr<CXCursor> cursor, uint64_t requestToken) { assert(_cursors.find(requestToken) == _cursors.end());  _cursors.insert(std::make_pair(requestToken, cursor)); }
 			void removeRequestCursorForKey(uint64_t requestToken) {_cursors.erase(requestToken);}
 			std::shared_ptr<CXCursor> getRequestCursorForKey(uint64_t requestToken) { return _cursors.size() > 0 ? _cursors.at(requestToken) : NULL; }
-			std::shared_ptr<CXCursor> createRequestCursor(uint64_t queryToken);
+			//std::shared_ptr<CXCursor> createRequestCursor(uint64_t queryToken);
 
 			void SwapCursors(uint64_t key1, uint64_t key2) { std::swap(_cursors[key1], _cursors[key2]); }
 
+			/*
 			void printCursors()
 			{
 
@@ -63,7 +64,7 @@ static unsigned long					CX_RESPONSE_BUFF_SIZE  = 0;	//Response buffer size will
 				}
 				std::cout << "Existing Key (" << endIt->first << ')\n';
 			}
-
+			
 			void printQueries()
 			{
 
@@ -75,7 +76,8 @@ static unsigned long					CX_RESPONSE_BUFF_SIZE  = 0;	//Response buffer size will
 				}
 				std::cout << "Existing Key (" << endIt->first << ')\n';
 			}
-			
+			*/
+
 			void distributeResponseWithCursorForToken(uint64_t requestToken);
 			
 			void close();

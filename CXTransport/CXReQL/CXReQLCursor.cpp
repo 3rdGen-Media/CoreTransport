@@ -54,11 +54,11 @@ char * CXReQLCursor::ProcessResponseHeader(CTCursor * cursor, char * buffer, uns
 			//put the unused cursor associated with the swapped query token back into the thread's queue
 			if (PostThreadMessage(GetCurrentThreadId(), WM_USER + cursor_token, 0, (LPARAM)targetCursor) < 1)
 			{
-				fprintf(stderr, "CXReQLCursor::ProcessResponseHeader::PostThreadMessage failed with error: %d", GetLastError());
+				fprintf(stderr, "CXReQLCursor::ProcessResponseHeader::PostThreadMessage failed with error: %ld", GetLastError());
 				assert(1 == 0);
 			}
 
-			fprintf(stderr, "CXReQLCursor::ProcessResponseHeader::Swap Removed (%d) and Reinserted (%d)", recv_token, cursor_token);
+			fprintf(stderr, "CXReQLCursor::ProcessResponseHeader::Swap Removed (%llu) and Reinserted (%llu)", recv_token, cursor_token);
 
 		}
 		else assert(1 == 0); //could not find the cursor we need on the current thread's queue

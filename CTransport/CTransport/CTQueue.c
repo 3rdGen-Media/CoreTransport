@@ -2009,12 +2009,11 @@ unsigned long __stdcall CT_Dequeue_Resolve_Connect_Handshake(LPVOID lpParameter)
 #endif
 
 				//put the connection callback on the service so we can ride it through the async handshake
-
 				conn->target = overlappedTarget->target;
 
 				if (conn->target->proxy.host)
 				{
-					//Initate the Async SSL Handshake scheduling from this thread (ie cxQueue) to rxQueue and txQueue threads
+					//Initate the Proxy Handshake scheduling from this thread (ie cxQueue) to rxQueue and txQueue threads
 					if ((status = CTProxyHandshake(conn)) != 0)
 					{
 						fprintf(stderr, "CTConnection::CTConnectThread::CTSSLRoutine failed with error: %d\n", (int)status);
@@ -2125,18 +2124,15 @@ unsigned long __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 	CTOverlappedResponse* overlappedResponse = NULL;
 
 	unsigned long NumBytesRecv = 0;
-
 	unsigned long NumBytesRemaining = 0;
 	char* extraBuffer = NULL;
 
 	unsigned long PrevBytesRecvd = 0;
-	//unsigned long TotalBytesToDecrypt = 0;
-	//unsigned long NumBytesRecvMore = 0;
 	unsigned long extraBufferOffset = 0;
+
 	CTSSLStatus scRet = 0;
 	CTClientError ctError = CTSuccess;
 
-	//HANDLE hCompletionPort = (HANDLE)lpParameter;
 	CTKernelQueueType hCompletionPort = *(CTKernelQueueType*)lpParameter;
 
 	unsigned long cBufferSize = ct_system_allocation_granularity();
@@ -2426,7 +2422,7 @@ unsigned long __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 								//break;
 							}
 
-							else if( nextCursor )
+							else if (nextCursor)
 							{
 								fprintf(stderr, "CT_Deque_Recv_Decrypt::CT_OVERLAPPED_RECV::Scrotum\n");
 
@@ -2490,7 +2486,7 @@ unsigned long __stdcall CT_Dequeue_Recv_Decrypt(LPVOID lpParameter)
 						//NumBytesRemaining = 0;
 						break;
 					}
-					continue;
+					//continue;
 				}
 			}
 

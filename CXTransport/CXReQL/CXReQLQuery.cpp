@@ -583,7 +583,7 @@ ReqlDriverError CXReQLQuery::CXReQLSendWithQueue(CTConnection* conn, void * msg,
 	//Post the overlapped object message asynchronously to the socket transmit thread queue using Win32 Overlapped IO and IOCP
 	if (!PostQueuedCompletionStatus(conn->socketContext.txQueue, *msgLength, dwCompletionKey, &(overlappedQuery->Overlapped)))
 	{
-		fprintf(stderr, "\nCXReQLSendWithQueue::PostQueuedCompletionStatus failed with error:  %d\n", GetLastError());
+		fprintf(stderr, "\nCXReQLSendWithQueue::PostQueuedCompletionStatus failed with error:  %ld\n", GetLastError());
 		return (ReqlDriverError)GetLastError();
 	}
 
@@ -620,7 +620,7 @@ uint64_t CXReQLQuery::RunQueryWithCursorOnQueue(std::shared_ptr<CXCursor> cxCurs
 {
 
 	//a string/stream for serializing the json query to char*	
-	unsigned long queryHeaderLength, queryMessageLength;
+	unsigned long queryMessageLength;
 	int32_t queryStrLength;
 
 	//serialize the query array to string
