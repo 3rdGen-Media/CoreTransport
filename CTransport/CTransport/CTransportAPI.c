@@ -4361,8 +4361,8 @@ coroutine int CTTargetResolveHost(CTTarget* target, CTConnectionClosure callback
 
 	//Launch asynchronous query using modified version of Sustrik's libdill DNS implementation
 	//struct dill_ipaddr addr[1];
-	struct dns_addrinfo* ai = NULL;
-	if (dill_ipaddr_dns_query_ai(&ai, (struct dill_ipaddr *)&(target->url.addr), 1, target_host, target_port, ip_version == AF_INET6 ? DILL_IPADDR_IPV6 : DILL_IPADDR_IPV4, target->dns.resconf, target->dns.nssconf) != 0 || ai == NULL)
+	//struct dns_addrinfo* ai = NULL;
+	if (dill_ipaddr_dns_query_ai(&(target->dns.ai), (struct dill_ipaddr *)&(target->url.addr), 1, target_host, target_port, ip_version == AF_INET6 ? DILL_IPADDR_IPV6 : DILL_IPADDR_IPV4, target->dns.resconf, target->dns.nssconf) != 0 || target->dns.ai == NULL)
 	{
 		fprintf(stderr, "target->dns.resconf = %s", target->dns.resconf);
 		fprintf(stderr, "dill_ipaddr_dns_query_ai failed with errno:  %d", errno);
@@ -4373,7 +4373,7 @@ coroutine int CTTargetResolveHost(CTTarget* target, CTConnectionClosure callback
 
 	if (target->cxQueue)
 	{
-		target->ctx = ai; //This might be a problem later!!!!!!
+		//target->ctx = ai; //This might be a problem later!!!!!!
 		
 		//TO DO: figure out how to maintain using the same cursor for the connection DNS resolve and TLS handshake...
 		CTCursor* DNSResolveCursor = CTGetNextPoolCursor();
@@ -4408,7 +4408,7 @@ coroutine int CTTargetResolveHost(CTTarget* target, CTConnectionClosure callback
 		yield();
 
 		int numResolvedAddresses = 0;
-		if ((numResolvedAddresses = dill_ipaddr_dns_query_wait_ai(ai, (struct dill_ipaddr *)&(target->url.addr), 1, target_port, ip_version == AF_INET6 ? DILL_IPADDR_IPV6 : DILL_IPADDR_IPV4, -1)) < 1)
+		if ((numResolvedAddresses = dill_ipaddr_dns_query_wait_ai(target->dns.ai, (struct dill_ipaddr *)&(target->url.addr), 1, target_port, ip_version == AF_INET6 ? DILL_IPADDR_IPV6 : DILL_IPADDR_IPV4, -1)) < 1)
 		{
 			fprintf(stderr, "dill_ipaddr_dns_query_wait_ai failed to resolve any IPV4 addresses!");
 			CTError err = { CTDriverErrorClass, CTDNSError, NULL };

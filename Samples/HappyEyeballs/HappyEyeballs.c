@@ -1,4 +1,3 @@
-
 //#ifndef __BLOCKS__
 //#error must be compiled with -fblocks option enabled
 //#endif
@@ -112,7 +111,7 @@ CTCursor _reqlCursor;
 
 //Define a CTransport API CTTarget C style struct to initiate an HTTPS connection with a CTransport API CTConnection
 static const char* 			http_server  = "3rdgen-sandbox-html-resources.s3.us-west-1.amazonaws.com";//"example.com";// "vtransport - assets.s3.us - west - 1.amazonaws.com";//"example.com";//"mineralism.s3 - us - west - 2.amazonaws.com";
-static const unsigned short	http_port	 = 80;
+static const unsigned short	http_port	 = 443;
 
 //Proxies use a prefix to specify the proxy protocol, defaulting to HTTP Proxy
 static const char*			proxy_server = "http://172.20.10.1";//"54.241.100.168";
@@ -338,13 +337,11 @@ CTConnectionClosure _httpConnectionClosure = ^int(CTError * err, CTConnection * 
 	
 	fprintf(stderr, "HTTP Connection Success\n");
 	
-	//for(i=0; i<30; i++)
-	//	sendHTTPRequest(&_httpCursor[httpRequestCount % CT_MAX_INFLIGHT_CURSORS]);
+	for(i=0; i<30; i++)
+		sendHTTPRequest(&_httpCursor[httpRequestCount % CT_MAX_INFLIGHT_CURSORS]);
 
 	return err->id;
 };
-
-
 
 char* reqlHeaderLengthCallback(struct CTCursor* cursor, char* buffer, unsigned long length)
 {
@@ -363,10 +360,9 @@ char* reqlHeaderLengthCallback(struct CTCursor* cursor, char* buffer, unsigned l
 	return endOfHeader;
 }
 
-
 CTCursorCompletionClosure reqlResponseClosure = ^void(CTError * err, CTCursor * cursor)
 {
-	printf("reqlCompletionCallback body:  \n\n%.*s\n\n", cursor->contentLength, cursor->file.buffer);
+	printf("reqlCompletionCallback body:  \n\n%.*s\n\n", (int)cursor->contentLength, cursor->file.buffer);
 	//fprintf(stderr, "reqlResponseClosure (%d) header:  \n\n%.*s\n\n", (int)cursor->queryToken, (int)cursor->headerLength, cursor->requestBuffer);
 	CTCursorCloseMappingWithSize(cursor, cursor->contentLength); //overlappedResponse->buf - cursor->file.buffer);
 	CTCursorCloseFile(cursor);
@@ -562,9 +558,9 @@ void SystemKeyboardEventLoop()
 
 		memset(&key, 0, sizeof(KEY_EVENT_RECORD));
 		getconchar(&key);
-		if (key.uChar.AsciiChar == 's')
+		if (key.uChar.AsciiChar == 'g')
 			sendHTTPRequest(&_httpCursor[httpRequestCount % CT_MAX_INFLIGHT_CURSORS]);
-		if (key.uChar.AsciiChar == 'r')
+		else if (key.uChar.AsciiChar == 'r')
 			sendReqlQuery(CTGetNextPoolCursor());// &_httpCursor[httpRequestCount % CT_MAX_INFLIGHT_CURSORS]);
 		else if (key.uChar.AsciiChar == 'y')
 			yield();
@@ -621,20 +617,18 @@ int main(void) {
 		//TO DO:  check thread failure
 	}
     
-	CTKernelQueue emptyQueue = {0};
 	//Define https connection target
 	httpTarget.url.host = (char*)http_server;
 	httpTarget.url.port = http_port;
 	//httpTarget.proxy.host = (char*)proxy_server;
 	//httpTarget.proxy.port = proxy_port;
 	httpTarget.ssl.ca = NULL;//(char*)caPath;
-	httpTarget.ssl.method = CTSSL_NONE;//CTSSL_TLS_1_2;
+	httpTarget.ssl.method = CTSSL_TLS_1_2;
 	httpTarget.dns.resconf = (char*)resolvConfPath;
 	httpTarget.dns.nssconf = (char*)nsswitchConfPath;
 	httpTarget.cq = cq;
 	httpTarget.tq = tq;
 	httpTarget.rq = rq;
-
 
 	//Define RethinkDB service connection target
 	//We are doing SCRAM authentication over TLS required by RethinkDB

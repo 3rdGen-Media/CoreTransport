@@ -68,7 +68,7 @@ void CXConnection::distributeResponseWithCursorForToken(uint64_t requestToken)
 			callback( NULL, cxCursor);
 			//removeRequestCallbackForKey(requestToken);  this used to be here, but if we want to be able to delete the connection from the callback...
 
-			fprintf(stderr, "CXConnection::Removed Cursor (%llu)\n", requestToken);
+			fprintf(stderr, "CXConnection::Removed Cursor (%lu)\n", requestToken);
 
 		}
 		else
@@ -87,6 +87,7 @@ void CXConnection::distributeResponseWithCursorForToken(uint64_t requestToken)
 
 
 /*****************************************************************************/
+/*
 static void PrintText(DWORD length, PBYTE buffer) // handle unprintable charaters
 {
 	int i; //
@@ -103,6 +104,7 @@ static void PrintText(DWORD length, PBYTE buffer) // handle unprintable charater
 	}
 	fprintf(stderr, "\n\n");
 }
+*/
 
 /*
 std::shared_ptr<CXCursor> CXConnection::createRequestCursor(uint64_t queryToken)

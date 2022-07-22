@@ -10,6 +10,8 @@
 **
 ***/
 
+#ifdef _WIN32
+
 //cr_display_sync is part of Core Render crPlatform library
 #ifdef _DEBUG
 #include <vld.h>                //Visual Leak Detector
@@ -18,20 +20,83 @@
 #include "stdio.h"
 #include "stdlib.h"
 #include <process.h>            //threading routines for the CRT
+#include "assert.h"
 
-//ctReQL can be optionally built with native SSL encryption
-//or against MBEDTLS
-#ifndef CTRANSPORT_USE_MBED_TLS
 #pragma comment(lib, "crypt32.lib")
 #pragma comment(lib, "secur32.lib")
+
 #else
-// mbded tls
-#include "mbedtls/net.h"
-#include "mbedtls/ssl.h"
-#include "mbedtls/entropy.h"
-#include "mbedtls/ctr_drbg.h"
-#include "mbedtls/debug.h"
+
+#include <Block.h>
+#include <sys/thr.h>//FreeBSD threads
+#include <pthread.h>//Unix pthreads
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+
 #endif
+
+//Keyboard Event Loop Includes and Definitions (TO DO: Move this to its own header file)
+#ifndef _WIN32
+//#include <stdlib.h>
+//#include <string.h>
+#include <unistd.h>
+#include <sys/select.h>
+#include <termios.h>
+
+ #include <limits.h>
+#include <stdlib.h>
+#include <wchar.h>
+#include <stdbool.h>
+#include <string.h>
+//#include "../../Git/libdispatch/dispatch/dispatch.h"
+
+#include "/usr/include/sys/thr.h"
+
+struct termios orig_termios;
+typedef struct KEY_EVENT_RECORD
+{
+	bool bKeyDown;
+	unsigned short wRepeatCount;
+	unsigned short wVirtualKeyCode;
+	unsigned short wVirtualScanCode;
+	union {
+		wchar_t UnicodeChar;
+		char   AsciiChar;
+	} uChar;
+	unsigned long dwControlKeyState;
+}KEY_EVENT_RECORD;
+
+void reset_terminal_mode()
+{
+	tcsetattr(0, TCSANOW, &orig_termios);
+}
+
+void set_conio_terminal_mode()
+{
+	struct termios new_termios;
+
+	/* take two copies - one for now, one for later */
+	tcgetattr(0, &orig_termios);
+	memcpy(&new_termios, &orig_termios, sizeof(new_termios));
+
+	/* register cleanup handler, and set the new terminal mode */
+	atexit(reset_terminal_mode);
+	cfmakeraw(&new_termios);
+	tcsetattr(0, TCSANOW, &new_termios);
+}
+
+int kbhit()
+{
+	struct timeval tv = { 0L, 0L };
+	fd_set fds;
+	FD_ZERO(&fds);
+	FD_SET(0, &fds);
+	return select(1, &fds, NULL, NULL, &tv) > 0;
+}
+
+#endif //ifndef _WIN32
 
 //CoreTransport CXURL and CXReQL C++ APIs use CTransport (CTConnection) API internally
 #include <CoreTransport/CXURL.h>
@@ -84,38 +149,18 @@ using namespace CoreTransport;
 CXConnection * _httpCXConn;
 CXConnection * _reqlCXConn;
 
-/*
-void SendReqlQuery()
-{
-	//Send the ReQL Query to find some URLs to download
-	//Demonstrate issue of query and callback lambda using CXReQL API
-	auto queryCallback = [&] (ReqlError * error, std::shared_ptr<CXCursor> &cxCursor) {
-
-		//The cursor's file mapping was closed so the file could be truncated to the size read from network, 
-		//but the curor's file handle itself is still open/valid, so we just need to remap the cursor's file for reading
-		CTCursorMapFileR(cxCursor->_cursor);
-		printf("Lambda callback response: %.*s\n", cxCursor->_cursor->file.size, (char*)(cxCursor->_cursor->file.buffer) + sizeof(ReqlQueryMessageHeader)); return;  
-	};	
-	CXReQL.db("MastryDB").table("Paintings").run(_reqlCXConn, NULL, queryCallback);
-}
-*/
-
-
-/*
 void LoadGameStateQuery()
 {
 	//Send the ReQL Query to find some URLs to download
 	//Demonstrate issue of query and callback lambda using CXReQL API
-	auto queryCallback = [&](ReqlError* error, std::shared_ptr<CXCursor>& cxCursor) {
+	auto queryCallback = [&] (CTError * error, std::shared_ptr<CXCursor> cxCursor) {
 
-		//CTCursorCloseMappingWithSize(&(cxCursor->_cursor), cxCursor->_cursor.contentLength); //overlappedResponse->buf - cursor->file.buffer);
 		printf("LoadGameState response:  \n\n%.*s\n\n", cxCursor->_cursor->contentLength, cxCursor->_cursor->file.buffer);
-		//CTCursorCloseFile(&(cxCursor->_cursor));
+		CTCursorCloseMappingWithSize(cxCursor->_cursor, cxCursor->_cursor->contentLength); //overlappedResponse->buf - cursor->file.buffer);
+		CTCursorCloseFile(cxCursor->_cursor);
 	};
 	CXReQL.db("GameState").table("Scene").get("BasicCharacterTest").run(_reqlCXConn, NULL, queryCallback);
 }
-*/
-
 
 static int httpsRequestCount = 0;
 void SendHTTPRequest()
@@ -176,7 +221,6 @@ void SendHTTPRequest()
 	
 }
 
-
 int _cxURLConnectionClosure(CTError* err, CXConnection* conn) {
 	//CXConnectionClosure _cxURLConnectionClosure = ^ int(CTError * err, CXConnection * conn) {
 	if (err->id == CTSuccess && conn)
@@ -187,21 +231,28 @@ int _cxURLConnectionClosure(CTError* err, CXConnection* conn) {
 
 	fprintf(stderr, "HTTP Connection Success\n");
 
-	for (int i = 0; i < 30; i++)
-		SendHTTPRequest();
+	//for (int i = 0; i < 30; i++)
+	//	SendHTTPRequest();
 
 	return err->id;
 };
 
-int _cxReQLConnectionClosure(ReqlError* err, CXConnection* conn) {
+int _cxReQLConnectionClosure(CTError* err, CXConnection* conn) {
 	//CTConnectionClosure _cxReQLConnectionClosure = ^ int(CTError * err, CTConnection * conn) {
 
-	if (err->id == CTSuccess && conn) { _reqlCXConn = conn; }
-	else {} //process errors	
+	if (err->id == CTSuccess && conn)
+	{
+		_reqlCXConn = conn;
+	}
+	else { assert(1 == 0); } //process errors
+
+	fprintf(stderr, "ReQL Connection Success\n");
+
+	//for (int i = 0; i < 30; i++)
+	//	SendHTTPRequest();
+
 	return err->id;
 };
-
-
 
 //Define crossplatform keyboard event loop handler
 bool getconchar(KEY_EVENT_RECORD* krec)
@@ -212,11 +263,7 @@ bool getconchar(KEY_EVENT_RECORD* krec)
 	KEY_EVENT_RECORD* eventRecPtr;
 
 	HANDLE h = GetStdHandle(STD_INPUT_HANDLE);
-
-	if (h == NULL)
-	{
-		return false; // console not found
-	}
+	if (h == NULL) return false; // console not found
 
 	for (;;)
 	{
@@ -237,23 +284,16 @@ bool getconchar(KEY_EVENT_RECORD* krec)
 		unsigned char c;
 
 		//printf("\nkbhit!\n");
-
 		if ((r = read(0, &c, sizeof(c))) == 1) {
-			krec.uChar.AsciiChar = c;
+			krec->uChar.AsciiChar = c;
 			return true;
 		}
 	}
 	//else	
 	//	printf("\n!kbhit\n");
-
-
 #endif
 	return false; //future ????
 }
-
-static const char* user_email = "joe@third-gen.com";
-static const char* user_password = "this_is_a_password$";
-static const char* user_name = "3rdGenJoe";
 
 
 void SystemKeyboardEventLoop()
@@ -275,15 +315,14 @@ void SystemKeyboardEventLoop()
 
 		//if (key.uChar.AsciiChar == 's')
 		//	StartTransientsChangefeedUpdate();
+		//CreateUserQuery(user_email, user_name, user_password, _reqlCXConn);
+
 		if (key.uChar.AsciiChar == 'g')
-		//	LoadGameStateQuery();
 			SendHTTPRequest();
-		//if (key.uChar.AsciiChar == 'i')
-		//	SaveGameStateQuery();
-		//if (key.uChar.AsciiChar == 'u')
-		//	SendTLSUpgradeRequest();
-			
-			//CreateUserQuery(user_email, user_name, user_password, _reqlCXConn);
+		else if (key.uChar.AsciiChar == 'r')		
+			LoadGameStateQuery();		
+		else if (key.uChar.AsciiChar == 'y')
+			yield();			`
 		else if (key.uChar.AsciiChar == 'q')
 			break;
 
@@ -297,7 +336,6 @@ CTConnection HAPPYEYEBALLS_CONNECTION_POOL[HAPPYEYEBALLS_MAX_INFLIGHT_CONNECTION
 
 #define CT_MAX_INFLIGHT_CURSORS 1024
 CTCursor _httpCursor[CT_MAX_INFLIGHT_CURSORS];
-//CTCursor _reqlCursor;
 
 int main(int argc, char **argv) 
 {	
@@ -371,7 +409,7 @@ int main(int argc, char **argv)
 	//reqlService.proxy.port = proxy_port;
 	reqlService.user = (char*)rdb_user;
 	reqlService.password = (char*)rdb_pass;
-	reqlService.ssl.ca = (char*)caPath;
+	reqlService.ssl.ca = NULL;//(char*)caPath;
 	reqlService.ssl.method = CTSSL_TLS_1_2;
 	reqlService.dns.resconf = (char*)resolvConfPath;
 	reqlService.dns.nssconf = (char*)nsswitchConfPath;
@@ -380,10 +418,10 @@ int main(int argc, char **argv)
 	reqlService.rq = rq;
 
 	//Use CXTransport CXURL C++ API to connect to our HTTPS target server
-	CXURL.connect(&httpTarget, _cxURLConnectionClosure);
+	//coroutine_bundle = CXURL.connect(&httpTarget, _cxURLConnectionClosure);
 
 	//User CXTransport CXReQL C++ API to connect to our RethinkDB service
-	//CXReQL.connect(&reqlService, _cxReQLConnectionClosure);
+	coroutine_bundle = CXReQL.connect(&reqlService, _cxReQLConnectionClosure);
 
 	//Keep the app running using platform defined run loop
 	SystemKeyboardEventLoop();
@@ -392,8 +430,8 @@ int main(int argc, char **argv)
 
 	//Deleting CXConnection objects will
 	//Clean up socket connections
-	delete _httpCXConn;
-	//delete _reqlCXConn;	
+	//delete _httpCXConn;
+	delete _reqlCXConn;	
 	
 	//Clean  Up Auth Memory
 	ca_scram_cleanup();

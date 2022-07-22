@@ -61,11 +61,10 @@ namespace CoreTransport
 			void doNothing() { return; }
 
 			template<typename CXConnectionClosure>
-			void connect(CTTarget* target, CXConnectionClosure callback)
+			int connect(CTTarget* target, CXConnectionClosure callback)
 			{
 				CXURLSession* sharedSession = sharedSession->getInstance();
-				sharedSession->connect(target, callback);
-				//return CXReQLInterfaceSession.connect;
+				return sharedSession->connect(target, callback);
 			}
 
 

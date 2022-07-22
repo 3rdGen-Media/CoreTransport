@@ -35,9 +35,9 @@ file(MAKE_DIRECTORY ./include/CoreTransport)
 file(MAKE_DIRECTORY ./include/CoreTransport/CAuth)
 file(MAKE_DIRECTORY ./include/CoreTransport/protobuf)
 file(MAKE_DIRECTORY ./include/CoreTransport/CTransport)
-#file(MAKE_DIRECTORY ./include/CoreTransport/CXTransport)
-#file(MAKE_DIRECTORY ./include/CoreTransport/CXURL)
-#file(MAKE_DIRECTORY ./include/CoreTransport/CXReQL)
+file(MAKE_DIRECTORY ./include/CoreTransport/CXTransport)
+file(MAKE_DIRECTORY ./include/CoreTransport/CXURL)
+file(MAKE_DIRECTORY ./include/CoreTransport/CXReQL)
 
 IF(CMAKE_BUILD_TYPE MATCHES Debug)
   message("Debug build.")
@@ -66,7 +66,7 @@ add_subdirectory (CAuth)
 
 #recurse into CTransport directory to build
 add_subdirectory (CTransport)
-#add_subdirectory (CXTransport)
+add_subdirectory (CXTransport)
 add_subdirectory (Samples/HappyEyeballs)
 
 if ( CTRANSPORT_WOLFSSL )
@@ -75,6 +75,11 @@ target_include_directories (CTransport PUBLIC /usr/local/include)
 #target_link_libraries (CTransport PUBLIC /home/jmoulton/3rdGen/3rdParty/wolfssl-5.1.1/build/libwolfssld.a)
 target_link_libraries (HappyEyeballs PUBLIC /usr/local/lib/libwolfssl.a)
 target_link_libraries (CTransport PUBLIC /usr/lib/libm.a)
+
+target_include_directories (CXTransport PUBLIC /usr/local/include)
+target_link_libraries (CXTransport PUBLIC /usr/local/lib/libwolfssl.a)
+target_link_libraries (CXTransport PUBLIC /usr/lib/libm.a)
+
 target_include_directories (HappyEyeballs PUBLIC /usr/local/include)
 #target_include_directories (HappyEyeballs PUBLIC /home/jmoulton/3rdGen/3rdParty/wolfssl-5.1.1/wolfssl)
 #target_link_libraries (HappyEyeballs PUBLIC /home/jmoulton/3rdGen/3rdParty/wolfssl-5.1.1/build/libwolfssld.a)

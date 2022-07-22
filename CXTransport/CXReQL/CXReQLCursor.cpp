@@ -14,6 +14,7 @@ char * CXReQLCursor::ProcessResponseHeader(CTCursor * cursor, char * buffer, uns
 	if (recv_token != cursor_token)
 	{
 		//try to find the cursor we actually need for this response on the current thread's queue
+#ifdef _WIN32
 		MSG targetCursorMsg = { 0 };
 		if (PeekMessage(&targetCursorMsg, NULL, WM_USER + recv_token, WM_USER + recv_token, PM_REMOVE)) //(nextCursor)
 		{
@@ -61,7 +62,9 @@ char * CXReQLCursor::ProcessResponseHeader(CTCursor * cursor, char * buffer, uns
 			fprintf(stderr, "CXReQLCursor::ProcessResponseHeader::Swap Removed (%llu) and Reinserted (%llu)", recv_token, cursor_token);
 
 		}
-		else assert(1 == 0); //could not find the cursor we need on the current thread's queue
+		else
+#endif
+		assert(1 == 0); //could not find the cursor we need on the current thread's queue
 
 	}
 	

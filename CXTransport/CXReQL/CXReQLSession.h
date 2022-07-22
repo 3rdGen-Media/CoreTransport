@@ -76,67 +76,71 @@ namespace CoreTransport
 
 
 		//template<typename CXConnectionClosure>
-		CTConnectionClosure _CXReQLSessionHandshakeCallback = ^ int(CTError * err, ReqlConnection * conn)
+		
+
+#ifdef __clang__
+		CTConnectionClosure _CXReQLSessionConnectionCallback = ^int(CTError * err, CTConnection * conn) {
+#else
+		static int _CXReQLSessionConnectionCallback(CTError * err, CTConnection * conn) {
+#endif
+			//conn should always exist, so it can contain the input CTTarget pointer
+			//which contains the client context
+			assert(conn);
+
+			CTConnectionClosure _CXReQLSessionHandshakeCallback = ^ int(CTError * err, ReqlConnection * conn)
 			//static int _CXReQLSessionHandshakeCallback(CTError* err, ReqlConnection* conn)
-		{
-			//conn should always exist, so it can contain the input CTTarget pointer
-			//which contains the client context
-			assert(conn);
-
-			//Return variables
-			CXConnectionClosureFunc callback;
-			CXConnection* cxConnection = NULL;
-
-			//Retrieve CXReQLSession caller object from ReQLService input client context property
-			CXReQLSession* cxReQLSession = (CXReQLSession*)(conn->target->ctx);
-
-			//Parse any errors
-			if (err->id != CTSuccess)
 			{
-				//The handshake failed
-				//parse the Error and bail out
-				fprintf(stderr, "_CXReQLSessionHandshakeCallback::CTReQLAsyncLHandshake failed!\n");
-				err->id = CTSASLHandshakeError;
-				assert(1 == 0);
+				//conn should always exist, so it can contain the input CTTarget pointer
+				//which contains the client context
+				assert(conn);
 
-			}
-			else //Handle successfull connection!!!
-			{
-				//For WIN32 each CTConnection gets its own pair of tx/rx iocp queues internal to the ReQL C API (but the client must assign thread(s) to these)
-				//For Darwin + GCD, these queue handles are currently owned by NSReQLSession and still need to be moved into ReQLConnection->socketContext	
-				//*Note:  On platforms where the SSL Context is not thread safe, such as Darwin w/ SecureTransport, we need to manually specify the same [GCD] thread queue for send and receive
-				//because the SSL Context API (SecureTransport) is not thread safe when reading and writing simultaneously
+				//Return variables
+				CXConnectionClosureFunc callback;
+				CXConnection* cxConnection = NULL;
 
-				//Wrap the CTConnection in a C++ CXConnection Object
-				//A CXConnection gets created with a CTConnection (socket + ssl context) and a dedicated thread queue for reading from the connection's socket
-				cxConnection = new CXConnection(conn, conn->socketContext.rxQueue, conn->socketContext.txQueue);
+				//Retrieve CXReQLSession caller object from ReQLService input client context property
+				CXReQLSession* cxReQLSession = (CXReQLSession*)(conn->target->ctx);
 
-				//  Store CXConnection in internal NXReQLSession connections array/map/hash or whatever
-				if (cxConnection) cxReQLSession->addConnection(conn->target, cxConnection);
-				//  Add to error connections for retry?
-			}
+				//Parse any errors
+				if (err->id != CTSuccess)
+				{
+					//The handshake failed
+					//parse the Error and bail out
+					fprintf(stderr, "_CXReQLSessionHandshakeCallback::CTReQLAsyncLHandshake failed!\n");
+					err->id = CTSASLHandshakeError;
+					assert(1 == 0);
 
-			//retrieve the client connection callback and target ctx (replace target context on target)
-			std::pair<CXConnectionClosureFunc, void*> targetCallbackContext = cxReQLSession->pendingConnectionForKey(conn->target);
-			callback = targetCallbackContext.first;
-			conn->target->ctx = targetCallbackContext.second;
+				}
+				else //Handle successfull connection!!!
+				{
+					//For WIN32 each CTConnection gets its own pair of tx/rx iocp queues internal to the ReQL C API (but the client must assign thread(s) to these)
+					//For Darwin + GCD, these queue handles are currently owned by NSReQLSession and still need to be moved into ReQLConnection->socketContext	
+					//*Note:  On platforms where the SSL Context is not thread safe, such as Darwin w/ SecureTransport, we need to manually specify the same [GCD] thread queue for send and receive
+					//because the SSL Context API (SecureTransport) is not thread safe when reading and writing simultaneously
 
-			//  Always remove pending connections
-			cxReQLSession->removePendingConnection(conn->target);
+					//Wrap the CTConnection in a C++ CXConnection Object
+					//A CXConnection gets created with a CTConnection (socket + ssl context) and a dedicated thread queue for reading from the connection's socket
+					cxConnection = new CXConnection(conn, conn->socketContext.rxQueue, conn->socketContext.txQueue);
 
-			//issue the client callback
-			callback(err, cxConnection);
+					//  Store CXConnection in internal NXReQLSession connections array/map/hash or whatever
+					if (cxConnection) cxReQLSession->addConnection(conn->target, cxConnection);
+					//  Add to error connections for retry?
+				}
 
-			return err->id;
+				//retrieve the client connection callback and target ctx (replace target context on target)
+				std::pair<CXConnectionClosureFunc, void*> targetCallbackContext = cxReQLSession->pendingConnectionForKey(conn->target);
+				callback = targetCallbackContext.first;
+				conn->target->ctx = targetCallbackContext.second;
 
-		};
+				//  Always remove pending connections
+				cxReQLSession->removePendingConnection(conn->target);
 
-		CTConnectionClosure _CXReQLSessionConnectionCallback = ^int(CTError * err, ReqlConnection * conn)
-			//static int _CXReQLSessionConnectionCallback(CTError* err, CTConnection* conn)
-		{
-			//conn should always exist, so it can contain the input CTTarget pointer
-			//which contains the client context
-			assert(conn);
+				//issue the client callback
+				callback(err, cxConnection);
+
+				return err->id;
+
+			};
 
 			int status = CTSuccess;
 
@@ -157,9 +161,19 @@ namespace CoreTransport
 			}
 			else //Handle successfull connection!!!
 			{
+				
+				if (!conn->socketContext.txQueue)
+				{
+					assert(1 == 0);
+				}
+
+				assert(conn->socketContext.rxQueue);
+				assert(conn->socketContext.txQueue);
+				
+				
 				//Do the CTransport C-Style ReQL Handshake 
 				// Complete the RethinkDB 2.3+ connection: Perform RethinkDB ReQL SASL Layer Auth Handshake (using SCRAM HMAC SHA-256 Auth) over TCP
-				if (conn->target->cxQueue)//&& ((status = CTReQLAsyncHandshake(conn, conn->target, _CXReQLSessionHandshakeCallback)) != CTSuccess))
+				if (1)
 				{
 					if ((status = CTReQLAsyncHandshake(conn, conn->target, _CXReQLSessionHandshakeCallback)) != CTSuccess)
 						assert(1 == 0);
@@ -175,10 +189,11 @@ namespace CoreTransport
 
 					//Wrap the CTConnection in a C++ CXConnection Object
 					//A CXConnection gets created with a CTConnection (socket + ssl context) and a dedicated thread queue for reading from the connection's socket
-					cxConnection = new CXConnection(conn, conn->socketContext.rxQueue, conn->socketContext.txQueue);
+					//cxConnection = new CXConnection(conn, conn->socketContext.rxQueue, conn->socketContext.txQueue);
 
 					//  Store CXConnection in internal NXReQLSession connections array/map/hash or whatever
-					if (cxConnection) cxReQLSession->addConnection(conn->target, cxConnection);
+					//if (cxConnection) cxReQLSession->addConnection(conn->target, cxConnection);
+					
 					//  Add to error connections for retry?
 
 				}
@@ -190,8 +205,14 @@ namespace CoreTransport
 					err->id = CTSASLHandshakeError;
 					assert(1 == 0);
 				}
+				
 
+				//Wrap the CTConnection in a C++ CXConnection Object
+				//A CXConnection gets created with a CTConnection (socket + ssl context) and a dedicated thread queue for reading from the connection's socket
+				cxConnection = new CXConnection(conn, conn->socketContext.rxQueue, conn->socketContext.txQueue);
 
+				//  Store CXConnection in internal NXReQLSession connections array/map/hash or whatever
+				if (cxConnection) cxReQLSession->addConnection(conn->target, cxConnection);
 
 			}
 
@@ -211,21 +232,21 @@ namespace CoreTransport
 
 
 		template<typename CXConnectionClosure>
-		void connect(ReqlService* service, CXConnectionClosure callback)
+		int connect(CTTarget* target, CXConnectionClosure callback)
 		{
-#ifdef _WIN32
 			//Create a connection key for caching the connection and add to hash as a pending connection
 
 			//convert port short to c string
 			char port[6];
-			_itoa((int)service->url.port, port, 10);
+			//_itoa((int)service->url.port, port, 10);
+			snprintf(port, 6, "%d", (int)target->url.port);
 
 			//hijack the input target ctx variable
-			void* clientCtx = service->ctx;
-			service->ctx = this;
+			void* clientCtx = target->ctx;
+			target->ctx = this;
 
 			//create connection key
-			std::string connectionKey(service->url.host);
+			std::string connectionKey(target->url.host);
 			connectionKey.append(":");
 			connectionKey.append(port);
 
@@ -234,17 +255,10 @@ namespace CoreTransport
 
 			//Add target to map of pending connections
 			std::function< void(CTError* err, CXConnection* conn) > callbackFunc = callback;
-			addPendingConnection(service, std::make_pair(callbackFunc, clientCtx));
+			addPendingConnection(target, std::make_pair(callbackFunc, clientCtx));
 
-
-			//Issue the connection using CTC API 
-			CTransport.connect(service, _CXReQLSessionConnectionCallback);
-
-#elif defined(__APPLE__ )
-
-
-#endif
-			return;
+			//Issue the connection using CTransport C API 
+			return CTransport.connect(target, _CXReQLSessionConnectionCallback);
 		}
 	};
 

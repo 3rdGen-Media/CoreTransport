@@ -84,19 +84,12 @@ static unsigned long					CX_RESPONSE_BUFF_SIZE  = 0;	//Response buffer size will
 		//protected:
 
 			CTConnection* connection() { return &_conn; };
-						HANDLE			_hFile;
-						HANDLE			_mFile;
-						char *			_mFilePtr;
-						off_t			_mFileSize;
 
 	private:
 			CTConnection	_conn;
 			//void reserveConnectionMemory();
-			CTDispatchSource startConnectionThreadQueues(CTKernelQueueType rxQueue, CTKernelQueueType txQueue);
-			//unsigned long __stdcall EncryptQueryCallback(LPVOID lpParameter);
-			//unsigned long __stdcall DecryptResponseCallback(LPVOID lpParameter);
-
-
+			//CTDispatchSource startConnectionThreadQueues(CTKernelQueueType rxQueue, CTKernelQueueType txQueue);
+			
 			CTKernelQueueType _rxQueue, _txQueue;
 			//dispatch_source_t _source;
 

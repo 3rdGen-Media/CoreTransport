@@ -152,14 +152,14 @@ namespace CoreTransport
 		};
 
 		template<typename CXConnectionClosure>
-		void connect(CTTarget* target, CXConnectionClosure callback)
+		int connect(CTTarget* target, CXConnectionClosure callback)
 		{
-#ifdef _WIN32
 			//Create a connection key for caching the connection and add to hash as a pending connection
 
 			//convert port short to c string
 			char port[6];
-			_itoa((int)target->url.port, port, 10);
+			//_itoa((int)target->url.port, port, 10);
+			snprintf(port, 6, "%d", (int)target->url.port);
 
 			//hijack the input target ctx variable
 			void* clientCtx = target->ctx;
@@ -177,15 +177,8 @@ namespace CoreTransport
 			std::function< void(CTError* err, CXConnection* conn) > callbackFunc = callback;
 			addPendingConnection(target, std::make_pair(callbackFunc, clientCtx));
 
-
-			//Issue the connection using CTC API 
-			CTransport.connect(target, _CXURLSessionConnectionCallback);
-
-#elif defined(__APPLE__ )
-
-
-#endif
-			return;
+			//Issue the connection using CTransport C API 
+			return CTransport.connect(target, _CXURLSessionConnectionCallback);
 		}
 
 	};

@@ -83,7 +83,9 @@ typedef struct CTRANSPORT_PACK_ATTRIBUTE CTDNS
     char * resconf;
     char * nssconf;
 #ifdef _WIN32
-	WORD wID;// = GetTickCount() % 65536;
+	WORD wID;
+#else
+	struct dns_addrinfo* ai; //libdill async dns resolve object
 #endif
 }CTDNS;
 

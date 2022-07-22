@@ -61,11 +61,10 @@ namespace CoreTransport
 			void doNothing() { return; }
 
 			template<typename CXConnectionClosure>
-			void connect(ReqlService* service, CXConnectionClosure callback)
+			int connect(CTTarget* target, CXConnectionClosure callback)
 			{
 				CXReQLSession* sharedSession = sharedSession->getInstance();
-				sharedSession->connect(service, callback);
-				//return CXReQLInterfaceSession.connect;
+				return sharedSession->connect(target, callback);
 			}
 
 			//REQL_DB
@@ -107,12 +106,13 @@ query->setQueryArgs(&dbQueryArgs);\
 static CXReQLInterface * cxReQL;
 #define CXReQL (*(cxReQL->getInstance()))
 */
+static CXReQLInterface * cxReQL;
+#define CXReQL (*(cxReQL->getInstance()))
 
+//static CXReQLInterface* cxReQL;
+//static inline CXReQLInterface& CXReQLSharedInterface() { return *(cxReQL->getInstance()); }
 
-static CXReQLInterface* cxReQL;
-static inline CXReQLInterface& CXReQLSharedInterface() { return *(cxReQL->getInstance()); }
-
-#define CXReQL CXReQLSharedInterface()
+//#define CXReQL CXReQLSharedInterface()
 	//#define connect(service, callback) asyncConnect(service, callback))
 	//#define connect(service, callback, options) asyncConnect(service, callback))
 	//#define db(name) dbQuery(name)

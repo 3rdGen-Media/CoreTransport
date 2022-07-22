@@ -187,7 +187,8 @@ namespace CoreTransport
 			{
 				char filepath[1024] = "C:\\3rdGen\\CoreTransport\\bin\\x64\\ReQL\0";
 
-				_itoa((int)expectedQueryToken, filepath + strlen(filepath), 10);
+				//_itoa((int)expectedQueryToken, filepath + strlen(filepath), 10);
+				snprintf(filepath + strlen(filepath), strlen(filepath), "%d", (int)expectedQueryToken);
 
 				strcat(filepath, ".txt");
 

@@ -9,7 +9,7 @@
 
 # Create a library called "Hello" which includes the source file "hello.cxx".
 # The extension is already found. Any number of sources could be listed here.
-add_executable (HappyEyeballs HappyEyeballs.c)
+add_executable (HappyEyeballs main.cpp)
 target_link_directories(HappyEyeballs PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../bin)
 #target_link_directories(HappyEyeballs PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../Git/libdispatch)
 
@@ -41,6 +41,9 @@ endif()
 
 #Link our executable with CTransport
 target_link_libraries (HappyEyeballs LINK_PUBLIC CTransport)
+
+#Link our executable with CXTransport
+target_link_libraries (HappyEyeballs LINK_PUBLIC CXTransport)
 
 #Link our executable with CAuth
 target_link_libraries (HappyEyeballs LINK_PUBLIC CAuth)
