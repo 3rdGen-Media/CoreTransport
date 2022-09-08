@@ -368,5 +368,5 @@ The general pattern for establishing and consuming from client connections using
 
 ####  Clean up the connection
 ```
-    _httpCXConn = NULL;
+   _httpCXConn = NULL;
 ```
