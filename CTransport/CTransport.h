@@ -60,6 +60,15 @@ extern "C" {
 #endif
 #endif
 
+/* We are building or calling CRPrimitives as a static library */
+#ifndef CTRANSPORT_EXTERN
+#ifdef _WIN32
+#define CTRANSPORT_EXTERN
+#else
+#define CTRANSPORT_EXTERN extern
+#endif
+#endif
+
 //inline doesn't exist in C89, __inline is MSVC specific
 #ifndef CTRANSPORT_INLINE
 #ifdef _WIN32
@@ -78,6 +87,9 @@ extern "C" {
 #endif
 #endif
 
+#ifdef __APPLE__
+#define CTRANSPORT_SANS_AIO
+#endif
 
 //#define Reql_printf(f_, ...) printf((f_), __VA_ARGS__)
 
@@ -105,6 +117,7 @@ extern "C" {
 #include "CTransport/CTQueue.h"
 
 //Exposed API and Protocols extensions
+#include "CTransport/CTPlatform.h" //Eventually CTThread/CTKernelQueue definitions from CTSocket should be moved to CTPlatform and CTPlatform should replace CTSystem
 #include "CTransport/CTReQL.h"
 #include "CTransport/CTransportAPI.h"
 

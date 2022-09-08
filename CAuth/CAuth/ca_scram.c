@@ -18,9 +18,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <malloc.h>
 #include "assert.h"
 
+#ifndef __APPLE__
+#include <malloc.h>
+#endif
 
 #ifdef _WIN32
 
@@ -232,7 +234,7 @@ void * cr_base64_to_utf8(const char *inputBuffer,size_t length,size_t *outputLen
 // returns the encoded buffer. Must be free'd by caller. Length is given by
 //    outputLength.
 //
-char *cr_utf8_to_base64(const void *buffer,size_t length,bool separateLines,size_t *outputLength)
+char *cr_utf8_to_base64(const void *buffer,size_t length, int separateLines,size_t *outputLength)
 {
 	char *outputBuffer;
 	size_t lineLength;
@@ -534,7 +536,7 @@ int cryptodev_sha256_hash(struct cryptodev_ctx* ctx, const void* text, size_t si
 }
 #endif
 
-void ca_scram_init_hmac_algorithm()
+void ca_scram_init_hmac_algorithm(void)
 {
 
 #if defined(_WIN32)
@@ -580,7 +582,7 @@ void ca_scram_init_hmac_algorithm()
 }
 
 
-void ca_scram_init_hash_algorithm()
+void ca_scram_init_hash_algorithm(void)
 {
 #if defined(_WIN32)
 	DWORD cbData = 0;
@@ -636,7 +638,7 @@ void ca_scram_init_hash_algorithm()
 #endif
 }
 
-void ca_scram_init_device()
+void ca_scram_init_device(void)
 {
 #ifdef __FreeBSD__
     /* Open the crypto device */
@@ -648,7 +650,7 @@ void ca_scram_init_device()
 #endif
 }
 
-void ca_scram_init()
+void ca_scram_init(void)
 {
     ca_scram_init_device();
 	//ca_scram_init_rng_algorithm();
@@ -656,7 +658,7 @@ void ca_scram_init()
 	ca_scram_init_hash_algorithm();
 }
 
-void ca_scram_cleanup()
+void ca_scram_cleanup(void)
 {
 	//TO DO:  Crypt API Cleanup
 #if defined(_WIN32)
@@ -751,7 +753,7 @@ OSStatus ca_scram_gen_rand_bytes(char * byteBuffer, size_t numBytes)
         //statuse= kcapi_rng_generate(rng, byteBuffer+byteIndex, 1) != 1;    //LibKCAPI
 #endif
         if (status != 0) { // Always test the status.
-            printf("ca_scram_gen_rand_bytes failed with error:  %d\n", errno);
+            printf("ca_scram_gen_rand_bytes failed with error:  %d\n", 0);
             //crypto_free_rng(rng);
             //kcapi_rng_destroy(rng);
             return status;
@@ -764,7 +766,7 @@ OSStatus ca_scram_gen_rand_bytes(char * byteBuffer, size_t numBytes)
     }
     //crypto_free_rng(rng);     //Linux Kernel Crypto API RNG Destroy
     //kcapi_rng_destroy(rng);   //LibKCAPI RNG Destroy
-    return noErr;
+    return 0;
 }
 
 

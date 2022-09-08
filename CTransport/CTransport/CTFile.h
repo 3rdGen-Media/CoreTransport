@@ -94,7 +94,7 @@ typedef struct CTFile
 
 
 // to do move this to ct_system.h,c
-CTRANSPORT_API CTRANSPORT_INLINE unsigned long ct_system_allocation_granularity();
+CTRANSPORT_API CTRANSPORT_INLINE unsigned long ct_system_allocation_granularity(void);
 
 CTRANSPORT_API CTRANSPORT_INLINE const char* ct_file_name(char *filepath);
 CTRANSPORT_API CTRANSPORT_INLINE const char* ct_file_extension(const char *fileNameOrPath); 
@@ -112,6 +112,12 @@ CTRANSPORT_API CTRANSPORT_INLINE off_t ct_file_size(int fileDescriptor);
 CTRANSPORT_API CTRANSPORT_INLINE void ct_file_allocate_storage(int fileDescriptor, off_t size);
 CTRANSPORT_API CTRANSPORT_INLINE void*  ct_file_map_to_buffer( char ** buffer, off_t filesize, unsigned long filePrivelege, unsigned long mapOptions, int fileDescriptor, off_t offset);
 CTRANSPORT_API CTRANSPORT_INLINE void ct_file_unmap(int fileDescriptor, char * fbuffer);
+
+
+#ifdef __APPLE__
+CTRANSPORT_API CTRANSPORT_INLINE void CTBundleFilePath(const char* filename, const char * fileExt, char* outputPath);
+CTRANSPORT_API CTRANSPORT_INLINE void CTFilePathInDocumentsDir(const char * filename, char * outputPath);
+#endif
 
 //Win32 UTC .1 microsecond precision
 #ifdef __WIN32

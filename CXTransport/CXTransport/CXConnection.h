@@ -95,7 +95,7 @@ static unsigned long					CX_RESPONSE_BUFF_SIZE  = 0;	//Response buffer size will
 
 			//template<typename CXQueryClosure>
 			//union{
-				std::map<uint64_t, std::shared_ptr<CXCursor>>													_cursors;
+				std::map<uint64_t, std::shared_ptr<CXCursor>>												   _cursors;
 				std::map<uint64_t, std::function<void(CTError* error, std::shared_ptr<CXCursor> cxCursor)>>    _queries;
 
 					//std::map<uint64_t, std::function<void(CTError* error, CXCursor* cursor)>>    _requests;

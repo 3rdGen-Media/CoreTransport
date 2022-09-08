@@ -80,7 +80,6 @@
 #include "CXTransport.h"
 #include "CXReQL/CXReQLCursor.h"
 #include "CXReQL/CXReQLQuery.h"
-//#include "CXReQL/CXReQLCursor.h"
 #include "CXReQL/CXReQLSession.h"
 #include "CXReQL/CXReQLInterface.h"
 

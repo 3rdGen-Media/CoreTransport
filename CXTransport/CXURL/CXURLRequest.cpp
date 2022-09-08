@@ -98,9 +98,9 @@ CTClientError CXURLRequest::SendWithQueue(CTConnection* conn, void * msg, unsign
 	//		std::function<void(CTError* error, CXReQLCursor* cursor)> getQueryCallbackForKey(uint64_t queryToken) { return _queries.at(queryToken); }
 
 
-void CXURLRequest::setValueForHTTPHeaderField(char * value, char * field)
+void CXURLRequest::setValueForHTTPHeaderField(char * field, char * value)
 {
-	_headers.insert(std::make_pair(value, field));
+	_headers.insert(std::make_pair(field, value));
 }
 
 void CXURLRequest::setContentValue(char* value, unsigned long contentLength)//, char* field)

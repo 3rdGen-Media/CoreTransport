@@ -2,7 +2,6 @@
 #ifndef CXREQLCURSOR_H
 #define CXREQLCURSOR_H
 
-
 namespace CoreTransport
 {
 	class CXREQL_API CXReQLCursor : public CXCursor

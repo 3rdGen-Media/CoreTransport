@@ -30,6 +30,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifndef inline
+#define inline
+#endif
+
 #define dill_concat(x,y) x##y
 
 /* Defines a unique identifier of type const void*. */

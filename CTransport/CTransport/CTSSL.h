@@ -91,9 +91,9 @@ typedef enum CTSSLMethod
 
 #ifndef _WIN32
 typedef long SECURITY_STATUS;
-#define SEC_E_OK                         0x00000000L
-#define SEC_I_CONTINUE_NEEDED            0x00090312L
-#define SEC_E_INCOMPLETE_MESSAGE         0x80090318L
+#define SEC_E_OK                         0x00000000
+#define SEC_I_CONTINUE_NEEDED            0x00090312
+#define SEC_E_INCOMPLETE_MESSAGE         0x80090318
 #endif
 
 #ifdef CTRANSPORT_WOLFSSL
@@ -110,35 +110,35 @@ typedef struct CTSSLContext
 	WOLFSSL_CTX*					conf;
 	WOLFSSL_BIO*					bio;
 
+    //mbedtls_ssl_config            conf;
+    //mbedtls_entropy_context       entropy;
+    //mbedtls_ctr_drbg_context      ctr_drbg;
+
 	//This struct allows bookkeeping of ssl encrypt/decrypt context header and trailer buffer sizes
 	//For wolfssl, we just set these to 0 so they can be used interchangeably with calls to SCHANNEL on the decrypt thread(s)
 	struct
 	{
-		unsigned long   cbHeader;
-		unsigned long   cbTrailer;
+		unsigned long               cbHeader;
+		unsigned long               cbTrailer;
 	}Sizes;
-
-	//mbedtls_ssl_config 			conf;
-	//mbedtls_entropy_context		entropy;
-	//mbedtls_ctr_drbg_context	ctr_drbg;
 }CTSSLContext;
 typedef CTSSLContext* CTSSLContextRef;
 
 //TO DO:  work out alignment and padding of this struct
 typedef struct CTSSLDecryptTransient
 {
-	int			  socketfd;
-	unsigned long bytesToDecrypt;
-	unsigned long totalBytesProcessed;
-	char* buffer;
+	int			    socketfd;
+	unsigned long   bytesToDecrypt;
+	unsigned long   totalBytesProcessed;
+	char*           buffer;
 }CTSSLDecryptTransient;
 
 typedef struct CTSSLEncryptTransient
 {
 	int			  wolf_socket_fd;
 	//CTSocket	  ct_socket_fd;
-	int			  messageLen;
-	void		  *messageBuffer;
+    unsigned long bytesToEncrypt;//bytesToCrypt;
+	void		  *buffer;
 }CTSSLEncryptTransient;
 
 #elif defined(CTRANSPORT_USE_MBED_TLS)	//MBED_TLS API
@@ -166,9 +166,42 @@ typedef struct CTSSLContext
 typedef CTSSLContext * CTSSLContextRef;
 
 
-#elif defined(__APPLE___)  //Darwin SecureTransport API
+#elif defined(__APPLE__)  //Darwin SecureTransport API
 #import <Security/SecureTransport.h>
-typedef SecCertificateRef ReqlSecCertificateRef;
+#import <Security/SecCertificate.h>
+#import <Security/SecIdentity.h>
+#import <Security/SecImportExport.h>
+#import <Security/SecItem.h>
+#import <Security/SecPolicy.h>
+#import <Security/SecTrust.h>
+#import <Security/SecKey.h>
+#import <Security/SecItem.h>
+#import <Security/SecRandom.h>
+
+//#import <Security/SecTrustSettings.h>
+typedef SSLContextRef CTSSLContextRef;
+typedef SecCertificateRef CTSecCertificateRef;
+typedef OSStatus CTSSLStatus;
+
+#ifndef SSL_ERROR_WANT_WRITE
+#define SSL_ERROR_WANT_WRITE errSSLWouldBlock
+#define SSL_ERROR_WANT_READ  errSSLWouldBlock
+#endif
+
+//Mimic WolfSSL transient structs
+//TO DO:  work out alignment and padding of this struct
+
+typedef struct CTSSLConnectionRef
+{
+    int             txSocket;
+    int             rxSocket;
+    char*           buffer;
+    unsigned long   bytesToEncrypt;
+    unsigned long   bytesToDecrypt;
+    unsigned long   totalBytesProcessed;
+    unsigned long   remainingEncryptedBytesToProcess;
+}CTSSLConnectionRef;
+
 #elif defined(_WIN32)	  //Win32 SCHANNEL API
 //#include <windows.h>	  //Must include windows.h before sspi.h
 #define SECURITY_WIN32
@@ -279,12 +312,24 @@ CTRANSPORT_API CTRANSPORT_INLINE int CTSSLHandshake(CTSocket socketfd, CTSSLCont
 
 //CTRANSPORT_API REQL_INLINE DWORD VerifyServerCertificate(PCCERT_CONTEXT pServerCert, char* pszServerName, DWORD dwCertFlags);
 
+
+
+/***
+ *  ReqlSaveCertToKeychain
+ *
+ *  Read CA file in DER format from disk to create an Apple Secure Transport API SecCertificateRef
+ *  and Add the SecCertificateRef to the device keychain (or delete and re-add the certificate -- which works on iOS but not OSX)
+ *
+ *  Returns an OSStatus since calls in this mehtodare strictly limited to the Apple Secure Transport API
+ ***/
+CTRANSPORT_API CTRANSPORT_INLINE OSStatus CTSSLSaveCertToKeychain( CTSecCertificateRef cert );
+
 /***
  *  ReqlVerifyServerCertificate
  *
  *	Verify the platform specific Security Certificate Handle associated with a platform SSL Context
  ***/
-CTRANSPORT_API CTRANSPORT_INLINE  int CTVerifyServerCertificate(CTSSLContextRef sslContextRef, char * pszServerName);
+CTRANSPORT_API CTRANSPORT_INLINE  int CTSSLVerifyServerCertificate(CTSSLContextRef sslContextRef, char * pszServerName);
 
 
 /***
@@ -310,13 +355,6 @@ CTRANSPORT_API CTRANSPORT_INLINE CTSSLStatus CTSSLEncryptMessage(CTSSLContextRef
  *****************************************************************************/
 CTRANSPORT_API CTRANSPORT_INLINE int CTSSLWrite( CTSocket socketfd, CTSSLContextRef sslContextRef, void * msg, unsigned long * msgLength );// * phContext, PBYTE pbIoBuffer, SecPkgContext_StreamSizes Sizes )
 
-
-
-
-#ifdef __APPLE__
-typedef SSLContextRef CTSSLContextRef;
-typedef SecCertificateRef CTSecCertificateRef;
-#endif
 
 
 #if defined(__cplusplus) //|| defined(__OBJC__)

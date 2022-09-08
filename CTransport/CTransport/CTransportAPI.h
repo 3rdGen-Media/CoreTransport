@@ -77,7 +77,7 @@ extern "C" {
 #endif
 
 //#pragma mark -- Utility/Helper Methods
-CTRANSPORT_API CTRANSPORT_INLINE unsigned long CTPageSize();
+CTRANSPORT_API CTRANSPORT_INLINE unsigned long CTPageSize(void);
 
 //#pragma mark -- CTCursor API methods
 
@@ -101,10 +101,10 @@ CTRANSPORT_API CTFileError CTCursorCreateMapFileW(CTCursor * cursor, char* filep
 
 //#pragma mark -- CoreTransport Memory Init Methods
 CTRANSPORT_API CTRANSPORT_INLINE void CTCreateConnectionPool(CTConnection* connectionPool, int numConnections);
-CTRANSPORT_API CTRANSPORT_INLINE CTConnection* CTGetNextPoolConnection();
+CTRANSPORT_API CTRANSPORT_INLINE CTConnection* CTGetNextPoolConnection(void);
 
 CTRANSPORT_API CTRANSPORT_INLINE void CTCreateCursorPool(CTCursor* cursorPool, int numCursors);
-CTRANSPORT_API CTRANSPORT_INLINE CTCursor* CTGetNextPoolCursor();
+CTRANSPORT_API CTRANSPORT_INLINE CTCursor* CTGetNextPoolCursor(void);
 
 CTRANSPORT_API CTRANSPORT_INLINE void CTSetCursorPoolIndex(int index);
 

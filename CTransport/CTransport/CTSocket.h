@@ -19,6 +19,8 @@
 
 #ifdef __FreeBSD__
 #include <aio.h>
+#elif defined (__APPLE__)
+#include <sys/aio.h>
 #endif
 
 //create an alias for ioctl a la Win32
@@ -97,10 +99,13 @@ typedef struct CTKernelQueue
 	CTKernelQueueType kq;
 }CTKernelQueue;
 
+typedef struct HANDLE CTKernelQueueEvent;
+
 static const int CTSOCKET_DEFAULT_BLOCKING_OPTION = 0;
 #elif defined(__APPLE__) || defined(__FreeBSD__) //with libdispatch
 #define CTSocket 	  			int //sockets are just file descriptors
 #define CTThread				pthread_t
+#define CTThreadID              unsigned int
 typedef int 					CTKernelQueueType; //kqueues are just file descriptors
 typedef int 					CTKernelPipeType;  //pipes are just file descriptors
 typedef void *					(*CTThreadRoutine)(void *); //pthread routine
@@ -113,6 +118,8 @@ typedef struct CTKernelQueue
 	CTKernelQueueType kq;
 	CTKernelQueueType pq[2];
 }CTKernelQueue;
+
+typedef struct kevent CTKernelQueueEvent;
 
 #define CT_INCOMING_PIPE	0
 #define CT_OUTGOING_PIPE	1
@@ -189,6 +196,7 @@ typedef CTSocketContext* CTSocketContextRef;
 //#pragma mark -- CTKernelQueue Event API
 #ifndef _WIN32
 CTRANSPORT_API CTRANSPORT_INLINE int kqueue_wait_with_timeout(CTKernelQueueType kqueue, struct kevent * kev, int numEvents, uint32_t timeout);
+CTRANSPORT_API CTRANSPORT_INLINE uintptr_t ct_event_queue_wait_with_timeout(CTKernelQueueType kqueue, struct kevent * kev, int16_t eventFilter, uintptr_t timeoutEvent, uintptr_t outOfRangeEvent, uintptr_t eventRangeStart, uintptr_t eventRangeEnd, uint32_t timeout);
 #endif
 
 CTRANSPORT_API CTRANSPORT_INLINE CTKernelQueue CTKernelQueueCreate(void);

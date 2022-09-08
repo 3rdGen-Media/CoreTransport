@@ -1,0 +1,617 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 55;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		C7395CFF28B741D500FE8F5B /* libwolfssl_osx.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C7395CFD28B7402A00FE8F5B /* libwolfssl_osx.a */; settings = {ATTRIBUTES = (Required, ); }; };
+		C7395D0828BA066500FE8F5B /* CTPlatform.c in Sources */ = {isa = PBXBuildFile; fileRef = C7395D0728BA066500FE8F5B /* CTPlatform.c */; };
+		C7395D0928BA06F700FE8F5B /* CTPlatform.c in Sources */ = {isa = PBXBuildFile; fileRef = C7395D0728BA066500FE8F5B /* CTPlatform.c */; };
+		C74D0DD628C5A25900552633 /* libwolfssl_ios.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C74D0D9728C5817000552633 /* libwolfssl_ios.a */; settings = {ATTRIBUTES = (Required, ); }; };
+		C7A8AACF288BB67400913B44 /* CTransport.h in Headers */ = {isa = PBXBuildFile; fileRef = C7A8AACE288BB67400913B44 /* CTransport.h */; };
+		C7A8AB02288BB79400913B44 /* CTSystem.h in Headers */ = {isa = PBXBuildFile; fileRef = C7A8AAEE288BB79400913B44 /* CTSystem.h */; };
+		C7A8AB03288BB79400913B44 /* CTQueue.h in Headers */ = {isa = PBXBuildFile; fileRef = C7A8AAEF288BB79400913B44 /* CTQueue.h */; };
+		C7A8AB04288BB79400913B44 /* CTSocket.h in Headers */ = {isa = PBXBuildFile; fileRef = C7A8AAF0288BB79400913B44 /* CTSocket.h */; };
+		C7A8AB05288BB79400913B44 /* CTConnection.h in Headers */ = {isa = PBXBuildFile; fileRef = C7A8AAF1288BB79400913B44 /* CTConnection.h */; };
+		C7A8AB06288BB79400913B44 /* CTSSL.c in Sources */ = {isa = PBXBuildFile; fileRef = C7A8AAF2288BB79400913B44 /* CTSSL.c */; };
+		C7A8AB07288BB79400913B44 /* CTCoroutine.h in Headers */ = {isa = PBXBuildFile; fileRef = C7A8AAF3288BB79400913B44 /* CTCoroutine.h */; };
+		C7A8AB08288BB79400913B44 /* CTransportAPI.h in Headers */ = {isa = PBXBuildFile; fileRef = C7A8AAF4288BB79400913B44 /* CTransportAPI.h */; };
+		C7A8AB09288BB79400913B44 /* CTReQL.h in Headers */ = {isa = PBXBuildFile; fileRef = C7A8AAF5288BB79400913B44 /* CTReQL.h */; };
+		C7A8AB0A288BB79400913B44 /* CTFile.c in Sources */ = {isa = PBXBuildFile; fileRef = C7A8AAF6288BB79400913B44 /* CTFile.c */; };
+		C7A8AB0B288BB79400913B44 /* CTDNS.h in Headers */ = {isa = PBXBuildFile; fileRef = C7A8AAF7288BB79400913B44 /* CTDNS.h */; };
+		C7A8AB0C288BB79400913B44 /* CTEndian.h in Headers */ = {isa = PBXBuildFile; fileRef = C7A8AAF8288BB79400913B44 /* CTEndian.h */; };
+		C7A8AB0D288BB79400913B44 /* CTSocket.c in Sources */ = {isa = PBXBuildFile; fileRef = C7A8AAF9288BB79400913B44 /* CTSocket.c */; };
+		C7A8AB0E288BB79400913B44 /* CTQueue.c in Sources */ = {isa = PBXBuildFile; fileRef = C7A8AAFA288BB79400913B44 /* CTQueue.c */; };
+		C7A8AB0F288BB79400913B44 /* CTReQL.c in Sources */ = {isa = PBXBuildFile; fileRef = C7A8AAFB288BB79400913B44 /* CTReQL.c */; };
+		C7A8AB10288BB79400913B44 /* CTransportAPI.c in Sources */ = {isa = PBXBuildFile; fileRef = C7A8AAFC288BB79400913B44 /* CTransportAPI.c */; };
+		C7A8AB11288BB79400913B44 /* CTURL.h in Headers */ = {isa = PBXBuildFile; fileRef = C7A8AAFD288BB79400913B44 /* CTURL.h */; };
+		C7A8AB12288BB79400913B44 /* CTError.h in Headers */ = {isa = PBXBuildFile; fileRef = C7A8AAFE288BB79400913B44 /* CTError.h */; };
+		C7A8AB13288BB79400913B44 /* CTSSL.h in Headers */ = {isa = PBXBuildFile; fileRef = C7A8AAFF288BB79400913B44 /* CTSSL.h */; };
+		C7A8AB14288BB79400913B44 /* CTSSLKey.h in Headers */ = {isa = PBXBuildFile; fileRef = C7A8AB00288BB79400913B44 /* CTSSLKey.h */; };
+		C7A8AB15288BB79400913B44 /* CTFile.h in Headers */ = {isa = PBXBuildFile; fileRef = C7A8AB01288BB79400913B44 /* CTFile.h */; };
+		C7A8AB34288BC88500913B44 /* CTSystem.h in Headers */ = {isa = PBXBuildFile; fileRef = C7A8AAEE288BB79400913B44 /* CTSystem.h */; };
+		C7A8AB35288BC88500913B44 /* CTQueue.h in Headers */ = {isa = PBXBuildFile; fileRef = C7A8AAEF288BB79400913B44 /* CTQueue.h */; };
+		C7A8AB36288BC88500913B44 /* CTSocket.h in Headers */ = {isa = PBXBuildFile; fileRef = C7A8AAF0288BB79400913B44 /* CTSocket.h */; };
+		C7A8AB37288BC88500913B44 /* CTConnection.h in Headers */ = {isa = PBXBuildFile; fileRef = C7A8AAF1288BB79400913B44 /* CTConnection.h */; };
+		C7A8AB38288BC88500913B44 /* CTCoroutine.h in Headers */ = {isa = PBXBuildFile; fileRef = C7A8AAF3288BB79400913B44 /* CTCoroutine.h */; };
+		C7A8AB39288BC88500913B44 /* CTransportAPI.h in Headers */ = {isa = PBXBuildFile; fileRef = C7A8AAF4288BB79400913B44 /* CTransportAPI.h */; };
+		C7A8AB3A288BC88500913B44 /* CTReQL.h in Headers */ = {isa = PBXBuildFile; fileRef = C7A8AAF5288BB79400913B44 /* CTReQL.h */; };
+		C7A8AB3B288BC88500913B44 /* CTDNS.h in Headers */ = {isa = PBXBuildFile; fileRef = C7A8AAF7288BB79400913B44 /* CTDNS.h */; };
+		C7A8AB3C288BC88500913B44 /* CTEndian.h in Headers */ = {isa = PBXBuildFile; fileRef = C7A8AAF8288BB79400913B44 /* CTEndian.h */; };
+		C7A8AB3D288BC88500913B44 /* CTURL.h in Headers */ = {isa = PBXBuildFile; fileRef = C7A8AAFD288BB79400913B44 /* CTURL.h */; };
+		C7A8AB3E288BC88500913B44 /* CTError.h in Headers */ = {isa = PBXBuildFile; fileRef = C7A8AAFE288BB79400913B44 /* CTError.h */; };
+		C7A8AB3F288BC88500913B44 /* CTSSL.h in Headers */ = {isa = PBXBuildFile; fileRef = C7A8AAFF288BB79400913B44 /* CTSSL.h */; };
+		C7A8AB40288BC88500913B44 /* CTSSLKey.h in Headers */ = {isa = PBXBuildFile; fileRef = C7A8AB00288BB79400913B44 /* CTSSLKey.h */; };
+		C7A8AB41288BC88500913B44 /* CTFile.h in Headers */ = {isa = PBXBuildFile; fileRef = C7A8AB01288BB79400913B44 /* CTFile.h */; };
+		C7A8AB42288BC88500913B44 /* CTransport.h in Headers */ = {isa = PBXBuildFile; fileRef = C7A8AACE288BB67400913B44 /* CTransport.h */; };
+		C7A8AB43288BC89100913B44 /* CTSSL.c in Sources */ = {isa = PBXBuildFile; fileRef = C7A8AAF2288BB79400913B44 /* CTSSL.c */; };
+		C7A8AB44288BC89100913B44 /* CTFile.c in Sources */ = {isa = PBXBuildFile; fileRef = C7A8AAF6288BB79400913B44 /* CTFile.c */; };
+		C7A8AB45288BC89100913B44 /* CTSocket.c in Sources */ = {isa = PBXBuildFile; fileRef = C7A8AAF9288BB79400913B44 /* CTSocket.c */; };
+		C7A8AB46288BC89100913B44 /* CTQueue.c in Sources */ = {isa = PBXBuildFile; fileRef = C7A8AAFA288BB79400913B44 /* CTQueue.c */; };
+		C7A8AB47288BC89100913B44 /* CTReQL.c in Sources */ = {isa = PBXBuildFile; fileRef = C7A8AAFB288BB79400913B44 /* CTReQL.c */; };
+		C7A8AB48288BC89100913B44 /* CTransportAPI.c in Sources */ = {isa = PBXBuildFile; fileRef = C7A8AAFC288BB79400913B44 /* CTransportAPI.c */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		C7A8AB19288BC82A00913B44 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "include/$(PRODUCT_NAME)";
+			dstSubfolderSpec = 16;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		C7395CFD28B7402A00FE8F5B /* libwolfssl_osx.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libwolfssl_osx.a; path = ../../3rdParty/wolfssl/Products/libwolfssl_osx.a; sourceTree = "<group>"; };
+		C7395D0628BA05F800FE8F5B /* CTPlatform.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CTPlatform.h; sourceTree = "<group>"; };
+		C7395D0728BA066500FE8F5B /* CTPlatform.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = CTPlatform.c; sourceTree = "<group>"; };
+		C74D0D9728C5817000552633 /* libwolfssl_ios.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libwolfssl_ios.a; path = ../../3rdParty/wolfssl/IDE/XCODE/Build/Products/libwolfssl_ios.a; sourceTree = "<group>"; };
+		C74D0D9F28C599D500552633 /* libc++.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = "libc++.tbd"; path = "usr/lib/libc++.tbd"; sourceTree = SDKROOT; };
+		C7A8AAC6288BB5C000913B44 /* libCTransport-OSX.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libCTransport-OSX.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		C7A8AACE288BB67400913B44 /* CTransport.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CTransport.h; sourceTree = "<group>"; };
+		C7A8AAEE288BB79400913B44 /* CTSystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CTSystem.h; sourceTree = "<group>"; };
+		C7A8AAEF288BB79400913B44 /* CTQueue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CTQueue.h; sourceTree = "<group>"; };
+		C7A8AAF0288BB79400913B44 /* CTSocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CTSocket.h; sourceTree = "<group>"; };
+		C7A8AAF1288BB79400913B44 /* CTConnection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CTConnection.h; sourceTree = "<group>"; };
+		C7A8AAF2288BB79400913B44 /* CTSSL.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CTSSL.c; sourceTree = "<group>"; };
+		C7A8AAF3288BB79400913B44 /* CTCoroutine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CTCoroutine.h; sourceTree = "<group>"; };
+		C7A8AAF4288BB79400913B44 /* CTransportAPI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CTransportAPI.h; sourceTree = "<group>"; };
+		C7A8AAF5288BB79400913B44 /* CTReQL.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CTReQL.h; sourceTree = "<group>"; };
+		C7A8AAF6288BB79400913B44 /* CTFile.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CTFile.c; sourceTree = "<group>"; };
+		C7A8AAF7288BB79400913B44 /* CTDNS.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CTDNS.h; sourceTree = "<group>"; };
+		C7A8AAF8288BB79400913B44 /* CTEndian.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CTEndian.h; sourceTree = "<group>"; };
+		C7A8AAF9288BB79400913B44 /* CTSocket.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CTSocket.c; sourceTree = "<group>"; };
+		C7A8AAFA288BB79400913B44 /* CTQueue.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CTQueue.c; sourceTree = "<group>"; };
+		C7A8AAFB288BB79400913B44 /* CTReQL.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CTReQL.c; sourceTree = "<group>"; };
+		C7A8AAFC288BB79400913B44 /* CTransportAPI.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CTransportAPI.c; sourceTree = "<group>"; };
+		C7A8AAFD288BB79400913B44 /* CTURL.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CTURL.h; sourceTree = "<group>"; };
+		C7A8AAFE288BB79400913B44 /* CTError.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CTError.h; sourceTree = "<group>"; };
+		C7A8AAFF288BB79400913B44 /* CTSSL.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CTSSL.h; sourceTree = "<group>"; };
+		C7A8AB00288BB79400913B44 /* CTSSLKey.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CTSSLKey.h; sourceTree = "<group>"; };
+		C7A8AB01288BB79400913B44 /* CTFile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CTFile.h; sourceTree = "<group>"; };
+		C7A8AB1B288BC82A00913B44 /* libCTransport-iOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libCTransport-iOS.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		C7FEE54A28C496BE00F75312 /* libwolfssl_ios.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libwolfssl_ios.a; path = ../../3rdParty/wolfssl/Products/libwolfssl_ios.a; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		C7A8AAC4288BB5C000913B44 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C7395CFF28B741D500FE8F5B /* libwolfssl_osx.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C7A8AB18288BC82A00913B44 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C74D0DD628C5A25900552633 /* libwolfssl_ios.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		C7395CFC28B7402A00FE8F5B /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				C74D0D9F28C599D500552633 /* libc++.tbd */,
+				C7FEE54A28C496BE00F75312 /* libwolfssl_ios.a */,
+				C74D0D9728C5817000552633 /* libwolfssl_ios.a */,
+				C7395CFD28B7402A00FE8F5B /* libwolfssl_osx.a */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		C7A8AABD288BB5C000913B44 = {
+			isa = PBXGroup;
+			children = (
+				C7A8AAED288BB79400913B44 /* CTransport */,
+				C7A8AACE288BB67400913B44 /* CTransport.h */,
+				C7A8AAC7288BB5C000913B44 /* Products */,
+				C7395CFC28B7402A00FE8F5B /* Frameworks */,
+			);
+			sourceTree = "<group>";
+		};
+		C7A8AAC7288BB5C000913B44 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				C7A8AAC6288BB5C000913B44 /* libCTransport-OSX.a */,
+				C7A8AB1B288BC82A00913B44 /* libCTransport-iOS.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		C7A8AAED288BB79400913B44 /* CTransport */ = {
+			isa = PBXGroup;
+			children = (
+				C7A8AAEE288BB79400913B44 /* CTSystem.h */,
+				C7A8AAEF288BB79400913B44 /* CTQueue.h */,
+				C7A8AAF0288BB79400913B44 /* CTSocket.h */,
+				C7A8AAF1288BB79400913B44 /* CTConnection.h */,
+				C7A8AAF2288BB79400913B44 /* CTSSL.c */,
+				C7A8AAF3288BB79400913B44 /* CTCoroutine.h */,
+				C7A8AAF4288BB79400913B44 /* CTransportAPI.h */,
+				C7A8AAF5288BB79400913B44 /* CTReQL.h */,
+				C7A8AAF6288BB79400913B44 /* CTFile.c */,
+				C7A8AAF7288BB79400913B44 /* CTDNS.h */,
+				C7A8AAF8288BB79400913B44 /* CTEndian.h */,
+				C7A8AAF9288BB79400913B44 /* CTSocket.c */,
+				C7A8AAFA288BB79400913B44 /* CTQueue.c */,
+				C7A8AAFB288BB79400913B44 /* CTReQL.c */,
+				C7A8AAFC288BB79400913B44 /* CTransportAPI.c */,
+				C7A8AAFD288BB79400913B44 /* CTURL.h */,
+				C7A8AAFE288BB79400913B44 /* CTError.h */,
+				C7A8AAFF288BB79400913B44 /* CTSSL.h */,
+				C7A8AB00288BB79400913B44 /* CTSSLKey.h */,
+				C7A8AB01288BB79400913B44 /* CTFile.h */,
+				C7395D0628BA05F800FE8F5B /* CTPlatform.h */,
+				C7395D0728BA066500FE8F5B /* CTPlatform.c */,
+			);
+			path = CTransport;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		C7A8AAC2288BB5C000913B44 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C7A8AB13288BB79400913B44 /* CTSSL.h in Headers */,
+				C7A8AB0B288BB79400913B44 /* CTDNS.h in Headers */,
+				C7A8AB15288BB79400913B44 /* CTFile.h in Headers */,
+				C7A8AB04288BB79400913B44 /* CTSocket.h in Headers */,
+				C7A8AB11288BB79400913B44 /* CTURL.h in Headers */,
+				C7A8AB0C288BB79400913B44 /* CTEndian.h in Headers */,
+				C7A8AB09288BB79400913B44 /* CTReQL.h in Headers */,
+				C7A8AB02288BB79400913B44 /* CTSystem.h in Headers */,
+				C7A8AACF288BB67400913B44 /* CTransport.h in Headers */,
+				C7A8AB08288BB79400913B44 /* CTransportAPI.h in Headers */,
+				C7A8AB12288BB79400913B44 /* CTError.h in Headers */,
+				C7A8AB03288BB79400913B44 /* CTQueue.h in Headers */,
+				C7A8AB07288BB79400913B44 /* CTCoroutine.h in Headers */,
+				C7A8AB14288BB79400913B44 /* CTSSLKey.h in Headers */,
+				C7A8AB05288BB79400913B44 /* CTConnection.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C7A8AB33288BC87400913B44 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C7A8AB34288BC88500913B44 /* CTSystem.h in Headers */,
+				C7A8AB35288BC88500913B44 /* CTQueue.h in Headers */,
+				C7A8AB36288BC88500913B44 /* CTSocket.h in Headers */,
+				C7A8AB37288BC88500913B44 /* CTConnection.h in Headers */,
+				C7A8AB38288BC88500913B44 /* CTCoroutine.h in Headers */,
+				C7A8AB39288BC88500913B44 /* CTransportAPI.h in Headers */,
+				C7A8AB3A288BC88500913B44 /* CTReQL.h in Headers */,
+				C7A8AB3B288BC88500913B44 /* CTDNS.h in Headers */,
+				C7A8AB3C288BC88500913B44 /* CTEndian.h in Headers */,
+				C7A8AB3D288BC88500913B44 /* CTURL.h in Headers */,
+				C7A8AB3E288BC88500913B44 /* CTError.h in Headers */,
+				C7A8AB3F288BC88500913B44 /* CTSSL.h in Headers */,
+				C7A8AB40288BC88500913B44 /* CTSSLKey.h in Headers */,
+				C7A8AB41288BC88500913B44 /* CTFile.h in Headers */,
+				C7A8AB42288BC88500913B44 /* CTransport.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		C7A8AAC5288BB5C000913B44 /* CTransport-OSX */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C7A8AACA288BB5C000913B44 /* Build configuration list for PBXNativeTarget "CTransport-OSX" */;
+			buildPhases = (
+				C7A8AAC2288BB5C000913B44 /* Headers */,
+				C7A8AAC3288BB5C000913B44 /* Sources */,
+				C7A8AAC4288BB5C000913B44 /* Frameworks */,
+				C7A8AB16288BC72500913B44 /* Run Script */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "CTransport-OSX";
+			productName = CTransport;
+			productReference = C7A8AAC6288BB5C000913B44 /* libCTransport-OSX.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+		C7A8AB1A288BC82A00913B44 /* CTransport-iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C7A8AB21288BC82A00913B44 /* Build configuration list for PBXNativeTarget "CTransport-iOS" */;
+			buildPhases = (
+				C7A8AB33288BC87400913B44 /* Headers */,
+				C7A8AB17288BC82A00913B44 /* Sources */,
+				C7A8AB18288BC82A00913B44 /* Frameworks */,
+				C7A8AB19288BC82A00913B44 /* CopyFiles */,
+				C7A8AB49288BC89D00913B44 /* ShellScript */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "CTransport-iOS";
+			productName = CTransport;
+			productReference = C7A8AB1B288BC82A00913B44 /* libCTransport-iOS.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		C7A8AABE288BB5C000913B44 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1340;
+				TargetAttributes = {
+					C7A8AAC5288BB5C000913B44 = {
+						CreatedOnToolsVersion = 13.4.1;
+					};
+					C7A8AB1A288BC82A00913B44 = {
+						CreatedOnToolsVersion = 13.4.1;
+					};
+				};
+			};
+			buildConfigurationList = C7A8AAC1288BB5C000913B44 /* Build configuration list for PBXProject "CTransport" */;
+			compatibilityVersion = "Xcode 13.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = C7A8AABD288BB5C000913B44;
+			productRefGroup = C7A8AAC7288BB5C000913B44 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				C7A8AAC5288BB5C000913B44 /* CTransport-OSX */,
+				C7A8AB1A288BC82A00913B44 /* CTransport-iOS */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		C7A8AB16288BC72500913B44 /* Run Script */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Run Script";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\n#just use mkdir -p option\nmkdir -p ../include/CoreTransport/CTransport\nmkdir -p ../include/CoreTransport/protobuf\n\ncp -rvf ./CTransport/CTSystem.h ../include/CoreTransport/CTransport\ncp -rvf ./CTransport/CTEndian.h ../include/CoreTransport/CTransport\ncp -rvf ./CTransport/CTFile.h ../include/CoreTransport/CTransport\ncp -rvf ./CTransport/CTCoroutine.h ../include/CoreTransport/CTransport\ncp -rvf ./CTransport/CTError.h ../include/CoreTransport/CTransport\ncp -rvf ./CTransport/CTDNS.h ../include/CoreTransport/CTransport\ncp -rvf ./CTransport/CTSocket.h ../include/CoreTransport/CTransport\ncp -rvf ./CTransport/CTSSLKey.h ../include/CoreTransport/CTransport\ncp -rvf ./CTransport/CTSSL.h ../include/CoreTransport/CTransport\ncp -rvf ./CTransport/CTURL.h ../include/CoreTransport/CTransport\ncp -rvf ./CTransport/CTConnection.h ../include/CoreTransport/CTransport\ncp -rvf ./CTransport/CTQueue.h ../include/CoreTransport/CTransport\n\n#Exposed API and Protocols extensions\ncp -rvf ./CTransport/CTPlatform.h ../include/CoreTransport/CTransport\ncp -rvf ./CTransport/CTReQL.h ../include/CoreTransport/CTransport\ncp -rvf ./CTransport/CTransportAPI.h ../include/CoreTransport/CTransport\n\ncp -rvf ./CTransport.h ../include/CoreTransport/\n\ncp -rvf ./protobuf/protobuf-c.h ../include/CoreTransport/protobuf\ncp -rvf ./protobuf/ql2.pb-c.h ../include/CoreTransport/protobuf\n";
+		};
+		C7A8AB49288BC89D00913B44 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\n#just use mkdir -p option\nmkdir -p ../include/CoreTransport/CTransport\nmkdir -p ../include/CoreTransport/protobuf\n\ncp -rvf ./CTransport/CTSystem.h ../include/CoreTransport/CTransport\ncp -rvf ./CTransport/CTEndian.h ../include/CoreTransport/CTransport\ncp -rvf ./CTransport/CTFile.h ../include/CoreTransport/CTransport\ncp -rvf ./CTransport/CTCoroutine.h ../include/CoreTransport/CTransport\ncp -rvf ./CTransport/CTError.h ../include/CoreTransport/CTransport\ncp -rvf ./CTransport/CTDNS.h ../include/CoreTransport/CTransport\ncp -rvf ./CTransport/CTSocket.h ../include/CoreTransport/CTransport\ncp -rvf ./CTransport/CTSSLKey.h ../include/CoreTransport/CTransport\ncp -rvf ./CTransport/CTSSL.h ../include/CoreTransport/CTransport\ncp -rvf ./CTransport/CTURL.h ../include/CoreTransport/CTransport\ncp -rvf ./CTransport/CTConnection.h ../include/CoreTransport/CTransport\ncp -rvf ./CTransport/CTQueue.h ../include/CoreTransport/CTransport\n\n#Exposed API and Protocols extensions\ncp -rvf ./CTransport/CTPlatform.h ../include/CoreTransport/CTransport\ncp -rvf ./CTransport/CTReQL.h ../include/CoreTransport/CTransport\ncp -rvf ./CTransport/CTransportAPI.h ../include/CoreTransport/CTransport\n\ncp -rvf ./CTransport.h ../include/CoreTransport/\n\ncp -rvf ./protobuf/protobuf-c.h ../include/CoreTransport/protobuf\ncp -rvf ./protobuf/ql2.pb-c.h ../include/CoreTransport/protobuf\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		C7A8AAC3288BB5C000913B44 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C7A8AB10288BB79400913B44 /* CTransportAPI.c in Sources */,
+				C7A8AB0F288BB79400913B44 /* CTReQL.c in Sources */,
+				C7A8AB0A288BB79400913B44 /* CTFile.c in Sources */,
+				C7395D0828BA066500FE8F5B /* CTPlatform.c in Sources */,
+				C7A8AB0D288BB79400913B44 /* CTSocket.c in Sources */,
+				C7A8AB0E288BB79400913B44 /* CTQueue.c in Sources */,
+				C7A8AB06288BB79400913B44 /* CTSSL.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C7A8AB17288BC82A00913B44 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C7395D0928BA06F700FE8F5B /* CTPlatform.c in Sources */,
+				C7A8AB43288BC89100913B44 /* CTSSL.c in Sources */,
+				C7A8AB44288BC89100913B44 /* CTFile.c in Sources */,
+				C7A8AB45288BC89100913B44 /* CTSocket.c in Sources */,
+				C7A8AB46288BC89100913B44 /* CTQueue.c in Sources */,
+				C7A8AB47288BC89100913B44 /* CTReQL.c in Sources */,
+				C7A8AB48288BC89100913B44 /* CTransportAPI.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		C7A8AAC8288BB5C000913B44 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = CTRANSPORT_WOLFSSL;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				LIBRARY_SEARCH_PATHS = ../../3rdParty/wolfssl/Products;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				OTHER_LDFLAGS = "-lc++";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		C7A8AAC9288BB5C000913B44 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = CTRANSPORT_WOLFSSL;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				LIBRARY_SEARCH_PATHS = ../../3rdParty/wolfssl/Products;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				OTHER_LDFLAGS = "-lc++";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		C7A8AACB288BB5C000913B44 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = ECP6D49SS3;
+				EXECUTABLE_PREFIX = lib;
+				GCC_PREPROCESSOR_DEFINITIONS = "";
+				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				HEADER_SEARCH_PATHS = (
+					../include,
+					../include/CoreTransport,
+					../../3rdParty/wolfssl/IDE/XCODE/Build/Products/include,
+				);
+				LIBRARY_SEARCH_PATHS = ../../3rdParty/wolfssl/IDE/XCODE/Build/Products;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		C7A8AACC288BB5C000913B44 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = ECP6D49SS3;
+				EXECUTABLE_PREFIX = lib;
+				GCC_PREPROCESSOR_DEFINITIONS = "";
+				HEADER_SEARCH_PATHS = (
+					../include,
+					../include/CoreTransport,
+					../../3rdParty/wolfssl/IDE/XCODE/Build/Products/include,
+				);
+				LIBRARY_SEARCH_PATHS = ../../3rdParty/wolfssl/IDE/XCODE/Build/Products;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+		C7A8AB22288BC82A00913B44 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = ECP6D49SS3;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_PREPROCESSOR_DEFINITIONS = "";
+				HEADER_SEARCH_PATHS = (
+					../include,
+					../include/CoreTransport,
+					../../3rdParty/wolfssl/IDE/XCODE/Build/Products/include,
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				LIBRARY_SEARCH_PATHS = ../../3rdParty/wolfssl/IDE/XCODE/Build/Products;
+				ONLY_ACTIVE_ARCH = YES;
+				OTHER_LDFLAGS = "-lc++";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		C7A8AB23288BC82A00913B44 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = ECP6D49SS3;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_PREPROCESSOR_DEFINITIONS = "";
+				HEADER_SEARCH_PATHS = (
+					../include,
+					../include/CoreTransport,
+					../../3rdParty/wolfssl/IDE/XCODE/Build/Products/include,
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				LIBRARY_SEARCH_PATHS = ../../3rdParty/wolfssl/IDE/XCODE/Build/Products;
+				ONLY_ACTIVE_ARCH = YES;
+				OTHER_LDFLAGS = "-lc++";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		C7A8AAC1288BB5C000913B44 /* Build configuration list for PBXProject "CTransport" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C7A8AAC8288BB5C000913B44 /* Debug */,
+				C7A8AAC9288BB5C000913B44 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C7A8AACA288BB5C000913B44 /* Build configuration list for PBXNativeTarget "CTransport-OSX" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C7A8AACB288BB5C000913B44 /* Debug */,
+				C7A8AACC288BB5C000913B44 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C7A8AB21288BC82A00913B44 /* Build configuration list for PBXNativeTarget "CTransport-iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C7A8AB22288BC82A00913B44 /* Debug */,
+				C7A8AB23288BC82A00913B44 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = C7A8AABE288BB5C000913B44 /* Project object */;
+}

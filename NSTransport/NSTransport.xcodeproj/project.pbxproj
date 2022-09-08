@@ -1,0 +1,568 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 55;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		C709DB4728C9035300060F56 /* NSTCursor.m in Sources */ = {isa = PBXBuildFile; fileRef = C735832228C5F69F0078CC40 /* NSTCursor.m */; };
+		C709DB4828C9035300060F56 /* NSTConnection.m in Sources */ = {isa = PBXBuildFile; fileRef = C735832A28C5F69F0078CC40 /* NSTConnection.m */; };
+		C709DB4928C9035300060F56 /* NSTReQLQuery.m in Sources */ = {isa = PBXBuildFile; fileRef = C735832528C5F69F0078CC40 /* NSTReQLQuery.m */; };
+		C709DB4A28C9035300060F56 /* NSTReQLSession.m in Sources */ = {isa = PBXBuildFile; fileRef = C735832128C5F69F0078CC40 /* NSTReQLSession.m */; };
+		C709DB4B28C9035300060F56 /* NSTReQLInterface.m in Sources */ = {isa = PBXBuildFile; fileRef = C735832828C5F69F0078CC40 /* NSTReQLInterface.m */; };
+		C735831928C5F54E0078CC40 /* NSTransport.h in Headers */ = {isa = PBXBuildFile; fileRef = C735831828C5F54E0078CC40 /* NSTransport.h */; };
+		C735832B28C5F69F0078CC40 /* NSTReQLSession.m in Sources */ = {isa = PBXBuildFile; fileRef = C735832128C5F69F0078CC40 /* NSTReQLSession.m */; };
+		C735832C28C5F69F0078CC40 /* NSTCursor.m in Sources */ = {isa = PBXBuildFile; fileRef = C735832228C5F69F0078CC40 /* NSTCursor.m */; };
+		C735832D28C5F69F0078CC40 /* NSTCursor.h in Headers */ = {isa = PBXBuildFile; fileRef = C735832328C5F69F0078CC40 /* NSTCursor.h */; };
+		C735832E28C5F69F0078CC40 /* NSTConnection.h in Headers */ = {isa = PBXBuildFile; fileRef = C735832428C5F69F0078CC40 /* NSTConnection.h */; };
+		C735832F28C5F69F0078CC40 /* NSTReQLQuery.m in Sources */ = {isa = PBXBuildFile; fileRef = C735832528C5F69F0078CC40 /* NSTReQLQuery.m */; };
+		C735833028C5F69F0078CC40 /* NSTReQLQuery.h in Headers */ = {isa = PBXBuildFile; fileRef = C735832628C5F69F0078CC40 /* NSTReQLQuery.h */; };
+		C735833128C5F69F0078CC40 /* NSTReQLInterface.h in Headers */ = {isa = PBXBuildFile; fileRef = C735832728C5F69F0078CC40 /* NSTReQLInterface.h */; };
+		C735833228C5F69F0078CC40 /* NSTReQLInterface.m in Sources */ = {isa = PBXBuildFile; fileRef = C735832828C5F69F0078CC40 /* NSTReQLInterface.m */; };
+		C735833328C5F69F0078CC40 /* NSTReQLSession.h in Headers */ = {isa = PBXBuildFile; fileRef = C735832928C5F69F0078CC40 /* NSTReQLSession.h */; };
+		C735833428C5F69F0078CC40 /* NSTConnection.m in Sources */ = {isa = PBXBuildFile; fileRef = C735832A28C5F69F0078CC40 /* NSTConnection.m */; };
+		C735835328C7425A0078CC40 /* NSTQueue.h in Headers */ = {isa = PBXBuildFile; fileRef = C735835128C7425A0078CC40 /* NSTQueue.h */; };
+		C735835428C7425A0078CC40 /* NSTQueue.m in Sources */ = {isa = PBXBuildFile; fileRef = C735835228C7425A0078CC40 /* NSTQueue.m */; };
+		C735835528C7425A0078CC40 /* NSTQueue.m in Sources */ = {isa = PBXBuildFile; fileRef = C735835228C7425A0078CC40 /* NSTQueue.m */; };
+		C735835828C754290078CC40 /* NSTReQLCursor.h in Headers */ = {isa = PBXBuildFile; fileRef = C735835628C754290078CC40 /* NSTReQLCursor.h */; };
+		C735835928C754290078CC40 /* NSTReQLCursor.m in Sources */ = {isa = PBXBuildFile; fileRef = C735835728C754290078CC40 /* NSTReQLCursor.m */; };
+		C735835A28C754290078CC40 /* NSTReQLCursor.m in Sources */ = {isa = PBXBuildFile; fileRef = C735835728C754290078CC40 /* NSTReQLCursor.m */; };
+		C735836B28C7704A0078CC40 /* NSTURLCursor.h in Headers */ = {isa = PBXBuildFile; fileRef = C735836728C7704A0078CC40 /* NSTURLCursor.h */; };
+		C735836C28C7704A0078CC40 /* NSTURLRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = C735836828C7704A0078CC40 /* NSTURLRequest.m */; };
+		C735836D28C7704A0078CC40 /* NSTURLRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = C735836828C7704A0078CC40 /* NSTURLRequest.m */; };
+		C735836E28C7704A0078CC40 /* NSTURLCursor.m in Sources */ = {isa = PBXBuildFile; fileRef = C735836928C7704A0078CC40 /* NSTURLCursor.m */; };
+		C735836F28C7704A0078CC40 /* NSTURLCursor.m in Sources */ = {isa = PBXBuildFile; fileRef = C735836928C7704A0078CC40 /* NSTURLCursor.m */; };
+		C735837028C7704A0078CC40 /* NSTURLRequest.h in Headers */ = {isa = PBXBuildFile; fileRef = C735836A28C7704A0078CC40 /* NSTURLRequest.h */; };
+		C735837328C83EF50078CC40 /* NSTURLSession.h in Headers */ = {isa = PBXBuildFile; fileRef = C735837128C83EF50078CC40 /* NSTURLSession.h */; };
+		C735837428C83EF50078CC40 /* NSTURLSession.m in Sources */ = {isa = PBXBuildFile; fileRef = C735837228C83EF50078CC40 /* NSTURLSession.m */; };
+		C735837528C83EF50078CC40 /* NSTURLSession.m in Sources */ = {isa = PBXBuildFile; fileRef = C735837228C83EF50078CC40 /* NSTURLSession.m */; };
+		C735837828C83F090078CC40 /* NSTURLInterface.h in Headers */ = {isa = PBXBuildFile; fileRef = C735837628C83F090078CC40 /* NSTURLInterface.h */; };
+		C735837928C83F090078CC40 /* NSTURLInterface.m in Sources */ = {isa = PBXBuildFile; fileRef = C735837728C83F090078CC40 /* NSTURLInterface.m */; };
+		C735837A28C83F090078CC40 /* NSTURLInterface.m in Sources */ = {isa = PBXBuildFile; fileRef = C735837728C83F090078CC40 /* NSTURLInterface.m */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		C735833928C5FF800078CC40 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "include/$(PRODUCT_NAME)";
+			dstSubfolderSpec = 16;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		C735831528C5F54E0078CC40 /* libNSTransport-OSX.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libNSTransport-OSX.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		C735831828C5F54E0078CC40 /* NSTransport.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NSTransport.h; sourceTree = "<group>"; };
+		C735832128C5F69F0078CC40 /* NSTReQLSession.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = NSTReQLSession.m; sourceTree = "<group>"; };
+		C735832228C5F69F0078CC40 /* NSTCursor.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = NSTCursor.m; sourceTree = "<group>"; };
+		C735832328C5F69F0078CC40 /* NSTCursor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NSTCursor.h; sourceTree = "<group>"; };
+		C735832428C5F69F0078CC40 /* NSTConnection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NSTConnection.h; sourceTree = "<group>"; };
+		C735832528C5F69F0078CC40 /* NSTReQLQuery.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = NSTReQLQuery.m; sourceTree = "<group>"; };
+		C735832628C5F69F0078CC40 /* NSTReQLQuery.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NSTReQLQuery.h; sourceTree = "<group>"; };
+		C735832728C5F69F0078CC40 /* NSTReQLInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NSTReQLInterface.h; sourceTree = "<group>"; };
+		C735832828C5F69F0078CC40 /* NSTReQLInterface.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = NSTReQLInterface.m; sourceTree = "<group>"; };
+		C735832928C5F69F0078CC40 /* NSTReQLSession.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NSTReQLSession.h; sourceTree = "<group>"; };
+		C735832A28C5F69F0078CC40 /* NSTConnection.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = NSTConnection.m; sourceTree = "<group>"; };
+		C735833B28C5FF800078CC40 /* libNSTransport-iOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libNSTransport-iOS.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		C735834628C600DE0078CC40 /* NSTReQL.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NSTReQL.h; sourceTree = "<group>"; };
+		C735834728C600EB0078CC40 /* NSTURL.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NSTURL.h; sourceTree = "<group>"; };
+		C735835128C7425A0078CC40 /* NSTQueue.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NSTQueue.h; sourceTree = "<group>"; };
+		C735835228C7425A0078CC40 /* NSTQueue.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NSTQueue.m; sourceTree = "<group>"; };
+		C735835628C754290078CC40 /* NSTReQLCursor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NSTReQLCursor.h; sourceTree = "<group>"; };
+		C735835728C754290078CC40 /* NSTReQLCursor.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NSTReQLCursor.m; sourceTree = "<group>"; };
+		C735836728C7704A0078CC40 /* NSTURLCursor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NSTURLCursor.h; sourceTree = "<group>"; };
+		C735836828C7704A0078CC40 /* NSTURLRequest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = NSTURLRequest.m; sourceTree = "<group>"; };
+		C735836928C7704A0078CC40 /* NSTURLCursor.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = NSTURLCursor.m; sourceTree = "<group>"; };
+		C735836A28C7704A0078CC40 /* NSTURLRequest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NSTURLRequest.h; sourceTree = "<group>"; };
+		C735837128C83EF50078CC40 /* NSTURLSession.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NSTURLSession.h; sourceTree = "<group>"; };
+		C735837228C83EF50078CC40 /* NSTURLSession.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NSTURLSession.m; sourceTree = "<group>"; };
+		C735837628C83F090078CC40 /* NSTURLInterface.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NSTURLInterface.h; sourceTree = "<group>"; };
+		C735837728C83F090078CC40 /* NSTURLInterface.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NSTURLInterface.m; sourceTree = "<group>"; };
+		C735837C28C87CD30078CC40 /* libCTransport-OSX.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = "libCTransport-OSX.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		C735831328C5F54E0078CC40 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C735833828C5FF800078CC40 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		C735830C28C5F54D0078CC40 = {
+			isa = PBXGroup;
+			children = (
+				C735834728C600EB0078CC40 /* NSTURL.h */,
+				C735834628C600DE0078CC40 /* NSTReQL.h */,
+				C735831828C5F54E0078CC40 /* NSTransport.h */,
+				C735831728C5F54E0078CC40 /* NSTransport */,
+				C735833528C5F6AD0078CC40 /* NSTReQL */,
+				C735836628C7704A0078CC40 /* NSTURL */,
+				C735831628C5F54E0078CC40 /* Products */,
+				C735837B28C87CD30078CC40 /* Frameworks */,
+			);
+			sourceTree = "<group>";
+		};
+		C735831628C5F54E0078CC40 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				C735831528C5F54E0078CC40 /* libNSTransport-OSX.a */,
+				C735833B28C5FF800078CC40 /* libNSTransport-iOS.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		C735831728C5F54E0078CC40 /* NSTransport */ = {
+			isa = PBXGroup;
+			children = (
+				C735832328C5F69F0078CC40 /* NSTCursor.h */,
+				C735832228C5F69F0078CC40 /* NSTCursor.m */,
+				C735832428C5F69F0078CC40 /* NSTConnection.h */,
+				C735832A28C5F69F0078CC40 /* NSTConnection.m */,
+				C735835128C7425A0078CC40 /* NSTQueue.h */,
+				C735835228C7425A0078CC40 /* NSTQueue.m */,
+			);
+			path = NSTransport;
+			sourceTree = "<group>";
+		};
+		C735833528C5F6AD0078CC40 /* NSTReQL */ = {
+			isa = PBXGroup;
+			children = (
+				C735835628C754290078CC40 /* NSTReQLCursor.h */,
+				C735835728C754290078CC40 /* NSTReQLCursor.m */,
+				C735832628C5F69F0078CC40 /* NSTReQLQuery.h */,
+				C735832528C5F69F0078CC40 /* NSTReQLQuery.m */,
+				C735832928C5F69F0078CC40 /* NSTReQLSession.h */,
+				C735832128C5F69F0078CC40 /* NSTReQLSession.m */,
+				C735832728C5F69F0078CC40 /* NSTReQLInterface.h */,
+				C735832828C5F69F0078CC40 /* NSTReQLInterface.m */,
+			);
+			path = NSTReQL;
+			sourceTree = "<group>";
+		};
+		C735836628C7704A0078CC40 /* NSTURL */ = {
+			isa = PBXGroup;
+			children = (
+				C735836728C7704A0078CC40 /* NSTURLCursor.h */,
+				C735836928C7704A0078CC40 /* NSTURLCursor.m */,
+				C735836A28C7704A0078CC40 /* NSTURLRequest.h */,
+				C735836828C7704A0078CC40 /* NSTURLRequest.m */,
+				C735837128C83EF50078CC40 /* NSTURLSession.h */,
+				C735837228C83EF50078CC40 /* NSTURLSession.m */,
+				C735837628C83F090078CC40 /* NSTURLInterface.h */,
+				C735837728C83F090078CC40 /* NSTURLInterface.m */,
+			);
+			path = NSTURL;
+			sourceTree = "<group>";
+		};
+		C735837B28C87CD30078CC40 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				C735837C28C87CD30078CC40 /* libCTransport-OSX.a */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		C735831128C5F54E0078CC40 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C735837828C83F090078CC40 /* NSTURLInterface.h in Headers */,
+				C735837328C83EF50078CC40 /* NSTURLSession.h in Headers */,
+				C735835328C7425A0078CC40 /* NSTQueue.h in Headers */,
+				C735833328C5F69F0078CC40 /* NSTReQLSession.h in Headers */,
+				C735833128C5F69F0078CC40 /* NSTReQLInterface.h in Headers */,
+				C735831928C5F54E0078CC40 /* NSTransport.h in Headers */,
+				C735832E28C5F69F0078CC40 /* NSTConnection.h in Headers */,
+				C735833028C5F69F0078CC40 /* NSTReQLQuery.h in Headers */,
+				C735832D28C5F69F0078CC40 /* NSTCursor.h in Headers */,
+				C735836B28C7704A0078CC40 /* NSTURLCursor.h in Headers */,
+				C735837028C7704A0078CC40 /* NSTURLRequest.h in Headers */,
+				C735835828C754290078CC40 /* NSTReQLCursor.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		C735831428C5F54E0078CC40 /* NSTransport-OSX */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C735831E28C5F54E0078CC40 /* Build configuration list for PBXNativeTarget "NSTransport-OSX" */;
+			buildPhases = (
+				C735831128C5F54E0078CC40 /* Headers */,
+				C735831228C5F54E0078CC40 /* Sources */,
+				C735831328C5F54E0078CC40 /* Frameworks */,
+				C735835028C7404C0078CC40 /* ShellScript */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "NSTransport-OSX";
+			productName = NSTransport;
+			productReference = C735831528C5F54E0078CC40 /* libNSTransport-OSX.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+		C735833A28C5FF800078CC40 /* NSTransport-iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C735834128C5FF800078CC40 /* Build configuration list for PBXNativeTarget "NSTransport-iOS" */;
+			buildPhases = (
+				C735833728C5FF800078CC40 /* Sources */,
+				C735833828C5FF800078CC40 /* Frameworks */,
+				C735833928C5FF800078CC40 /* CopyFiles */,
+				C735835B28C75CD20078CC40 /* ShellScript */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "NSTransport-iOS";
+			productName = "NSTransport-iOS";
+			productReference = C735833B28C5FF800078CC40 /* libNSTransport-iOS.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		C735830D28C5F54D0078CC40 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1340;
+				TargetAttributes = {
+					C735831428C5F54E0078CC40 = {
+						CreatedOnToolsVersion = 13.4.1;
+					};
+					C735833A28C5FF800078CC40 = {
+						CreatedOnToolsVersion = 13.4.1;
+					};
+				};
+			};
+			buildConfigurationList = C735831028C5F54D0078CC40 /* Build configuration list for PBXProject "NSTransport" */;
+			compatibilityVersion = "Xcode 13.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = C735830C28C5F54D0078CC40;
+			productRefGroup = C735831628C5F54E0078CC40 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				C735831428C5F54E0078CC40 /* NSTransport-OSX */,
+				C735833A28C5FF800078CC40 /* NSTransport-iOS */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		C735835028C7404C0078CC40 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\n#just use mkdir -p option\nmkdir -p ../include/CoreTransport/NSTransport\nmkdir -p ../include/CoreTransport/NSTURL\nmkdir -p ../include/CoreTransport/NSTReQL\n\ncp -rvf ./NSTransport/NSTConnection.h ../include/CoreTransport/NSTransport\ncp -rvf ./NSTransport/NSTCursor.h ../include/CoreTransport/NSTransport\ncp -rvf ./NSTransport/NSTQueue.h ../include/CoreTransport/NSTransport\n\ncp -rvf ./NSTURL/NSTURLCursor.h ../include/CoreTransport/NSTURL\ncp -rvf ./NSTURL/NSTURLRequest.h ../include/CoreTransport/NSTURL\ncp -rvf ./NSTURL/NSTURLSession.h ../include/CoreTransport/NSTURL\ncp -rvf ./NSTURL/NSTURLInterface.h ../include/CoreTransport/NSTURL\n\ncp -rvf ./NSTReQL/NSTReQLCursor.h ../include/CoreTransport/NSTReQL\ncp -rvf ./NSTReQL/NSTReQLQuery.h ../include/CoreTransport/NSTReQL\ncp -rvf ./NSTReQL/NSTReQLSession.h ../include/CoreTransport/NSTReQL\ncp -rvf ./NSTReQL/NSTReQLInterface.h ../include/CoreTransport/NSTReQL\n\n#Exposed API and Protocols extensions\ncp -rvf ./NSTransport.h ../include/CoreTransport/\ncp -rvf ./NSTURL.h ../include/CoreTransport/\ncp -rvf ./NSTReQL.h ../include/CoreTransport/\n";
+		};
+		C735835B28C75CD20078CC40 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\n#just use mkdir -p option\nmkdir -p ../include/CoreTransport/NSTransport\nmkdir -p ../include/CoreTransport/NSTURL\nmkdir -p ../include/CoreTransport/NSTReQL\n\ncp -rvf ./NSTransport/NSTConnection.h ../include/CoreTransport/NSTransport\ncp -rvf ./NSTransport/NSTCursor.h ../include/CoreTransport/NSTransport\ncp -rvf ./NSTransport/NSTQueue.h ../include/CoreTransport/NSTransport\n\ncp -rvf ./NSTURL/NSTURLCursor.h ../include/CoreTransport/NSTURL\ncp -rvf ./NSTURL/NSTURLRequest.h ../include/CoreTransport/NSTURL\ncp -rvf ./NSTURL/NSTURLSession.h ../include/CoreTransport/NSTURL\ncp -rvf ./NSTURL/NSTURLInterface.h ../include/CoreTransport/NSTURL\n\ncp -rvf ./NSTReQL/NSTReQLCursor.h ../include/CoreTransport/NSTReQL\ncp -rvf ./NSTReQL/NSTReQLQuery.h ../include/CoreTransport/NSTReQL\ncp -rvf ./NSTReQL/NSTReQLSession.h ../include/CoreTransport/NSTReQL\ncp -rvf ./NSTReQL/NSTReQLInterface.h ../include/CoreTransport/NSTReQL\n\n#Exposed API and Protocols extensions\ncp -rvf ./NSTransport.h ../include/CoreTransport/\ncp -rvf ./NSTURL.h ../include/CoreTransport/\ncp -rvf ./NSTReQL.h ../include/CoreTransport/\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		C735831228C5F54E0078CC40 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C735833228C5F69F0078CC40 /* NSTReQLInterface.m in Sources */,
+				C735833428C5F69F0078CC40 /* NSTConnection.m in Sources */,
+				C735837428C83EF50078CC40 /* NSTURLSession.m in Sources */,
+				C735832B28C5F69F0078CC40 /* NSTReQLSession.m in Sources */,
+				C735836C28C7704A0078CC40 /* NSTURLRequest.m in Sources */,
+				C735835928C754290078CC40 /* NSTReQLCursor.m in Sources */,
+				C735836E28C7704A0078CC40 /* NSTURLCursor.m in Sources */,
+				C735832C28C5F69F0078CC40 /* NSTCursor.m in Sources */,
+				C735832F28C5F69F0078CC40 /* NSTReQLQuery.m in Sources */,
+				C735835428C7425A0078CC40 /* NSTQueue.m in Sources */,
+				C735837928C83F090078CC40 /* NSTURLInterface.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C735833728C5FF800078CC40 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C709DB4728C9035300060F56 /* NSTCursor.m in Sources */,
+				C709DB4828C9035300060F56 /* NSTConnection.m in Sources */,
+				C709DB4928C9035300060F56 /* NSTReQLQuery.m in Sources */,
+				C709DB4A28C9035300060F56 /* NSTReQLSession.m in Sources */,
+				C709DB4B28C9035300060F56 /* NSTReQLInterface.m in Sources */,
+				C735836D28C7704A0078CC40 /* NSTURLRequest.m in Sources */,
+				C735835A28C754290078CC40 /* NSTReQLCursor.m in Sources */,
+				C735837528C83EF50078CC40 /* NSTURLSession.m in Sources */,
+				C735837A28C83F090078CC40 /* NSTURLInterface.m in Sources */,
+				C735835528C7425A0078CC40 /* NSTQueue.m in Sources */,
+				C735836F28C7704A0078CC40 /* NSTURLCursor.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		C735831C28C5F54E0078CC40 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		C735831D28C5F54E0078CC40 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		C735831F28C5F54E0078CC40 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = ECP6D49SS3;
+				EXECUTABLE_PREFIX = lib;
+				HEADER_SEARCH_PATHS = (
+					../include,
+					../include/CoreTransport,
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		C735832028C5F54E0078CC40 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = ECP6D49SS3;
+				EXECUTABLE_PREFIX = lib;
+				HEADER_SEARCH_PATHS = (
+					../include,
+					../include/CoreTransport,
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+		C735834228C5FF800078CC40 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = ECP6D49SS3;
+				HEADER_SEARCH_PATHS = (
+					../include,
+					../include/CoreTransport,
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		C735834328C5FF800078CC40 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = ECP6D49SS3;
+				HEADER_SEARCH_PATHS = (
+					../include,
+					../include/CoreTransport,
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		C735831028C5F54D0078CC40 /* Build configuration list for PBXProject "NSTransport" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C735831C28C5F54E0078CC40 /* Debug */,
+				C735831D28C5F54E0078CC40 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C735831E28C5F54E0078CC40 /* Build configuration list for PBXNativeTarget "NSTransport-OSX" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C735831F28C5F54E0078CC40 /* Debug */,
+				C735832028C5F54E0078CC40 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C735834128C5FF800078CC40 /* Build configuration list for PBXNativeTarget "NSTransport-iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C735834228C5FF800078CC40 /* Debug */,
+				C735834328C5FF800078CC40 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = C735830D28C5F54D0078CC40 /* Project object */;
+}

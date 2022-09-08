@@ -29,6 +29,37 @@ int kqueue_wait_with_timeout(int kqueue, struct kevent * kev, int numEvents, uin
     //struct kevent kev;
     return kevent(kqueue, NULL, 0, kev, numEvents, ts);
 }
+
+uintptr_t ct_event_queue_wait_with_timeout(int kqueue, struct kevent * kev, int16_t eventFilter, uintptr_t timeoutEvent, uintptr_t outOfRangeEvent, uintptr_t eventRangeStart, uintptr_t eventRangeEnd, uint32_t timeout)
+{
+    ////NSLog(@"wait for event with timeout");
+    struct timespec _ts;
+    struct timespec *ts = NULL;
+    if (timeout != UINT_MAX) {
+        ts = &_ts;
+        
+        ts->tv_sec = 0;//(timeout - (timeout % 1000)) / 1000;
+        ts->tv_nsec = (timeout /*% 1000*/);// * 1000;
+    }
+    
+    //while (1) {
+    //struct kevent kev;
+    //int n = kevent(kqueue, NULL, 0, &kev, 1, ts);
+    int n = kevent(kqueue, NULL, 0, kev, 1, ts);
+    if (n > 0) {
+        if (kev->filter == eventFilter && kev->ident >= eventRangeStart && kev->ident <= eventRangeEnd) {
+            return kev->ident;
+        }
+        return outOfRangeEvent;
+    }
+    //else {
+    //    break;
+    //}
+    // }
+    
+    return timeoutEvent;
+}
+
 #endif
 
 CTKernelQueue CTKernelQueueCreate(void)

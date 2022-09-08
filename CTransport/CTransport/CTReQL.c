@@ -1,5 +1,6 @@
 #include "../CTransport.h"
 
+/*
 //Pthread TLS context
 struct ReqlQueryContext *ReqlQueryGetContext(void) {
 
@@ -23,6 +24,7 @@ struct ReqlQueryContext *ReqlQueryGetContext(void) {
 	return NULL;
 #endif
 }
+*/
 
 /*
 

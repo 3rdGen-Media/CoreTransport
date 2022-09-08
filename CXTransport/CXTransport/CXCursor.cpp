@@ -1,5 +1,4 @@
 #include "../CXTransport.h"
-//#include "CXReQLCursor.h"
 
 using namespace CoreTransport;
 

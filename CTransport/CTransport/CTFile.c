@@ -12,7 +12,7 @@
 #include <assert.h>
 #endif
 
-CTRANSPORT_API CTRANSPORT_INLINE unsigned long ct_system_allocation_granularity()
+CTRANSPORT_API CTRANSPORT_INLINE unsigned long ct_system_allocation_granularity(void)
 {
 #ifdef _WIN32
 	SYSTEM_INFO  systemInfo;
@@ -288,9 +288,99 @@ CTRANSPORT_API CTRANSPORT_INLINE void*  ct_file_map_to_buffer( char ** buffer, o
     return (void*)*buffer;
 
 #else
-    return (void*)mmap(*buffer, (size_t)(filesize), filePrivelege, mapOptions, fileDescriptor, offset);
+    return (void*)mmap(*buffer, (size_t)(filesize), (int)filePrivelege, (int)mapOptions, fileDescriptor, offset);
 #endif
 }
+
+
+#ifdef __APPLE__
+
+void CTBundleFilePath(const char * filename, const char* fileExt, char * outputPath)
+{
+    // Get a reference to the main bundle
+    CFBundleRef mainBundle = CFBundleGetMainBundle();
+    assert(mainBundle);
+    
+    // Get a reference to the file's URL
+    CFStringRef cfFileString = CFStringCreateWithCString(kCFAllocatorDefault, filename, CFStringGetSystemEncoding());
+    CFStringRef cfFileExtString = CFStringCreateWithCString(NULL, fileExt, CFStringGetSystemEncoding());
+    
+    CFShow(cfFileString);
+    //CFShow(cfFileExtString);
+    CFURLRef bundleResourcesURL = CFBundleCopyResourceURL(mainBundle, cfFileString, cfFileExtString, NULL);
+    assert(bundleResourcesURL);
+    //CFStringRef bundleResourcesPath = CFURLCopyFileSystemPath(bundleResourcesURL, kCFURLPOSIXPathStyle);
+    //assert(bundleResourcesPath);
+    
+    // Convert the URL reference into a string reference
+    CFStringRef filePath = CFURLCopyFileSystemPath(bundleResourcesURL, kCFURLPOSIXPathStyle);
+    
+    // Get the system encoding method
+    CFStringEncoding encodingMethod = CFStringGetSystemEncoding();
+    
+    // Convert the string reference into a C string
+    const char *path = CFStringGetCStringPtr(filePath, encodingMethod);
+    
+    //strcpy(outputPath, path);
+    memcpy(outputPath, path, strlen(path));
+    outputPath[strlen(path)+1] = '\0';
+    
+    //fprintf(stderr, "File is located at %s\n", path);
+    
+    CFRelease(bundleResourcesURL);
+    //CFRelease(bundleResourcesPath);
+    CFRelease(filePath);
+    CFRelease(cfFileExtString);
+    CFRelease(cfFileString);
+    
+    return;//(char*)path;
+    
+}
+
+void CTFilePathInDocumentsDir(const char * filename, char * outputPath)
+{
+    
+    CFBundleRef         bundle;
+    CFURLRef            url;
+    CFStringRef         bundlePath;
+    CFStringRef         tmpRelPath;
+    CFMutableStringRef  filePath;
+    
+    CFStringRef cfFileString = CFStringCreateWithCString(kCFAllocatorDefault, filename, CFStringGetSystemEncoding());
+    //CFStringRef cfFileExtString = CFStringCreateWithCString(NULL, fileExt, CFStringGetSystemEncoding());
+
+    
+    bundle      = CFBundleGetMainBundle();
+    url         = CFBundleCopyBundleURL( bundle );
+    bundlePath  = CFURLCopyFileSystemPath( url, kCFURLPOSIXPathStyle );
+    tmpRelPath  = CFSTR( "/../Documents/" );
+    filePath     = CFStringCreateMutable( kCFAllocatorDefault, CFStringGetLength( bundlePath ) + CFStringGetLength( tmpRelPath ) + CFStringGetLength(cfFileString) );
+    
+    CFStringAppend( filePath, bundlePath );
+    CFStringAppend( filePath, tmpRelPath );
+    CFStringAppend( filePath, cfFileString );
+    //CFStringAppend( tmpPath, cfFileExtString );
+
+    //meshPath = [meshPath stringByAppendingPathComponent:@"MK2Grenade_OBJ/MetalGrenade.obj"];
+    
+    //CFShow( filePath );
+    const char *path = CFStringGetCStringPtr(( filePath ), CFStringGetSystemEncoding());
+    //printf("path = %s\n", path);
+    memcpy(outputPath, path, strlen(path));
+    outputPath[strlen(path)+1] = '\0';
+    
+    //CFRelease(cfFileExtString);
+    CFRelease(cfFileString);
+
+    CFRelease( url );
+    CFRelease( bundlePath );
+    CFRelease( filePath );
+    
+    //return (char*) path;
+    
+}
+
+#endif
 
 #ifdef __WIN32
 CTRANSPORT_API CTRANSPORT_INLINE uint64_t ct_system_utc()

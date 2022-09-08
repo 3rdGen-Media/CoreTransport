@@ -57,9 +57,11 @@
 extern "C" {
 #endif
 
+#ifndef __APPLE__
 #ifndef OSStatus
 typedef signed int OSStatus;
-static const OSStatus noErr = 0;
+//static const OSStatus noErr = 0;
+#endif
 #endif
 
 
@@ -172,11 +174,11 @@ static const OSStatus noErr = 0;
 
 //Base 64 <-> UTF8 helper functions
 CA_SCRAM_API CA_SCRAM_INLINE void * cr_base64_to_utf8(const char *inputBuffer,size_t length,size_t *outputLength);
-CA_SCRAM_API CA_SCRAM_INLINE char * cr_utf8_to_base64(const void *buffer,size_t length,bool separateLines,size_t *outputLength);
+CA_SCRAM_API CA_SCRAM_INLINE char * cr_utf8_to_base64(const void *buffer,size_t length, int separateLines,size_t *outputLength);
     
 //Init
-CA_SCRAM_API CA_SCRAM_INLINE void ca_scram_init();
-CA_SCRAM_API CA_SCRAM_INLINE void ca_scram_cleanup();
+CA_SCRAM_API CA_SCRAM_INLINE void ca_scram_init(void);
+CA_SCRAM_API CA_SCRAM_INLINE void ca_scram_cleanup(void);
 
 //Generate UTF-8 Nonce
 CA_SCRAM_API CA_SCRAM_INLINE OSStatus ca_scram_gen_rand_bytes(char * byteBuffer, size_t numBytes);

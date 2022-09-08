@@ -118,7 +118,7 @@ typedef struct CTRANSPORT_PACK_ATTRIBUTE CTError
 }CTError;
 
 #ifndef OSStatus
-typedef signed int OSStatus;
+//typedef signed int OSStatus;
 //static const OSStatus noErr = 0;
 #endif
 

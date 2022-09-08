@@ -1,0 +1,583 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 55;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		C70DB77028C0983200D6D5D9 /* CXReQL.h in Headers */ = {isa = PBXBuildFile; fileRef = C70DB75428C0983100D6D5D9 /* CXReQL.h */; };
+		C70DB77128C0983200D6D5D9 /* CXURL.h in Headers */ = {isa = PBXBuildFile; fileRef = C70DB75528C0983100D6D5D9 /* CXURL.h */; };
+		C70DB77228C0983200D6D5D9 /* CXQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C70DB75728C0983100D6D5D9 /* CXQueue.cpp */; };
+		C70DB77328C0983200D6D5D9 /* CXConnection.h in Headers */ = {isa = PBXBuildFile; fileRef = C70DB75828C0983100D6D5D9 /* CXConnection.h */; };
+		C70DB77428C0983200D6D5D9 /* CXConnection.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C70DB75928C0983100D6D5D9 /* CXConnection.cpp */; };
+		C70DB77528C0983200D6D5D9 /* CXQueue.h in Headers */ = {isa = PBXBuildFile; fileRef = C70DB75A28C0983100D6D5D9 /* CXQueue.h */; };
+		C70DB77628C0983200D6D5D9 /* CXCursor.h in Headers */ = {isa = PBXBuildFile; fileRef = C70DB75B28C0983100D6D5D9 /* CXCursor.h */; };
+		C70DB77728C0983200D6D5D9 /* CXCursor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C70DB75C28C0983100D6D5D9 /* CXCursor.cpp */; };
+		C70DB77828C0983200D6D5D9 /* CXReQLCursor.h in Headers */ = {isa = PBXBuildFile; fileRef = C70DB75E28C0983100D6D5D9 /* CXReQLCursor.h */; };
+		C70DB77928C0983200D6D5D9 /* CXReQLCursor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C70DB75F28C0983100D6D5D9 /* CXReQLCursor.cpp */; };
+		C70DB77A28C0983200D6D5D9 /* CXReQLQuery.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C70DB76028C0983100D6D5D9 /* CXReQLQuery.cpp */; };
+		C70DB77B28C0983200D6D5D9 /* CXReQLInterface.h in Headers */ = {isa = PBXBuildFile; fileRef = C70DB76128C0983100D6D5D9 /* CXReQLInterface.h */; };
+		C70DB77C28C0983200D6D5D9 /* CXReQLInterface.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C70DB76228C0983100D6D5D9 /* CXReQLInterface.cpp */; };
+		C70DB77D28C0983200D6D5D9 /* CXReQLSession.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C70DB76328C0983100D6D5D9 /* CXReQLSession.cpp */; };
+		C70DB77E28C0983200D6D5D9 /* CXReQLQuery.h in Headers */ = {isa = PBXBuildFile; fileRef = C70DB76428C0983100D6D5D9 /* CXReQLQuery.h */; };
+		C70DB77F28C0983200D6D5D9 /* CXReQLSession.h in Headers */ = {isa = PBXBuildFile; fileRef = C70DB76528C0983100D6D5D9 /* CXReQLSession.h */; };
+		C70DB78028C0983200D6D5D9 /* CXTransport.h in Headers */ = {isa = PBXBuildFile; fileRef = C70DB76628C0983100D6D5D9 /* CXTransport.h */; };
+		C70DB78128C0983200D6D5D9 /* CXURLRequest.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C70DB76828C0983200D6D5D9 /* CXURLRequest.cpp */; };
+		C70DB78228C0983200D6D5D9 /* CXURLRequest.h in Headers */ = {isa = PBXBuildFile; fileRef = C70DB76928C0983200D6D5D9 /* CXURLRequest.h */; };
+		C70DB78328C0983200D6D5D9 /* CXURLCursor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C70DB76A28C0983200D6D5D9 /* CXURLCursor.cpp */; };
+		C70DB78428C0983200D6D5D9 /* CXURLCursor.h in Headers */ = {isa = PBXBuildFile; fileRef = C70DB76B28C0983200D6D5D9 /* CXURLCursor.h */; };
+		C70DB78528C0983200D6D5D9 /* CXURLInterface.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C70DB76C28C0983200D6D5D9 /* CXURLInterface.cpp */; };
+		C70DB78628C0983200D6D5D9 /* CXURLSession.h in Headers */ = {isa = PBXBuildFile; fileRef = C70DB76D28C0983200D6D5D9 /* CXURLSession.h */; };
+		C70DB78728C0983200D6D5D9 /* CXURLInterface.h in Headers */ = {isa = PBXBuildFile; fileRef = C70DB76E28C0983200D6D5D9 /* CXURLInterface.h */; };
+		C70DB78828C0983200D6D5D9 /* CXURLSession.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C70DB76F28C0983200D6D5D9 /* CXURLSession.cpp */; };
+		C7FEE54D28C4980D00F75312 /* CXQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C70DB75728C0983100D6D5D9 /* CXQueue.cpp */; };
+		C7FEE54E28C4980D00F75312 /* CXConnection.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C70DB75928C0983100D6D5D9 /* CXConnection.cpp */; };
+		C7FEE54F28C4980D00F75312 /* CXCursor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C70DB75C28C0983100D6D5D9 /* CXCursor.cpp */; };
+		C7FEE55028C4980D00F75312 /* CXReQLCursor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C70DB75F28C0983100D6D5D9 /* CXReQLCursor.cpp */; };
+		C7FEE55128C4980D00F75312 /* CXReQLQuery.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C70DB76028C0983100D6D5D9 /* CXReQLQuery.cpp */; };
+		C7FEE55228C4980D00F75312 /* CXReQLInterface.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C70DB76228C0983100D6D5D9 /* CXReQLInterface.cpp */; };
+		C7FEE55328C4980D00F75312 /* CXReQLSession.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C70DB76328C0983100D6D5D9 /* CXReQLSession.cpp */; };
+		C7FEE55428C4980D00F75312 /* CXURLRequest.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C70DB76828C0983200D6D5D9 /* CXURLRequest.cpp */; };
+		C7FEE55528C4980D00F75312 /* CXURLCursor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C70DB76A28C0983200D6D5D9 /* CXURLCursor.cpp */; };
+		C7FEE55628C4980D00F75312 /* CXURLSession.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C70DB76F28C0983200D6D5D9 /* CXURLSession.cpp */; };
+		C7FEE55728C4980D00F75312 /* CXURLInterface.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C70DB76C28C0983200D6D5D9 /* CXURLInterface.cpp */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		C70DB74928C097B500D6D5D9 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "include/$(PRODUCT_NAME)";
+			dstSubfolderSpec = 16;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		C70DB74028C0975C00D6D5D9 /* libCXTransport-OSX.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libCXTransport-OSX.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		C70DB74B28C097B500D6D5D9 /* libCXTransport-iOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libCXTransport-iOS.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		C70DB75428C0983100D6D5D9 /* CXReQL.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CXReQL.h; sourceTree = "<group>"; };
+		C70DB75528C0983100D6D5D9 /* CXURL.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CXURL.h; sourceTree = "<group>"; };
+		C70DB75728C0983100D6D5D9 /* CXQueue.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CXQueue.cpp; sourceTree = "<group>"; };
+		C70DB75828C0983100D6D5D9 /* CXConnection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CXConnection.h; sourceTree = "<group>"; };
+		C70DB75928C0983100D6D5D9 /* CXConnection.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CXConnection.cpp; sourceTree = "<group>"; };
+		C70DB75A28C0983100D6D5D9 /* CXQueue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CXQueue.h; sourceTree = "<group>"; };
+		C70DB75B28C0983100D6D5D9 /* CXCursor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CXCursor.h; sourceTree = "<group>"; };
+		C70DB75C28C0983100D6D5D9 /* CXCursor.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CXCursor.cpp; sourceTree = "<group>"; };
+		C70DB75E28C0983100D6D5D9 /* CXReQLCursor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CXReQLCursor.h; sourceTree = "<group>"; };
+		C70DB75F28C0983100D6D5D9 /* CXReQLCursor.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CXReQLCursor.cpp; sourceTree = "<group>"; };
+		C70DB76028C0983100D6D5D9 /* CXReQLQuery.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CXReQLQuery.cpp; sourceTree = "<group>"; };
+		C70DB76128C0983100D6D5D9 /* CXReQLInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CXReQLInterface.h; sourceTree = "<group>"; };
+		C70DB76228C0983100D6D5D9 /* CXReQLInterface.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CXReQLInterface.cpp; sourceTree = "<group>"; };
+		C70DB76328C0983100D6D5D9 /* CXReQLSession.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CXReQLSession.cpp; sourceTree = "<group>"; };
+		C70DB76428C0983100D6D5D9 /* CXReQLQuery.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CXReQLQuery.h; sourceTree = "<group>"; };
+		C70DB76528C0983100D6D5D9 /* CXReQLSession.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CXReQLSession.h; sourceTree = "<group>"; };
+		C70DB76628C0983100D6D5D9 /* CXTransport.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CXTransport.h; sourceTree = "<group>"; };
+		C70DB76828C0983200D6D5D9 /* CXURLRequest.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CXURLRequest.cpp; sourceTree = "<group>"; };
+		C70DB76928C0983200D6D5D9 /* CXURLRequest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CXURLRequest.h; sourceTree = "<group>"; };
+		C70DB76A28C0983200D6D5D9 /* CXURLCursor.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CXURLCursor.cpp; sourceTree = "<group>"; };
+		C70DB76B28C0983200D6D5D9 /* CXURLCursor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CXURLCursor.h; sourceTree = "<group>"; };
+		C70DB76C28C0983200D6D5D9 /* CXURLInterface.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CXURLInterface.cpp; sourceTree = "<group>"; };
+		C70DB76D28C0983200D6D5D9 /* CXURLSession.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CXURLSession.h; sourceTree = "<group>"; };
+		C70DB76E28C0983200D6D5D9 /* CXURLInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CXURLInterface.h; sourceTree = "<group>"; };
+		C70DB76F28C0983200D6D5D9 /* CXURLSession.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CXURLSession.cpp; sourceTree = "<group>"; };
+		C735834428C600130078CC40 /* libCTransport-OSX.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = "libCTransport-OSX.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		C7FEE58228C4C7C600F75312 /* libCTransport-iOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = "libCTransport-iOS.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		C7FEE58428C4C7F400F75312 /* libwolfssl_ios.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libwolfssl_ios.a; path = ../../3rdParty/wolfssl/Products/libwolfssl_ios.a; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		C70DB73E28C0975C00D6D5D9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C70DB74828C097B500D6D5D9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		C70DB73728C0975C00D6D5D9 = {
+			isa = PBXGroup;
+			children = (
+				C70DB75628C0983100D6D5D9 /* CXTransport */,
+				C70DB75D28C0983100D6D5D9 /* CXReQL */,
+				C70DB76728C0983200D6D5D9 /* CXURL */,
+				C70DB75428C0983100D6D5D9 /* CXReQL.h */,
+				C70DB76628C0983100D6D5D9 /* CXTransport.h */,
+				C70DB75528C0983100D6D5D9 /* CXURL.h */,
+				C70DB74128C0975C00D6D5D9 /* Products */,
+				C7FEE58128C4C7C600F75312 /* Frameworks */,
+			);
+			sourceTree = "<group>";
+		};
+		C70DB74128C0975C00D6D5D9 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				C70DB74028C0975C00D6D5D9 /* libCXTransport-OSX.a */,
+				C70DB74B28C097B500D6D5D9 /* libCXTransport-iOS.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		C70DB75628C0983100D6D5D9 /* CXTransport */ = {
+			isa = PBXGroup;
+			children = (
+				C70DB75A28C0983100D6D5D9 /* CXQueue.h */,
+				C70DB75728C0983100D6D5D9 /* CXQueue.cpp */,
+				C70DB75828C0983100D6D5D9 /* CXConnection.h */,
+				C70DB75928C0983100D6D5D9 /* CXConnection.cpp */,
+				C70DB75B28C0983100D6D5D9 /* CXCursor.h */,
+				C70DB75C28C0983100D6D5D9 /* CXCursor.cpp */,
+			);
+			path = CXTransport;
+			sourceTree = "<group>";
+		};
+		C70DB75D28C0983100D6D5D9 /* CXReQL */ = {
+			isa = PBXGroup;
+			children = (
+				C70DB75E28C0983100D6D5D9 /* CXReQLCursor.h */,
+				C70DB75F28C0983100D6D5D9 /* CXReQLCursor.cpp */,
+				C70DB76428C0983100D6D5D9 /* CXReQLQuery.h */,
+				C70DB76028C0983100D6D5D9 /* CXReQLQuery.cpp */,
+				C70DB76528C0983100D6D5D9 /* CXReQLSession.h */,
+				C70DB76328C0983100D6D5D9 /* CXReQLSession.cpp */,
+				C70DB76128C0983100D6D5D9 /* CXReQLInterface.h */,
+				C70DB76228C0983100D6D5D9 /* CXReQLInterface.cpp */,
+			);
+			path = CXReQL;
+			sourceTree = "<group>";
+		};
+		C70DB76728C0983200D6D5D9 /* CXURL */ = {
+			isa = PBXGroup;
+			children = (
+				C70DB76B28C0983200D6D5D9 /* CXURLCursor.h */,
+				C70DB76A28C0983200D6D5D9 /* CXURLCursor.cpp */,
+				C70DB76928C0983200D6D5D9 /* CXURLRequest.h */,
+				C70DB76828C0983200D6D5D9 /* CXURLRequest.cpp */,
+				C70DB76D28C0983200D6D5D9 /* CXURLSession.h */,
+				C70DB76F28C0983200D6D5D9 /* CXURLSession.cpp */,
+				C70DB76E28C0983200D6D5D9 /* CXURLInterface.h */,
+				C70DB76C28C0983200D6D5D9 /* CXURLInterface.cpp */,
+			);
+			path = CXURL;
+			sourceTree = "<group>";
+		};
+		C7FEE58128C4C7C600F75312 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				C735834428C600130078CC40 /* libCTransport-OSX.a */,
+				C7FEE58428C4C7F400F75312 /* libwolfssl_ios.a */,
+				C7FEE58228C4C7C600F75312 /* libCTransport-iOS.a */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		C70DB73C28C0975C00D6D5D9 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C70DB77E28C0983200D6D5D9 /* CXReQLQuery.h in Headers */,
+				C70DB78728C0983200D6D5D9 /* CXURLInterface.h in Headers */,
+				C70DB77F28C0983200D6D5D9 /* CXReQLSession.h in Headers */,
+				C70DB77028C0983200D6D5D9 /* CXReQL.h in Headers */,
+				C70DB78628C0983200D6D5D9 /* CXURLSession.h in Headers */,
+				C70DB78028C0983200D6D5D9 /* CXTransport.h in Headers */,
+				C70DB77828C0983200D6D5D9 /* CXReQLCursor.h in Headers */,
+				C70DB77B28C0983200D6D5D9 /* CXReQLInterface.h in Headers */,
+				C70DB77328C0983200D6D5D9 /* CXConnection.h in Headers */,
+				C70DB77628C0983200D6D5D9 /* CXCursor.h in Headers */,
+				C70DB77128C0983200D6D5D9 /* CXURL.h in Headers */,
+				C70DB78228C0983200D6D5D9 /* CXURLRequest.h in Headers */,
+				C70DB77528C0983200D6D5D9 /* CXQueue.h in Headers */,
+				C70DB78428C0983200D6D5D9 /* CXURLCursor.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		C70DB73F28C0975C00D6D5D9 /* CXTransport-OSX */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C70DB74428C0975C00D6D5D9 /* Build configuration list for PBXNativeTarget "CXTransport-OSX" */;
+			buildPhases = (
+				C70DB73C28C0975C00D6D5D9 /* Headers */,
+				C70DB73D28C0975C00D6D5D9 /* Sources */,
+				C70DB73E28C0975C00D6D5D9 /* Frameworks */,
+				C70DB78928C0987D00D6D5D9 /* ShellScript */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "CXTransport-OSX";
+			productName = CXTransport;
+			productReference = C70DB74028C0975C00D6D5D9 /* libCXTransport-OSX.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+		C70DB74A28C097B500D6D5D9 /* CXTransport-iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C70DB75128C097B500D6D5D9 /* Build configuration list for PBXNativeTarget "CXTransport-iOS" */;
+			buildPhases = (
+				C70DB74728C097B500D6D5D9 /* Sources */,
+				C70DB74828C097B500D6D5D9 /* Frameworks */,
+				C70DB74928C097B500D6D5D9 /* CopyFiles */,
+				C7FEE54C28C497DA00F75312 /* ShellScript */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "CXTransport-iOS";
+			productName = "CXTransport-iOS";
+			productReference = C70DB74B28C097B500D6D5D9 /* libCXTransport-iOS.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		C70DB73828C0975C00D6D5D9 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1340;
+				TargetAttributes = {
+					C70DB73F28C0975C00D6D5D9 = {
+						CreatedOnToolsVersion = 13.4.1;
+					};
+					C70DB74A28C097B500D6D5D9 = {
+						CreatedOnToolsVersion = 13.4.1;
+					};
+				};
+			};
+			buildConfigurationList = C70DB73B28C0975C00D6D5D9 /* Build configuration list for PBXProject "CXTransport" */;
+			compatibilityVersion = "Xcode 13.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = C70DB73728C0975C00D6D5D9;
+			productRefGroup = C70DB74128C0975C00D6D5D9 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				C70DB73F28C0975C00D6D5D9 /* CXTransport-OSX */,
+				C70DB74A28C097B500D6D5D9 /* CXTransport-iOS */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		C70DB78928C0987D00D6D5D9 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\n#just use mkdir -p option\nmkdir -p ../include/CoreTransport/CXTransport\nmkdir -p ../include/CoreTransport/CXURL\nmkdir -p ../include/CoreTransport/CXReQL\n\n#include \"CXTransport/CXConnection.h\"\n#include \"CXTransport/CXCursor.h\"\n#include \"CXTransport/CXQueue.h\"\n\n#include \"CXURL/CXURLCursor.h\"\n#include \"CXURL/CXURLRequest.h\"\n#include \"CXURL/CXURLSession.h\"\n#include \"CXURL/CXURLInterface.h\"\n\ncp -rvf ./CXTransport/CXConnection.h ../include/CoreTransport/CXTransport\ncp -rvf ./CXTransport/CXCursor.h ../include/CoreTransport/CXTransport\ncp -rvf ./CXTransport/CXQueue.h ../include/CoreTransport/CXTransport\n\ncp -rvf ./CXURL/CXURLCursor.h ../include/CoreTransport/CXURL\ncp -rvf ./CXURL/CXURLRequest.h ../include/CoreTransport/CXURL\ncp -rvf ./CXURL/CXURLSession.h ../include/CoreTransport/CXURL\ncp -rvf ./CXURL/CXURLInterface.h ../include/CoreTransport/CXURL\n\ncp -rvf ./CXReQL/CXReQLCursor.h ../include/CoreTransport/CXReQL\ncp -rvf ./CXReQL/CXReQLQuery.h ../include/CoreTransport/CXReQL\ncp -rvf ./CXReQL/CXReQLSession.h ../include/CoreTransport/CXReQL\ncp -rvf ./CXReQL/CXReQLInterface.h ../include/CoreTransport/CXReQL\n\n#Exposed API and Protocols extensions\ncp -rvf ./CXTransport.h ../include/CoreTransport/\ncp -rvf ./CXURL.h ../include/CoreTransport/\ncp -rvf ./CXReQL.h ../include/CoreTransport/\n";
+		};
+		C7FEE54C28C497DA00F75312 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "#just use mkdir -p option\nmkdir -p ../include/CoreTransport/CXTransport\nmkdir -p ../include/CoreTransport/CXURL\nmkdir -p ../include/CoreTransport/CXReQL\n\n#include \"CXTransport/CXConnection.h\"\n#include \"CXTransport/CXCursor.h\"\n#include \"CXTransport/CXQueue.h\"\n\n#include \"CXURL/CXURLCursor.h\"\n#include \"CXURL/CXURLRequest.h\"\n#include \"CXURL/CXURLSession.h\"\n#include \"CXURL/CXURLInterface.h\"\n\ncp -rvf ./CXTransport/CXConnection.h ../include/CoreTransport/CXTransport\ncp -rvf ./CXTransport/CXCursor.h ../include/CoreTransport/CXTransport\ncp -rvf ./CXTransport/CXQueue.h ../include/CoreTransport/CXTransport\n\ncp -rvf ./CXURL/CXURLCursor.h ../include/CoreTransport/CXURL\ncp -rvf ./CXURL/CXURLRequest.h ../include/CoreTransport/CXURL\ncp -rvf ./CXURL/CXURLSession.h ../include/CoreTransport/CXURL\ncp -rvf ./CXURL/CXURLInterface.h ../include/CoreTransport/CXURL\n\ncp -rvf ./CXReQL/CXReQLCursor.h ../include/CoreTransport/CXReQL\ncp -rvf ./CXReQL/CXReQLQuery.h ../include/CoreTransport/CXReQL\ncp -rvf ./CXReQL/CXReQLSession.h ../include/CoreTransport/CXReQL\ncp -rvf ./CXReQL/CXReQLInterface.h ../include/CoreTransport/CXReQL\n\n#Exposed API and Protocols extensions\ncp -rvf ./CXTransport.h ../include/CoreTransport/\ncp -rvf ./CXURL.h ../include/CoreTransport/\ncp -rvf ./CXReQL.h ../include/CoreTransport/\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		C70DB73D28C0975C00D6D5D9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C70DB78128C0983200D6D5D9 /* CXURLRequest.cpp in Sources */,
+				C70DB77728C0983200D6D5D9 /* CXCursor.cpp in Sources */,
+				C70DB78828C0983200D6D5D9 /* CXURLSession.cpp in Sources */,
+				C70DB78528C0983200D6D5D9 /* CXURLInterface.cpp in Sources */,
+				C70DB77D28C0983200D6D5D9 /* CXReQLSession.cpp in Sources */,
+				C70DB77428C0983200D6D5D9 /* CXConnection.cpp in Sources */,
+				C70DB77928C0983200D6D5D9 /* CXReQLCursor.cpp in Sources */,
+				C70DB77228C0983200D6D5D9 /* CXQueue.cpp in Sources */,
+				C70DB77C28C0983200D6D5D9 /* CXReQLInterface.cpp in Sources */,
+				C70DB78328C0983200D6D5D9 /* CXURLCursor.cpp in Sources */,
+				C70DB77A28C0983200D6D5D9 /* CXReQLQuery.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C70DB74728C097B500D6D5D9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C7FEE54D28C4980D00F75312 /* CXQueue.cpp in Sources */,
+				C7FEE54E28C4980D00F75312 /* CXConnection.cpp in Sources */,
+				C7FEE54F28C4980D00F75312 /* CXCursor.cpp in Sources */,
+				C7FEE55028C4980D00F75312 /* CXReQLCursor.cpp in Sources */,
+				C7FEE55128C4980D00F75312 /* CXReQLQuery.cpp in Sources */,
+				C7FEE55228C4980D00F75312 /* CXReQLInterface.cpp in Sources */,
+				C7FEE55328C4980D00F75312 /* CXReQLSession.cpp in Sources */,
+				C7FEE55428C4980D00F75312 /* CXURLRequest.cpp in Sources */,
+				C7FEE55528C4980D00F75312 /* CXURLCursor.cpp in Sources */,
+				C7FEE55628C4980D00F75312 /* CXURLSession.cpp in Sources */,
+				C7FEE55728C4980D00F75312 /* CXURLInterface.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		C70DB74228C0975C00D6D5D9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		C70DB74328C0975C00D6D5D9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		C70DB74528C0975C00D6D5D9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = ECP6D49SS3;
+				EXECUTABLE_PREFIX = lib;
+				HEADER_SEARCH_PATHS = (
+					../include,
+					../include/CoreTransport,
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		C70DB74628C0975C00D6D5D9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = ECP6D49SS3;
+				EXECUTABLE_PREFIX = lib;
+				HEADER_SEARCH_PATHS = (
+					../include,
+					../include/CoreTransport,
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+		C70DB75228C097B500D6D5D9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = ECP6D49SS3;
+				GCC_PREPROCESSOR_DEFINITIONS = "DEBUG=1";
+				HEADER_SEARCH_PATHS = (
+					../include,
+					../include/CoreTransport,
+					../../3rdParty/wolfssl/Products/include,
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				LIBRARY_SEARCH_PATHS = ../../3rdParty/wolfssl/Products;
+				ONLY_ACTIVE_ARCH = NO;
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		C70DB75328C097B500D6D5D9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = ECP6D49SS3;
+				GCC_PREPROCESSOR_DEFINITIONS = "";
+				HEADER_SEARCH_PATHS = (
+					../include,
+					../include/CoreTransport,
+					../../3rdParty/wolfssl/Products/include,
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				LIBRARY_SEARCH_PATHS = ../../3rdParty/wolfssl/Products;
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		C70DB73B28C0975C00D6D5D9 /* Build configuration list for PBXProject "CXTransport" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C70DB74228C0975C00D6D5D9 /* Debug */,
+				C70DB74328C0975C00D6D5D9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C70DB74428C0975C00D6D5D9 /* Build configuration list for PBXNativeTarget "CXTransport-OSX" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C70DB74528C0975C00D6D5D9 /* Debug */,
+				C70DB74628C0975C00D6D5D9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C70DB75128C097B500D6D5D9 /* Build configuration list for PBXNativeTarget "CXTransport-iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C70DB75228C097B500D6D5D9 /* Debug */,
+				C70DB75328C097B500D6D5D9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = C70DB73828C0975C00D6D5D9 /* Project object */;
+}

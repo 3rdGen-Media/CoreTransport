@@ -1,0 +1,438 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 55;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		C7A8AB56288BC9DE00913B44 /* ca_scram.h in Headers */ = {isa = PBXBuildFile; fileRef = C7A8AB54288BC9DE00913B44 /* ca_scram.h */; };
+		C7A8AB57288BC9DE00913B44 /* ca_scram.c in Sources */ = {isa = PBXBuildFile; fileRef = C7A8AB55288BC9DE00913B44 /* ca_scram.c */; };
+		C7A8AB5E288BCA1700913B44 /* ca_scram.c in Sources */ = {isa = PBXBuildFile; fileRef = C7A8AB55288BC9DE00913B44 /* ca_scram.c */; };
+		C7A8AB60288BCA2200913B44 /* ca_scram.h in Headers */ = {isa = PBXBuildFile; fileRef = C7A8AB54288BC9DE00913B44 /* ca_scram.h */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		C7A8AA0B288BAEF800913B44 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "include/$(PRODUCT_NAME)";
+			dstSubfolderSpec = 16;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		C7A8AA01288BAE0F00913B44 /* libCAuth-OSX.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libCAuth-OSX.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		C7A8AA0D288BAEF800913B44 /* libCAuth-iOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libCAuth-iOS.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		C7A8AB54288BC9DE00913B44 /* ca_scram.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ca_scram.h; sourceTree = "<group>"; };
+		C7A8AB55288BC9DE00913B44 /* ca_scram.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ca_scram.c; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		C7A8A9FF288BAE0F00913B44 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C7A8AA0A288BAEF800913B44 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		C7A8A9F8288BAE0F00913B44 = {
+			isa = PBXGroup;
+			children = (
+				C7A8AB53288BC9DE00913B44 /* CAuth */,
+				C7A8AA02288BAE0F00913B44 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		C7A8AA02288BAE0F00913B44 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				C7A8AA01288BAE0F00913B44 /* libCAuth-OSX.a */,
+				C7A8AA0D288BAEF800913B44 /* libCAuth-iOS.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		C7A8AB53288BC9DE00913B44 /* CAuth */ = {
+			isa = PBXGroup;
+			children = (
+				C7A8AB54288BC9DE00913B44 /* ca_scram.h */,
+				C7A8AB55288BC9DE00913B44 /* ca_scram.c */,
+			);
+			path = CAuth;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		C7A8A9FD288BAE0F00913B44 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C7A8AB56288BC9DE00913B44 /* ca_scram.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C7A8AB5F288BCA1E00913B44 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C7A8AB60288BCA2200913B44 /* ca_scram.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		C7A8AA00288BAE0F00913B44 /* CAuth-OSX */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C7A8AA05288BAE0F00913B44 /* Build configuration list for PBXNativeTarget "CAuth-OSX" */;
+			buildPhases = (
+				C7A8A9FD288BAE0F00913B44 /* Headers */,
+				C7A8A9FE288BAE0F00913B44 /* Sources */,
+				C7A8A9FF288BAE0F00913B44 /* Frameworks */,
+				C7A8AA16288BAF7400913B44 /* ShellScript */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "CAuth-OSX";
+			productName = CAuth;
+			productReference = C7A8AA01288BAE0F00913B44 /* libCAuth-OSX.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+		C7A8AA0C288BAEF800913B44 /* CAuth-iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C7A8AA13288BAEF800913B44 /* Build configuration list for PBXNativeTarget "CAuth-iOS" */;
+			buildPhases = (
+				C7A8AB5F288BCA1E00913B44 /* Headers */,
+				C7A8AA09288BAEF800913B44 /* Sources */,
+				C7A8AA0A288BAEF800913B44 /* Frameworks */,
+				C7A8AA0B288BAEF800913B44 /* CopyFiles */,
+				C7A8AA17288BB03300913B44 /* ShellScript */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "CAuth-iOS";
+			productName = CAuth;
+			productReference = C7A8AA0D288BAEF800913B44 /* libCAuth-iOS.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		C7A8A9F9288BAE0F00913B44 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1340;
+				TargetAttributes = {
+					C7A8AA00288BAE0F00913B44 = {
+						CreatedOnToolsVersion = 13.4.1;
+					};
+					C7A8AA0C288BAEF800913B44 = {
+						CreatedOnToolsVersion = 13.4.1;
+					};
+				};
+			};
+			buildConfigurationList = C7A8A9FC288BAE0F00913B44 /* Build configuration list for PBXProject "CAuth" */;
+			compatibilityVersion = "Xcode 13.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = C7A8A9F8288BAE0F00913B44;
+			productRefGroup = C7A8AA02288BAE0F00913B44 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				C7A8AA00288BAE0F00913B44 /* CAuth-OSX */,
+				C7A8AA0C288BAEF800913B44 /* CAuth-iOS */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		C7A8AA16288BAF7400913B44 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "#create include dir for crUtils if it doesn't exist before the copy phase\n#if [!-d ../include/CoreRender/crUtils ]; then\n#mkdir ../include/CoreRender/crUtils\n#fi\n#just use mkdir -p option\nmkdir -p ../include/CoreTransport/CAuth\n\ncp -rvf ./CAuth/\\ca_scram.h ../include/CoreTransport/CAuth\n\n#find ./crUtils '.h' -exec cp -vuni '{}' \"../include/CoreRender/crUtils\" \";\"\n#cp -rvf crSystem.h ../include/CoreRender/\n";
+		};
+		C7A8AA17288BB03300913B44 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\n#just use mkdir -p option\nmkdir -p ../include/CoreTransport/CAuth\n\ncp -rvf ./CAuth/\\ca_scram.h ../include/CoreTransport/CAuth\n\n#find ./crUtils '.h' -exec cp -vuni '{}' \"../include/CoreRender/crUtils\" \";\"\n#cp -rvf crSystem.h ../include/CoreRender/\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		C7A8A9FE288BAE0F00913B44 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C7A8AB57288BC9DE00913B44 /* ca_scram.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C7A8AA09288BAEF800913B44 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C7A8AB5E288BCA1700913B44 /* ca_scram.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		C7A8AA03288BAE0F00913B44 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		C7A8AA04288BAE0F00913B44 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		C7A8AA06288BAE0F00913B44 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = ECP6D49SS3;
+				EXECUTABLE_PREFIX = lib;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		C7A8AA07288BAE0F00913B44 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = ECP6D49SS3;
+				EXECUTABLE_PREFIX = lib;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+		C7A8AA14288BAEF800913B44 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = ECP6D49SS3;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				ONLY_ACTIVE_ARCH = YES;
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		C7A8AA15288BAEF800913B44 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = ECP6D49SS3;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				ONLY_ACTIVE_ARCH = YES;
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		C7A8A9FC288BAE0F00913B44 /* Build configuration list for PBXProject "CAuth" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C7A8AA03288BAE0F00913B44 /* Debug */,
+				C7A8AA04288BAE0F00913B44 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C7A8AA05288BAE0F00913B44 /* Build configuration list for PBXNativeTarget "CAuth-OSX" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C7A8AA06288BAE0F00913B44 /* Debug */,
+				C7A8AA07288BAE0F00913B44 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C7A8AA13288BAEF800913B44 /* Build configuration list for PBXNativeTarget "CAuth-iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C7A8AA14288BAEF800913B44 /* Debug */,
+				C7A8AA15288BAEF800913B44 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = C7A8A9F9288BAE0F00913B44 /* Project object */;
+}

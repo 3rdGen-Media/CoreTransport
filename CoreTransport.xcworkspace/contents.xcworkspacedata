@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Workspace
+   version = "1.0">
+   <FileRef
+      location = "group:dill/dill.xcodeproj">
+   </FileRef>
+   <FileRef
+      location = "group:CAuth/CAuth.xcodeproj">
+   </FileRef>
+   <FileRef
+      location = "group:CTransport/CTransport.xcodeproj">
+   </FileRef>
+   <FileRef
+      location = "group:CXTransport/CXTransport.xcodeproj">
+   </FileRef>
+   <FileRef
+      location = "group:NSTransport/NSTransport.xcodeproj">
+   </FileRef>
+   <FileRef
+      location = "group:Samples/HappyEyeballs/HappyEyeballs.xcodeproj">
+   </FileRef>
+   <FileRef
+      location = "group:Samples/AuthDemo/AuthDemo.xcodeproj">
+   </FileRef>
+</Workspace>
