@@ -352,7 +352,7 @@ The general pattern for establishing and consuming from client connections using
    //Create a NSTransport API Obj-C NSTURLRequest
    NSTURLRequest* getRequest = NSTURL.GET("/img/textures/wood.png");
 	
-   //Add some HTTP headers to the CXURLRequest
+   //Add some HTTP headers to the NSTURLRequest
    [getRequest setValue:@"*/*" forHTTPHeaderField:@"Accept"];
 	
    //Define the response callback to return response buffers using NSTransport NSTCursor object returned via a Clang Block Closure
@@ -368,5 +368,5 @@ The general pattern for establishing and consuming from client connections using
 
 ####  Clean up the connection
 ```
-   _httpCXConn = NULL;
+   _httpConn = NULL;
 ```
