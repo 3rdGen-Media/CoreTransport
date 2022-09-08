@@ -100,7 +100,7 @@
 
 #pragma mark -- Obj-C Runtime Externs
 
-#ifndef __OBJC__
+#if defined(__APPLE__) && !defined(__OBJC__)
 //define the NSApplicationMain objective-c runtime call to suppress warnings before linking
 #if TARGET_OS_OSX
 //extern int NSApplicationMain(int argc, const char *__nonnull argv[__nonnull]);
@@ -205,14 +205,14 @@ static const char*          proxy_server = "http://172.20.10.1";//"54.241.100.16
 static const unsigned short proxy_port   = 443;
 
 //Define a CTransport API ReqlService (ie CTTarget) C style struct to initiate a RethinkDB TLS connection with a CTransport API CTConnection
-static const char*          rdb_server   = "rdb.server.net";
+static const char*          rdb_server   = "rdb.3rd-gen.net";
 static const unsigned short rdb_port     = 28015;
-static const char*          rdb_user     = "rdb_username";
-static const char*          rdb_pass     = "rdb_password";
+static const char*          rdb_user     = "admin";
+static const char*          rdb_pass     = "3rdgen.rdb.4.$";
 
 //These are only relevant for custom DNS resolution libdill, loading the data from these files has not yet been implemented for WIN32 platforms
-static char resolvConfPath[1024]         = "./resolv.conf";
-static char nsswitchConfPath[1024]       = "./nsswitch.conf";
+static char resolvConfPath[1024]         = "../Samples/HappyEyeballs/Resources/Keys/resolv.conf";
+static char nsswitchConfPath[1024]       = "../Samples/HappyEyeballs/Resources/Keys/nsswitch.conf";
 
 //Define SSL Certificate for ReqlService construction:
 //    a)  For xplatform MBEDTLS support:    The SSL certificate can be defined in a buffer OR a file AS a .cer in PEM format
@@ -229,14 +229,14 @@ static char certPath[1024]               = "./certificate.der";
 using namespace CoreTransport;
 
 //Define pointers to keep reference to our secure HTTPS and RethinkDB connections, respectively
-static CXConnection* _httpCXConn;
-static CXConnection* _reqlCXConn;
+static CXConnection* _httpConn = NULL;
+static CXConnection* _reqlConn = NULL;
 #elif defined(__OBJC__)
-static NSTConnection* _httpCXConn;
-static NSTConnection* _reqlCXConn;
+static NSTConnection* _httpConn = NULL;
+static NSTConnection* _reqlConn = NULL;
 #else
-static CTConnection _httpConn;
-static CTConnection _reqlConn;
+static CTConnection   _httpConn;
+static CTConnection   _reqlConn;
 #endif
 
 //Define Application Wide CoreTransport Connection and Cursors Pools

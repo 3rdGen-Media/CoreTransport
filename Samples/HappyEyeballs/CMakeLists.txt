@@ -3,6 +3,10 @@
 #
 #cmake_minimum_required (VERSION 3.20)
 
+# Copy .mm file to .cpp if it has been modified
+
+configure_file(main.mm main.cpp)
+
 #
 # Establish this Executable Target
 #

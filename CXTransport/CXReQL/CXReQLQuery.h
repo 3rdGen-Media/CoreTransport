@@ -187,7 +187,7 @@ namespace CoreTransport
 			{
 #ifdef _WIN32
 				char filepath[1024] = "C:\\3rdGen\\CoreTransport\\bin\\x64\\ReQL\0";
-#else
+#elif defined(__APPLE__)
                 //copy documents dir to asset paths
                 char filepath[1024] = "\0";
 
@@ -195,6 +195,8 @@ namespace CoreTransport
                 const char *home = getenv("HOME");
                 strcat(filepath, home);
                 strcat(filepath, "/Documents/ReQL");
+#else
+    char filepath[1024] = "/home/jmoulton/3rdGen/CoreTransport/bin/img/reql\0";
 #endif
 				//_itoa((int)expectedQueryToken, filepath + strlen(filepath), 10);
 				snprintf(filepath + strlen(filepath), strlen(filepath), "%d", (int)expectedQueryToken);

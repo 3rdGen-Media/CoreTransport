@@ -17,6 +17,7 @@ add_library (
         CTransport/CTSSL.c
         CTransport/CTransportAPI.c
         CTransport/CTQueue.c
+        CTransport/CTPlatform.c
         CTransport/CTReQL.c
 )
 

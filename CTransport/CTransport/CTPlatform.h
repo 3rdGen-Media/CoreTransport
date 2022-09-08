@@ -32,9 +32,9 @@ extern "C" {
 #pragma mark -- Core Render Process Definitions
 
 //Define an opaque process handle for supported platform process types
-#ifdef CR_TARGET_WIN32
+#ifdef _WIN32
 typedef HANDLE cr_pid_t;
-#elif defined(__APPLE__)
+#else //defined(__APPLE__)
 typedef pid_t cr_pid_t;
 #endif
 

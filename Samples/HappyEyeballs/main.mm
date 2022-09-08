@@ -22,7 +22,7 @@ void LoadGameStateQuery()
 		CTCursorCloseMappingWithSize(cxCursor->_cursor, cxCursor->_cursor->contentLength); //overlappedResponse->buf - cursor->file.buffer);
 		CTCursorCloseFile(cxCursor->_cursor);
 	};
-	CXReQL.db("GameState").table("Scene").get("BasicCharacterTest").run(_reqlCXConn, NULL, queryCallback);
+	CXReQL.db("GameState").table("Scene").get("BasicCharacterTest").run(_reqlConn, NULL, queryCallback);
 }
 
 static int httpsRequestCount = 0;
@@ -91,7 +91,7 @@ void SendHTTPRequest()
 
 	//Pass the CXConnection and the lambda to populate the request buffer and asynchronously send it on the CXConnection
 	//The lambda will be executed so the code calling the request can interact with the asynchronous response buffers
-	getRequest->send(_httpCXConn, requestCallback);
+	getRequest->send(_httpConn, requestCallback);
 	
 }
 
@@ -99,7 +99,7 @@ int _cxURLConnectionClosure(CTError* err, CXConnection* conn) {
 	//CXConnectionClosure _cxURLConnectionClosure = ^ int(CTError * err, CXConnection * conn) {
 	if (err->id == CTSuccess && conn)
 	{
-		_httpCXConn = conn;
+		_httpConn = conn;
 	}
 	else { assert(1 == 0); } //process errors
 
@@ -116,7 +116,7 @@ int _cxReQLConnectionClosure(CTError* err, CXConnection* conn) {
 
 	if (err->id == CTSuccess && conn)
 	{
-		_reqlCXConn = conn;
+		_reqlConn = conn;
 	}
 	else { assert(1 == 0); } //process errors
 
@@ -321,65 +321,6 @@ void StartApplicationEventLoop(void)
 #endif
 }
 
-void CTPlatformInit(void)
-{
-    //CTProcessEventQueue = {0, 0};
-#ifdef _WIN32
-    //cr_mainThread = GetCurrentThread();
-    CTMainThreadID = GetCurrentThreadId();
-#elif defined(__APPLE__)
-#if TARGET_OS_OSX
-     //Initialize kernel timing mechanisms for debugging
-    //monotonicTimeNanos();
-
-    //We can do some Cocoa initializations early, but don't need to
-    //Note that NSApplicationLoad will load default NSApplication class
-    //Not your custom NSApplication Subclass w/ custom run loop!!!
-    //NSApplicationLoad();
-
-    /***
-     *  0 Explicitly
-     *
-     *  OSX CoreGraphics API requires that we make the process foreground application if we want to
-     *  create windows on threads other than main, or we will get an error that RegisterApplication() hasn't been called
-     *  Since this is usual startup behavior for User Interactive NSApplication anyway that's fine
-     ***/
-    //pid_t pid;
-    //CGSInitialize();
-
-    ProcessSerialNumber psn = { 0, kCurrentProcess };
-    //GetCurrentProcess(&psn);  //this is deprecated, all non-deprecated calls to make other process foreground must route through Cocoa
-    /*OSStatus transformStatus = */TransformProcessType(&psn, kProcessTransformToForegroundApplication);
-#endif
-    RegisterNotificationObservers();
-#endif
-    StartApplicationEventLoop();
-}
-
-
-int StartPlatformEventLoop(int argc, const char * argv[])
-{
-    //CoreTransport Gratuitous Client App Event Queue Initialization (not strictly needed for CoreTransport usage)
-    CTPlatformInit();
-
-#if defined(__APPLE__) //&& TARGET_IOS
-    
-#if TARGET_OS_OSX
-    atexit(&ExitHandler);
-    NSApplicationMain(argc, argv);       //Cocoa Application Event Loop
-#else //defined(CR_TARGET_IOS) || defined(CR_TARGET_TVOS)
-    NSString * appClassName;
-    NSString * appDelegateClassName;
-    @autoreleasepool {
-        // Setup code that might create autoreleased objects goes here.
-        appClassName = [NSString stringWithUTF8String:CocoaAppClassName];
-        appDelegateClassName = [NSString stringWithUTF8String:CocoaAppDelegateClassName];
-    }
-    return UIApplicationMain(argc, (char* _Nullable*)argv, appClassName, appDelegateClassName);
-#endif
-#endif
-    return -1;
-}
 
 #ifdef __APPLE__
 CGEventRef on_keystroke(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *data)
@@ -530,14 +471,14 @@ void SystemKeyboardEventLoop(int argc, const char * argv[])
 
 		//if (key.uChar.AsciiChar == 's')
 		//	StartTransientsChangefeedUpdate();
-		//CreateUserQuery(user_email, user_name, user_password, _reqlCXConn);
+		//CreateUserQuery(user_email, user_name, user_password, _reqlConn);
 
 		if (key.uChar.AsciiChar == 'g')
 			SendHTTPRequest();
 		else if (key.uChar.AsciiChar == 'r')		
 			LoadGameStateQuery();		
 		else if (key.uChar.AsciiChar == 'y')
-			yield();			`
+			yield();
 		else if (key.uChar.AsciiChar == 'q')
 			break;
 
@@ -548,6 +489,67 @@ void SystemKeyboardEventLoop(int argc, const char * argv[])
 
 }
 
+void CTPlatformInit(void)
+{
+    //CTProcessEventQueue = {0, 0};
+#ifdef _WIN32
+    //cr_mainThread = GetCurrentThread();
+    CTMainThreadID = GetCurrentThreadId();
+#elif defined(__APPLE__)
+#if TARGET_OS_OSX
+     //Initialize kernel timing mechanisms for debugging
+    //monotonicTimeNanos();
+
+    //We can do some Cocoa initializations early, but don't need to
+    //Note that NSApplicationLoad will load default NSApplication class
+    //Not your custom NSApplication Subclass w/ custom run loop!!!
+    //NSApplicationLoad();
+
+    /***
+     *  0 Explicitly
+     *
+     *  OSX CoreGraphics API requires that we make the process foreground application if we want to
+     *  create windows on threads other than main, or we will get an error that RegisterApplication() hasn't been called
+     *  Since this is usual startup behavior for User Interactive NSApplication anyway that's fine
+     ***/
+    //pid_t pid;
+    //CGSInitialize();
+
+    ProcessSerialNumber psn = { 0, kCurrentProcess };
+    //GetCurrentProcess(&psn);  //this is deprecated, all non-deprecated calls to make other process foreground must route through Cocoa
+    /*OSStatus transformStatus = */TransformProcessType(&psn, kProcessTransformToForegroundApplication);
+#endif
+    RegisterNotificationObservers();
+#endif
+    StartApplicationEventLoop();
+}
+
+
+int StartPlatformEventLoop(int argc, const char * argv[])
+{
+    //CoreTransport Gratuitous Client App Event Queue Initialization (not strictly needed for CoreTransport usage)
+    CTPlatformInit();
+
+#if defined(__APPLE__) //&& TARGET_IOS
+    
+#if TARGET_OS_OSX
+    atexit(&ExitHandler);
+    NSApplicationMain(argc, argv);       //Cocoa Application Event Loop
+#else //defined(CR_TARGET_IOS) || defined(CR_TARGET_TVOS)
+    NSString * appClassName;
+    NSString * appDelegateClassName;
+    @autoreleasepool {
+        // Setup code that might create autoreleased objects goes here.
+        appClassName = [NSString stringWithUTF8String:CocoaAppClassName];
+        appDelegateClassName = [NSString stringWithUTF8String:CocoaAppDelegateClassName];
+    }
+    return UIApplicationMain(argc, (char* _Nullable*)argv, appClassName, appDelegateClassName);
+#endif
+#else
+    SystemKeyboardEventLoop(argc, argv);
+#endif
+    return -1;
+}
 
 int main(int argc, const char * argv[])
 {
@@ -641,8 +643,8 @@ int main(int argc, const char * argv[])
     //TO DO:  Wait for asynchronous threads to shutdown
 
     //Clean up socket connections (Note: closing a socket will remove all associated kevents on kqueues)
-    delete _httpCXConn;
-    //delete _reqlCXConn;
+    if(_httpConn) delete _httpConn;
+    if(_reqlConn)  delete _reqlConn;
 
     //Clean Up Global/Thread Auth Memory
     ca_scram_cleanup();
