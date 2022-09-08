@@ -180,9 +180,9 @@ static const char * kCTPlatformEventQueueID = "com.3rdGen.CTransport.PlatformEve
 static const char * kCTDisplayEventQueueID  = "com.3rdGen.CTransport.DisplayEventQueue";     //an identifier that can be used with cr_DisplayEventQueue
 static const char * kCTCoroutineEventQueueID  = "com.3rdGen.CTransport.CoroutineEventQueue";     //an identifier that can be used with cr_DisplayEventQueue
 
-CTRANSPORT_EXTERN CTKernelQueue CTProcessEventQueue;   //a global kqueue singleton for the CoreTransport client application event loop
-CTRANSPORT_EXTERN CTKernelQueue CTPlatformEventQueue;  //a global kqueue singleton for injecting events into the platform event loop [if one exists, and it should]
-CTRANSPORT_EXTERN CTKernelQueue CTDisplayEventQueue;   //a global kqueue singleton for distributing display updates from a dedicated real-time thread
+extern CTKernelQueue CTProcessEventQueue;   //a global kqueue singleton for the CoreTransport client application event loop
+extern CTKernelQueue CTPlatformEventQueue;  //a global kqueue singleton for injecting events into the platform event loop [if one exists, and it should]
+extern CTKernelQueue CTDisplayEventQueue;   //a global kqueue singleton for distributing display updates from a dedicated real-time thread
 
 //a global read/write pipe pair singleton for sending blob messages to to the cr_displayEventQueue (allows waking kqueue from a separate process)
 //extern int cr_displayEventPipe[2];

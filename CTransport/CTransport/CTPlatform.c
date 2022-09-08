@@ -18,7 +18,7 @@ CTThread   CTMainThread = NULL;
 CTThreadID CTMainThreadID;// = 0;
 
 #pragma mark -- Define Global Kernel Queue Events
-CTKernelQueueEvent CTVBlankNotification = {0};
+//CTKernelQueueEvent CTVBlankNotification = {0};
 
 #pragma mark --Define Global Kernel Event Queues/Pipes
 CTKernelQueue CTProcessEventQueue  = {0};

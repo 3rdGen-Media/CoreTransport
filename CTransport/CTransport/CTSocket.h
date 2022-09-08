@@ -88,6 +88,7 @@ typedef NTSTATUS(WINAPI* pNtSetInformationFile)(HANDLE, PIO_STATUS_BLOCK, PVOID,
 #ifdef _WIN32
 #define CTSocket 				SOCKET
 #define CTThread				HANDLE
+#define CTThreadID              unsigned int
 typedef HANDLE              	CTKernelQueueType;
 typedef LPTHREAD_START_ROUTINE  CTThreadRoutine; //Win32 CRT Thread Routine
 #define CTDispatchSource 		void
@@ -99,7 +100,7 @@ typedef struct CTKernelQueue
 	CTKernelQueueType kq;
 }CTKernelQueue;
 
-typedef struct HANDLE CTKernelQueueEvent;
+typedef HANDLE CTKernelQueueEvent;
 
 static const int CTSOCKET_DEFAULT_BLOCKING_OPTION = 0;
 #elif defined(__APPLE__) || defined(__FreeBSD__) //with libdispatch

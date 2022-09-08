@@ -60,6 +60,9 @@
     <ClInclude Include="CTransport.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CTransport\CTPlatform.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CTransport\CTQueue.c">
@@ -78,6 +81,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CTransport\CTFile.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CTransport\CTPlatform.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

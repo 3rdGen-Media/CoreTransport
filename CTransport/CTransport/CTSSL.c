@@ -2040,9 +2040,10 @@ OSStatus CTSecureTransportSend(SSLConnectionRef connection, const void *data, si
 }
 
 #endif
-    
+ 
+#ifndef CTRANSPORT_WOLFSSL
 /***
- *	ReqlSSLDecrypt
+ *	CTSSLDecrypt
  ***/
 CTSSLStatus CTSSLDecryptMessage(CTSSLContextRef sslContextRef, void*msg, unsigned long *msgLength)
 {
@@ -2184,7 +2185,6 @@ CTSSLStatus CTSSLDecryptMessage(CTSSLContextRef sslContextRef, void*msg, unsigne
 
 }
 
-#ifndef CTRANSPORT_WOLFSSL
 CTSSLStatus CTSSLDecryptMessage2(CTSSLContextRef sslContextRef, void*msg, unsigned long *msgLength, char **extraBuffer, unsigned long * extraBytes)
 {
 	CTSSLStatus scRet;
@@ -2335,7 +2335,7 @@ CTSSLStatus CTSSLDecryptMessage2(CTSSLContextRef sslContextRef, void*msg, unsign
 }
 #endif
     
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(CTRANSPORT_WOLFSSL)
 CTSSLStatus ReqlSSLDecryptMessageInSitu(CTSSLContextRef sslContextRef, void**msg, unsigned long *msgLength)
 {
 	int i;
@@ -2427,7 +2427,6 @@ CTSSLStatus ReqlSSLDecryptMessageInSitu(CTSSLContextRef sslContextRef, void**msg
 	return scRet;
 }
 
-#endif
 
 /***
  *	ReqlSSLEncryptMessage
@@ -2495,6 +2494,7 @@ CTSSLStatus CTSSLEncryptMessage(CTSSLContextRef sslContextRef, void*msg, unsigne
     return scRet;
 }
 
+#endif
 
 
 SECURITY_STATUS CTSSLHandshakeProcessSecondResponse(CTCursor* cursor, CTSocket socketfd, CTSSLContextRef sslContextRef)
@@ -4046,6 +4046,7 @@ SECURITY_STATUS CTSSLHandshakeProcessFirstResponse(struct CTCursor * cursor, CTS
 	SECURITY_STATUS scRet;
 	PUCHAR          IoBuffer;
 	BOOL            fDoRead;
+	int ret = 0;
 
 	/*
 	PSecurityFunctionTable pSSPI = NULL;
