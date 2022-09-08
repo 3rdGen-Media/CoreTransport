@@ -1,6 +1,6 @@
 # CoreTransport
 
-CoreTransport is a no-compromise cross-platform pure C library (with wrapper APIs in various languages) for establishing and consuming from persistent TCP socket client connections secured with SSL/TLS.  CoreTransport aims to implement the following non-standard features for all supported platforms:
+CoreTransport is a no-compromise cross-platform pure C library (with wrapper APIs in various languages) for establishing and consuming from persistent TCP socket client connections secured with TLS.  CoreTransport aims to implement the following non-standard features for all supported platforms:
 
 <table width="100%">
   <tr width ="100%">
@@ -106,8 +106,8 @@ The general pattern for establishing and consuming from client connections using
 
 ####  Create Connection + Cursor Pool
 ```
-   CTCreateConnectionPool(&(HAPPYEYEBALLS_CONNECTION_POOL[0]), HAPPYEYEBALLS_MAX_INFLIGHT_CONNECTIONS);
-   CTCreateCursorPool(&(_httpCursor[0]), CT_MAX_INFLIGHT_CURSORS);
+   CTCreateConnectionPool(&(CT_APP_CONNECTIONS[0]), CT_APP_MAX_INFLIGHT_CONNECTIONS);
+   CTCreateCursorPool(&(CT_APP_CURSORS[0]), CT_APP_MAX_INFLIGHT_CURSORS);
 ```
 
 ####  Create Socket Queues
@@ -226,8 +226,8 @@ The general pattern for establishing and consuming from client connections using
 
 ####  Create Connection + Cursor Pool (same as CTransport)
 ```
-   CTCreateConnectionPool(&(HAPPYEYEBALLS_CONNECTION_POOL[0]), HAPPYEYEBALLS_MAX_INFLIGHT_CONNECTIONS);
-   CTCreateCursorPool(&(_httpCursor[0]), CT_MAX_INFLIGHT_CURSORS);
+   CTCreateConnectionPool(&(CT_APP_CONNECTIONS[0]), CT_APP_MAX_INFLIGHT_CONNECTIONS);
+   CTCreateCursorPool(&(CT_APP_CURSORS[0]), CT_APP_MAX_INFLIGHT_CURSORS);
 ```
 
 ####  Create Socket Queues (same as CTransport)
@@ -258,11 +258,11 @@ The general pattern for establishing and consuming from client connections using
 
 ####  Connect with Closure
 ```
-   CXConnection * _httpCXConn;
+   CXConnection * _httpConn;
    //Define Lambda for the connection callback
    auto _cxURLconnectionClosure = [&](CTError* err, CXConnection* conn)
    {
-	if (err->id == CTSuccess && conn) { _httpCXConn = conn; }
+	if (err->id == CTSuccess && conn) { _httpConn = conn; }
 	else {} //process errors	
 	return err->id;
    };
@@ -287,11 +287,86 @@ The general pattern for establishing and consuming from client connections using
 
    //Pass the CXConnection and the lambda to populate the request buffer and asynchronously send it on the CXConnection
    //The lambda will be executed so the code calling the request can interact with the asynchronous response buffers
-   getRequest->send(_httpCXConn, requestCallback);
+   getRequest->send(_httpConn, requestCallback);
 ```
 
 ####  Clean up the connection
 ```
-   delete _httpCXConn;
+   delete _httpConn;
 ```
 
+##  NSTransport API
+```
+   #include <CoreTransport/NSTURL.h>
+```
+
+####  Create Connection + Cursor Pool (same as CTransport)
+```
+   CTCreateConnectionPool(&(CT_APP_CONNECTIONS[0]), CT_APP_MAX_INFLIGHT_CONNECTIONS);
+   CTCreateCursorPool(&(CT_APP_CURSORS[0]), CT_APP_MAX_INFLIGHT_CURSORS);
+```
+
+####  Create Socket Queues (same as CTransport)
+```	
+   CTKernelQueue cq = CTKernelQueueCreate();
+   CTKernelQueue tq = CTKernelQueueCreate();
+   CTKernelQueue rq = CTKernelQueueCreate();
+```
+
+####  Create Thread Pool 
+```
+   CTThread cxThread = CTThreadCreate(&cq, NST_Dequeue_Connect);
+   CTThread txThread = CTThreadCreate(&tq, NST_Dequeue_Recv_Decrypt);
+   CTThread rxThread = CTThreadCreate(&rq, NST_Dequeue_Encrypt_Send);
+```
+
+####  Define your target (same as CTransport)
+```
+   CTTarget httpTarget =   {0};
+   httpTarget.host =       "learnopengl.com";
+   httpTarget.port =       443;
+   httpTarget.ssl.ca =     NULL;          //CTransport will look for the certificate in the platform CA trust store
+   httpTarget.ssl.method = CTSSL_TLS_1_2; //Optionally specify if TLS encryption is desired and what version
+   httpTarget.cq =  	   cq; //If no cx queue is specified [DNS + Connect + TLS Handshake] will occur on the current thread
+   httpTarget.tq =  	   tq; //If no tx queue is specified CTransport internal queues will be assigned to the connection for send
+   httpTarget.rq =  	   rq; //If no rx queue is specified CTransport internal queues will be assigned to the connection for recv
+```
+
+####  Connect with Closure
+```
+   NSTConnection * _httpConn;
+   //Define clang block for the connection callback
+   NSTConnectionClosure _nstURLConnectionClosure = ^int(CTError * err, NSTConnection * conn) {
+   {
+	if (err->id == CTSuccess && conn) { _httpConn = conn; }
+	else {} //process errors	
+	return err->id;
+   };
+
+   //Use NSTransport NSTReQL Obj-C API to connect to our RethinkDB service
+   NSTURL.connect(&httpTarget, _nstURLConnectionClosure);
+```
+
+####  Make a network Request using a Cursor (NSTCursor)
+```
+   //Create a NSTransport API Obj-C NSTURLRequest
+   NSTURLRequest* getRequest = NSTURL.GET("/img/textures/wood.png");
+	
+   //Add some HTTP headers to the NSTURLRequest
+   [getRequest setValue:@"*/*" forHTTPHeaderField:@"Accept"];
+	
+   //Define the response callback to return response buffers using NSTransport NSTCursor object returned via a Clang Block Closure
+   NSTRequestClosure requestCallback = ^void(CTError* error, NSTCursor* nstCursor)
+   { 
+	printf("Block closure response header:  %.*s\n", nstCursor.cursor.headerLength, nstCursor.cursor.requestBuffer);  
+   };
+
+   //Pass the NSTConnection and the block to populate the request buffer and asynchronously send it on the CTConnection
+   //The block  will be executed so the code calling the request can interact with the asynchronous response buffers
+   [getRequest sendOnConnection:_httpConn withCallback:requestCallback];
+```
+
+####  Clean up the connection
+```
+   _httpConn = NULL;
+```
