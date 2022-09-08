@@ -1,5 +1,5 @@
 /***
-**  
+**
 *	Core Transport -- HappyEyeballs
 *
 *	Description:   CXTransport (CXConnection) C++ API Example
@@ -14,15 +14,15 @@
 
 void LoadGameStateQuery()
 {
-	//Send the ReQL Query to find some URLs to download
-	//Demonstrate issue of query and callback lambda using CXReQL API
-	auto queryCallback = [&] (CTError * error, std::shared_ptr<CXCursor> cxCursor) {
+    //Send the ReQL Query to find some URLs to download
+    //Demonstrate issue of query and callback lambda using CXReQL API
+    auto queryCallback = [&](CTError* error, std::shared_ptr<CXCursor> cxCursor) {
 
-		fprintf(stderr, "LoadGameState response:  \n\n%.*s\n\n", (int)cxCursor->_cursor->contentLength, cxCursor->_cursor->file.buffer);
-		CTCursorCloseMappingWithSize(cxCursor->_cursor, cxCursor->_cursor->contentLength); //overlappedResponse->buf - cursor->file.buffer);
-		CTCursorCloseFile(cxCursor->_cursor);
-	};
-	CXReQL.db("GameState").table("Scene").get("BasicCharacterTest").run(_reqlConn, NULL, queryCallback);
+        fprintf(stderr, "LoadGameState response:  \n\n%.*s\n\n", (int)cxCursor->_cursor->contentLength, cxCursor->_cursor->file.buffer);
+        CTCursorCloseMappingWithSize(cxCursor->_cursor, cxCursor->_cursor->contentLength); //overlappedResponse->buf - cursor->file.buffer);
+        CTCursorCloseFile(cxCursor->_cursor);
+    };
+    CXReQL.db("GameState").table("Scene").get("BasicCharacterTest").run(_reqlConn, NULL, queryCallback);
 }
 
 static int httpsRequestCount = 0;
@@ -37,7 +37,7 @@ void SendHTTPRequest()
     char filepath[1024] = "\0";
 
     //get path to documents dir
-    const char *home = getenv("HOME");
+    const char* home = getenv("HOME");
     strcat(filepath, home);
     strcat(filepath, "/Documents/http\0");
     //CTFilePathInDocumentsDir("http\0", filepath);
@@ -46,88 +46,91 @@ void SendHTTPRequest()
 #endif
 
 
-	char* urlPath = "/index.html";
+    char* urlPath = "/index.html";
 
-	if (httpsRequestCount % 3 == 0)
-		urlPath = "/img/textures/wood.png";
-	else if (httpsRequestCount % 3 == 1)
-		urlPath = "/img/textures/brickwall.jpg";
-	else if (httpsRequestCount % 3 == 2)
-		urlPath = "/img/textures/brickwall_normal.jpg";
+    if (httpsRequestCount % 3 == 0)
+        urlPath = "/img/textures/wood.png";
+    else if (httpsRequestCount % 3 == 1)
+        urlPath = "/img/textures/brickwall.jpg";
+    else if (httpsRequestCount % 3 == 2)
+        urlPath = "/img/textures/brickwall_normal.jpg";
 
-	//_itoa(httpsRequestCount, filepath + 5, 10);
-	snprintf(filepath + strlen(filepath), strlen(filepath), "%d", httpsRequestCount);
+    //_itoa(httpsRequestCount, filepath + 5, 10);
+    snprintf(filepath + strlen(filepath), strlen(filepath), "%d", httpsRequestCount);
 
-	//strcat(filepath, ".txt");
-	
-	if (httpsRequestCount % 3 == 0)
-		strcat(filepath, ".png");
-	else
-		strcat(filepath, ".jpg");
-	
-	httpsRequestCount++;
-	
-	//Create a CXTransport API C++ CXURLRequest
-	//std::shared_ptr<CXURLRequest> getRequest = CXURL.GET("/index.html", filepath);
-	std::shared_ptr<CXURLRequest> getRequest = CXURL.GET(urlPath, filepath);
+    //strcat(filepath, ".txt");
 
-	getRequest->setValueForHTTPHeaderField("Host", "3rdgen-sandbox-html-resources.s3.us-west-1.amazonaws.com:443");
-	//Add some HTTP headers to the CXURLRequest
-	getRequest->setValueForHTTPHeaderField("Accept", "*/*");
+    if (httpsRequestCount % 3 == 0)
+        strcat(filepath, ".png");
+    else
+        strcat(filepath, ".jpg");
 
-	
-	//Define the response callback to return response buffers using CXTransport CXCursor object returned via a Lambda Closure
-	auto requestCallback = [&] (CTError * error, std::shared_ptr<CXCursor> cxCursor) {
+    httpsRequestCount++;
 
-		//CTCursorCloseMappingWithSize(&(cxCursor->_cursor), cxCursor->_cursor.contentLength); //overlappedResponse->buf - cursor->file.buffer);
-		//CTCursorMapFileR(cursor);
-		fprintf(stderr, "SendHTTPRequest response header:  %.*s\n", (int)cxCursor->_cursor->headerLength, cxCursor->_cursor->requestBuffer);//%.*s\n", cursor->_cursor.length - sizeof(ReqlQueryMessageHeader), (char*)(cursor->_cursor.header) + sizeof(ReqlQueryMessageHeader)); return;  
-		fprintf(stderr, "SendHTTPRequest response body:  %.*s\n", (int)cxCursor->_cursor->contentLength, cxCursor->_cursor->file.buffer);
-		//CTCursorCloseFile(&(cxCursor->_cursor));
+    //Create a CXTransport API C++ CXURLRequest
+    //std::shared_ptr<CXURLRequest> getRequest = CXURL.GET("/index.html", filepath);
+    std::shared_ptr<CXURLRequest> getRequest = CXURL.GET(urlPath, filepath);
 
-		CTCursorCloseMappingWithSize(cxCursor->_cursor, cxCursor->_cursor->contentLength); //overlappedResponse->buf - cursor->file.buffer);
-		CTCursorCloseFile(cxCursor->_cursor);
-	};
+    getRequest->setValueForHTTPHeaderField("Host", "3rdgen-sandbox-html-resources.s3.us-west-1.amazonaws.com:443");
+    //Add some HTTP headers to the CXURLRequest
+    getRequest->setValueForHTTPHeaderField("Accept", "*/*");
 
-	//Pass the CXConnection and the lambda to populate the request buffer and asynchronously send it on the CXConnection
-	//The lambda will be executed so the code calling the request can interact with the asynchronous response buffers
-	getRequest->send(_httpConn, requestCallback);
-	
+
+    //Define the response callback to return response buffers using CXTransport CXCursor object returned via a Lambda Closure
+    auto requestCallback = [&](CTError* error, std::shared_ptr<CXCursor> cxCursor) {
+
+        //CTCursorCloseMappingWithSize(&(cxCursor->_cursor), cxCursor->_cursor.contentLength); //overlappedResponse->buf - cursor->file.buffer);
+        //CTCursorMapFileR(cursor);
+        fprintf(stderr, "SendHTTPRequest response header:  %.*s\n", (int)cxCursor->_cursor->headerLength, cxCursor->_cursor->requestBuffer);//%.*s\n", cursor->_cursor.length - sizeof(ReqlQueryMessageHeader), (char*)(cursor->_cursor.header) + sizeof(ReqlQueryMessageHeader)); return;  
+        fprintf(stderr, "SendHTTPRequest response body:  %.*s\n", (int)cxCursor->_cursor->contentLength, cxCursor->_cursor->file.buffer);
+        //CTCursorCloseFile(&(cxCursor->_cursor));
+
+        CTCursorCloseMappingWithSize(cxCursor->_cursor, cxCursor->_cursor->contentLength); //overlappedResponse->buf - cursor->file.buffer);
+        CTCursorCloseFile(cxCursor->_cursor);
+    };
+
+    //Pass the CXConnection and the lambda to populate the request buffer and asynchronously send it on the CXConnection
+    //The lambda will be executed so the code calling the request can interact with the asynchronous response buffers
+    getRequest->send(_httpConn, requestCallback);
+
 }
 
+/*
 int _cxURLConnectionClosure(CTError* err, CXConnection* conn) {
-	//CXConnectionClosure _cxURLConnectionClosure = ^ int(CTError * err, CXConnection * conn) {
-	if (err->id == CTSuccess && conn)
-	{
-		_httpConn = conn;
-	}
-	else { assert(1 == 0); } //process errors
+//CXConnectionClosure _cxURLConnectionClosure = ^ int(CTError * err, CXConnection * conn) {
+//auto _cxURLConnectionClosure = [&](CTError* err, CXConnection* conn) {
 
-	fprintf(stderr, "HTTP Connection Success\n");
+    if (err->id == CTSuccess && conn)
+    {
+        _httpConn = conn;
+    }
+    else { assert(1 == 0); } //process errors
 
-	for (int i = 0; i < 30; i++)
-		SendHTTPRequest();
+    fprintf(stderr, "HTTP Connection Success\n");
 
-	return err->id;
+    for (int i = 0; i < 30; i++)
+        SendHTTPRequest();
+
+    return err->id;
 };
 
 int _cxReQLConnectionClosure(CTError* err, CXConnection* conn) {
-	//CTConnectionClosure _cxReQLConnectionClosure = ^ int(CTError * err, CTConnection * conn) {
+    //CTConnectionClosure _cxReQLConnectionClosure = ^ int(CTError * err, CTConnection * conn) {
 
-	if (err->id == CTSuccess && conn)
-	{
-		_reqlConn = conn;
-	}
-	else { assert(1 == 0); } //process errors
+    if (err->id == CTSuccess && conn)
+    {
+        _reqlConn = conn;
+    }
+    else { assert(1 == 0); } //process errors
 
-	fprintf(stderr, "ReQL Connection Success\n");
+    fprintf(stderr, "ReQL Connection Success\n");
 
-	for (int i = 0; i < 30; i++)
+    for (int i = 0; i < 30; i++)
         LoadGameStateQuery();
 
-	return err->id;
+    return err->id;
 };
-
+*/
 
 
 //must return void* in order to use with GCD dispatch_async_f
@@ -138,84 +141,84 @@ static void* app_event_loop(void* opaqueQueue)
 
 #elif defined(__APPLE__)
     int kqueue = (int)(uint64_t)opaqueQueue;
-     while (1) {
-         struct kevent kev;
-         CTProcessEvent kev_type;
-         
-         //idle until we receive kevent from our kqueue
-         kev_type = (CTProcessEvent)ct_event_queue_wait_with_timeout(kqueue, &kev, EVFILT_USER, CTProcessEvent_Timeout, CTProcessEvent_OutOfRange, CTProcessEvent_Init, CTProcessEvent_Idle, UINT_MAX);
-         
-         /*
-         if( kev_type == ctevent_platform_event  )
-         {
-             cr_platform_event_msg cgEvent = (cr_platform_event_msg)(kev.udata);
-             handle_platform_event(cgEvent);
-         }
-         else if( kev_type == CTProcessEvent_MainWindowChanged )
-         {
-             //CGWindowID windowID = (CGWindowID)(kev.udata);
-             //cr_mainWindow = windowID;
-             //fprintf(stderr, "\ncrevent_main_window_changed %lld\n", cr_mainWindow);
-             assert(1==0);
-         }
-         else*/ if( kev_type == CTProcessEvent_Init)
-         {
-             //assert(1==0);
-             //init_crgc_views();      //configure crgc_view options as desired before creating platform window backed by an accelerated graphics context
-             //create_crgc_views();    //create platform window and graphics context
-         }
-         /*
-         else if( kev_type == ctevent_register_view )
-         {
-             fprintf(stderr, "\ncrevent_register_view\n");
-             
-             //get the pointer to the crgc_view that lives in Cocoa Land
-             crgc_view * view = (crgc_view*)(kev.udata);
-             
-             //start the render thread for the view
-             create_crgc_view_display_loop(view);
-             
-             //crgc_view_setup(view);
-             //view->displaySyncCallback = crgc_view_render;
+    while (1) {
+        struct kevent kev;
+        CTProcessEvent kev_type;
 
-             
-             //id (*objc_ClassSelector)(Class class, SEL _cmd) = (void*)objc_msgSend;//objc_msgSend(objc_getClass("NSAutoreleasePool"), sel_registerName("alloc")), sel_registerName("init"))
-             //id (*objc_InstanceSelector2)(id self, SEL _cmd, void* param1, void* param2) = (void*)objc_msgSend;//objc_msgSend(objc_getClass("NSAutoreleasePool"), sel_registerName("alloc")), sel_registerName("init"))
-             //id CRApp = objc_ClassSelector(objc_getClass("CRApplication"), sel_registerName("sharedInstance"));
-             //objc_InstanceSelector2(CRApp, sel_getUid("setView:displaySyncCallback:"), view, crgc_view_render);
-             
-             //Pre OSX 10.15
-             //((id (*)(id, SEL, void*))objc_msgSend)(objc_msgSend(objc_getClass("CRMetalInterface"), sel_registerName("sharedInstance")), sel_getUid("displayLoop:"), view);
-             
-         }
-         else if( kev_type == ctevent_graphics )
-         {
-             fprintf(stderr, "ctevent_graphics\n");
-             _paintingTexture = *((GLuint*)kev.udata);
-             //cr_event_image_load(
-             
-         }
-         */
-         else if( kev_type == CTProcessEvent_Exit)
-         {
-             //CTCleanup();
-         
-            //dispatch event to be picked up by Cocoa NSApplication RunLoop notifying it we are ready to terminate the application
-            //struct kevent kev;
-            //EV_SET(&kev, CTPlatformEvent_Exit, EVFILT_USER, EV_ADD | EV_ENABLE | EV_ONESHOT, NOTE_FFCOPY|NOTE_TRIGGER|0x1, 0, NULL);
-            //kevent(CTPlatformEventQueue.kq, &kev, 1, NULL, 0, NULL);
-                          
-             dispatch_sync(dispatch_get_main_queue(), ^{
-                 [CTApplication.sharedInstance replyToApplicationShouldTerminate:YES];
-             });
-         }
-         else if( kev_type == CTProcessEvent_Menu)
-         {
-             //handle_menu_event((crmenu_event)kev.udata);
-         }
-     }
+        //idle until we receive kevent from our kqueue
+        kev_type = (CTProcessEvent)ct_event_queue_wait_with_timeout(kqueue, &kev, EVFILT_USER, CTProcessEvent_Timeout, CTProcessEvent_OutOfRange, CTProcessEvent_Init, CTProcessEvent_Idle, UINT_MAX);
+
+        /*
+        if( kev_type == ctevent_platform_event  )
+        {
+            cr_platform_event_msg cgEvent = (cr_platform_event_msg)(kev.udata);
+            handle_platform_event(cgEvent);
+        }
+        else if( kev_type == CTProcessEvent_MainWindowChanged )
+        {
+            //CGWindowID windowID = (CGWindowID)(kev.udata);
+            //cr_mainWindow = windowID;
+            //fprintf(stderr, "\ncrevent_main_window_changed %lld\n", cr_mainWindow);
+            assert(1==0);
+        }
+        else*/ if (kev_type == CTProcessEvent_Init)
+        {
+            //assert(1==0);
+            //init_crgc_views();      //configure crgc_view options as desired before creating platform window backed by an accelerated graphics context
+            //create_crgc_views();    //create platform window and graphics context
+        }
+        /*
+        else if( kev_type == ctevent_register_view )
+        {
+            fprintf(stderr, "\ncrevent_register_view\n");
+
+            //get the pointer to the crgc_view that lives in Cocoa Land
+            crgc_view * view = (crgc_view*)(kev.udata);
+
+            //start the render thread for the view
+            create_crgc_view_display_loop(view);
+
+            //crgc_view_setup(view);
+            //view->displaySyncCallback = crgc_view_render;
+
+
+            //id (*objc_ClassSelector)(Class class, SEL _cmd) = (void*)objc_msgSend;//objc_msgSend(objc_getClass("NSAutoreleasePool"), sel_registerName("alloc")), sel_registerName("init"))
+            //id (*objc_InstanceSelector2)(id self, SEL _cmd, void* param1, void* param2) = (void*)objc_msgSend;//objc_msgSend(objc_getClass("NSAutoreleasePool"), sel_registerName("alloc")), sel_registerName("init"))
+            //id CRApp = objc_ClassSelector(objc_getClass("CRApplication"), sel_registerName("sharedInstance"));
+            //objc_InstanceSelector2(CRApp, sel_getUid("setView:displaySyncCallback:"), view, crgc_view_render);
+
+            //Pre OSX 10.15
+            //((id (*)(id, SEL, void*))objc_msgSend)(objc_msgSend(objc_getClass("CRMetalInterface"), sel_registerName("sharedInstance")), sel_getUid("displayLoop:"), view);
+
+        }
+        else if( kev_type == ctevent_graphics )
+        {
+            fprintf(stderr, "ctevent_graphics\n");
+            _paintingTexture = *((GLuint*)kev.udata);
+            //cr_event_image_load(
+
+        }
+        */
+        else if (kev_type == CTProcessEvent_Exit)
+        {
+            //CTCleanup();
+
+           //dispatch event to be picked up by Cocoa NSApplication RunLoop notifying it we are ready to terminate the application
+           //struct kevent kev;
+           //EV_SET(&kev, CTPlatformEvent_Exit, EVFILT_USER, EV_ADD | EV_ENABLE | EV_ONESHOT, NOTE_FFCOPY|NOTE_TRIGGER|0x1, 0, NULL);
+           //kevent(CTPlatformEventQueue.kq, &kev, 1, NULL, 0, NULL);
+
+            dispatch_sync(dispatch_get_main_queue(), ^ {
+                [CTApplication.sharedInstance replyToApplicationShouldTerminate : YES] ;
+                });
+        }
+        else if (kev_type == CTProcessEvent_Menu)
+        {
+            //handle_menu_event((crmenu_event)kev.udata);
+        }
+    }
 #endif
-     return NULL;
+    return NULL;
 }
 
 void ExitHandler(void)
@@ -230,19 +233,19 @@ void ExitHandler(void)
 void StartApplicationEventLoop(void)
 {
 #ifdef CR_TARGET_WIN32
-    
+
 #elif defined(__APPLE__)
     //create kqueue
     CTProcessEventQueue = CTKernelQueueCreate();
     //pthread_mutex_init(&_mutex, NULL);
-    
+
     //register kevents
     for (uint64_t event = CTProcessEvent_Init; event < CTProcessEvent_Idle; ++event) {
         struct kevent kev;
         EV_SET(&kev, event, EVFILT_USER, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, NULL);
         kevent(CTProcessEventQueue.kq, &kev, 1, NULL, 0, NULL);
     }
-    
+
     //Create the pthread that will run the kqueue evetnt loop
     //pthread_attr_t attr;
     //struct sched_param sched_param;
@@ -253,7 +256,7 @@ void StartApplicationEventLoop(void)
     //pthread_attr_setschedparam(&attr, &sched_param);
     //pthread_create(&_thread, &attr, event_loop_main, (void*)_cgEventQueue);
     //pthread_attr_destroy(&attr);
-    
+
     /***
      *  Launch a concurrent thread pool that will serve as the Main Event Loop in Core Render C-Land
      *  Leaving the main thread to run the Cocoa Obj-C Land NSApplication Run Loop
@@ -264,9 +267,9 @@ void StartApplicationEventLoop(void)
      *      --Sending events and notifications back to Cocoa if needed
      *      --Managing the Core Render C-Land Application State
      ***/
-    //dispatch_queue_attr_t serialAttr = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_USER_INTERACTIVE, 0);
+     //dispatch_queue_attr_t serialAttr = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_USER_INTERACTIVE, 0);
     dispatch_queue_attr_t concurrentAtt = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_CONCURRENT, QOS_CLASS_USER_INTERACTIVE, 0);
-    
+
     dispatch_queue_t      processEventDispatchQueue = dispatch_queue_create(kCTProcessEventQueueID, concurrentAtt);
     //dispatch_queue_t      coroEventDispatchQueue = dispatch_queue_create(kCTCoroutineEventQueueID, serialAttr);
 
@@ -278,15 +281,15 @@ void StartApplicationEventLoop(void)
         dispatch_queue_set_specific(glView[viewIndex].controlThread, (void*)(glView[viewIndex].window), &(glView[viewIndex]), NULL);
     }
     */
-    
+
     //glView[viewIndex].controlQueue = dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0);
-    dispatch_async(processEventDispatchQueue, ^{
+    dispatch_async(processEventDispatchQueue, ^ {
         app_event_loop((void*)CTProcessEventQueue.kq);
-    });
-    
+        });
+
     /*
     dispatch_async(coroEventDispatchQueue, ^{
-       
+
         //Create a dummy run loop source that will keep the run loop alive
         CFRunLoopSourceContext emptyRunLoopSourceContext = {0};
         CFRunLoopSourceRef dummyRunLoopSource = CFRunLoopSourceCreate(NULL, 0, &emptyRunLoopSourceContext);
@@ -303,7 +306,7 @@ void StartApplicationEventLoop(void)
 
         //Application/Keystroke Event Loop
         CFRunLoopRun();
-        
+
         //Remove and release observer that yields to coroutines on the current run loop
         CFRunLoopRemoveObserver(CFRunLoopGetCurrent(), runLoopObserver, kCFRunLoopDefaultMode);
         CFRelease(runLoopObserver);
@@ -314,65 +317,65 @@ void StartApplicationEventLoop(void)
 
         //Remove and release keystroke mach port run loop that keeps run loop alive
         //CFRunLoopRemoveSource(CFRunLoopGetCurrent(), tapEventMachPortRunLoopSource, kCFRunLoopDefaultMode);
-               
+
     });
     */
-    
+
 #endif
 }
 
 
 #ifdef __APPLE__
-CGEventRef on_keystroke(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *data)
+CGEventRef on_keystroke(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void* data)
 {
     switch (type)
     {
-        case kCGEventKeyDown:
-        {
+    case kCGEventKeyDown:
+    {
 #if TARGET_OS_OSX
-            int64_t key_code = CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode);
-            CGEventFlags flag = CGEventGetFlags(event);
+        int64_t key_code = CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode);
+        CGEventFlags flag = CGEventGetFlags(event);
 #else
-            int64_t key_code;
-            CGEventFlags flag;
-            assert(1==0);
+        int64_t key_code;
+        CGEventFlags flag;
+        assert(1 == 0);
 #endif
-            
-            bool is_shift = !!(flag & kCGEventFlagMaskShift);
-            bool is_cmd = !!(flag & kCGEventFlagMaskCommand);
-            bool is_ctrl = !!(flag & kCGEventFlagMaskControl);
-            
-            const char* key_str = key_code_to_str((int)key_code, is_shift, false);
 
-            char * prefix = "";
-            if (is_cmd) prefix = "[cmd] + ";
-            if (is_ctrl) prefix = "[ctrl] + ";
+        bool is_shift = !!(flag & kCGEventFlagMaskShift);
+        bool is_cmd = !!(flag & kCGEventFlagMaskCommand);
+        bool is_ctrl = !!(flag & kCGEventFlagMaskControl);
 
-            fprintf(stderr, "key: %s%s\n", prefix, key_str);
+        const char* key_str = key_code_to_str((int)key_code, is_shift, false);
 
-            //Key 'q'
-            if( key_code == 12 && (!is_shift && !is_cmd && !is_ctrl) )
-            {
-                CFRunLoopStop(CFRunLoopGetCurrent());
-            }
-            else if( key_code == 5 && (!is_shift && !is_cmd && !is_ctrl))
-                SendHTTPRequest();
-            else if( key_code == 15 && (!is_shift && !is_cmd && !is_ctrl))
-                LoadGameStateQuery();
+        char* prefix = "";
+        if (is_cmd) prefix = "[cmd] + ";
+        if (is_ctrl) prefix = "[ctrl] + ";
 
-            break;
+        fprintf(stderr, "key: %s%s\n", prefix, key_str);
+
+        //Key 'q'
+        if (key_code == 12 && (!is_shift && !is_cmd && !is_ctrl))
+        {
+            CFRunLoopStop(CFRunLoopGetCurrent());
         }
-        // Right click from a logitech mouse. This is not part of CGEventType >.<
-        case 14:
+        else if (key_code == 5 && (!is_shift && !is_cmd && !is_ctrl))
+            SendHTTPRequest();
+        else if (key_code == 15 && (!is_shift && !is_cmd && !is_ctrl))
+            LoadGameStateQuery();
+
+        break;
+    }
+    // Right click from a logitech mouse. This is not part of CGEventType >.<
+    case 14:
         break;
 
-        default: {
-            printf("Unknown type: %d\n", type);
-        }
+    default: {
+        printf("Unknown type: %d\n", type);
+    }
     }
 
     return event;
-    
+
 }
 #else
 //Define crossplatform keyboard event loop handler
@@ -416,7 +419,7 @@ bool getconchar(KEY_EVENT_RECORD* krec)
 }
 #endif
 
-void SystemKeyboardEventLoop(int argc, const char * argv[])
+void SystemKeyboardEventLoop(int argc, const char* argv[])
 {
 #ifdef __APPLE__
     CheckAccessibilityPrivileges(); //Check/Prompt user for permissions (so we can get keystrokes)
@@ -424,21 +427,21 @@ void SystemKeyboardEventLoop(int argc, const char * argv[])
     //Create a mach port to receive keystrokes that will run loop source that will keep the run loop alive
     CFMachPortRef tapEventMachPort = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap, kCGEventTapOptionDefault, (1 << kCGEventKeyDown), on_keystroke, NULL);
     CFRunLoopSourceRef tapEventMachPortRunLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tapEventMachPort, 0);
-    CFRunLoopAddSource( CFRunLoopGetCurrent(), tapEventMachPortRunLoopSource, kCFRunLoopDefaultMode);
+    CFRunLoopAddSource(CFRunLoopGetCurrent(), tapEventMachPortRunLoopSource, kCFRunLoopDefaultMode);
 #else
     //Create a dummy run loop source that will keep the run loop alive
-    CFRunLoopSourceContext emptyRunLoopSourceContext = {0};
+    CFRunLoopSourceContext emptyRunLoopSourceContext = { 0 };
     CFRunLoopSourceRef dummyRunLoopSource = CFRunLoopSourceCreate(NULL, 0, &emptyRunLoopSourceContext);
-    CFRunLoopAddSource( CFRunLoopGetCurrent(), dummyRunLoopSource, kCFRunLoopDefaultMode);
+    CFRunLoopAddSource(CFRunLoopGetCurrent(), dummyRunLoopSource, kCFRunLoopDefaultMode);
 #endif
-    
+
     //Create an observer that yields to coroutines on the current run loop
     CFRunLoopObserverRef runLoopObserver = CTRoutineCreateRunLoopObserver();
 
     //Application/Keystroke Event Loop
     //StartPlatformEventLoop(argc, argv);
     CFRunLoopRun();
-    
+
     //Remove and release observer that yields to coroutines on the current run loop
     CFRunLoopRemoveObserver(CFRunLoopGetCurrent(), runLoopObserver, kCFRunLoopDefaultMode);
     CFRelease(runLoopObserver);
@@ -452,39 +455,39 @@ void SystemKeyboardEventLoop(int argc, const char * argv[])
     CFRunLoopRemoveSource(CFRunLoopGetCurrent(), dummyRunLoopSource, kCFRunLoopDefaultMode);
     CFRelease(dummyRunLoopSource); //unclear if this needs to be released
 #endif
-    
+
 #else //All other platforms
 #ifndef _WIN32	
-	//user linux termios to set terminal mode from line read to char read
-	set_conio_terminal_mode();
+    //user linux termios to set terminal mode from line read to char read
+    set_conio_terminal_mode();
 #endif
-	printf("\nStarting SystemKeyboardEventLoop...\n");
-	//int64_t timestamp = 12345678912345;
+    printf("\nStarting SystemKeyboardEventLoop...\n");
+    //int64_t timestamp = 12345678912345;
 
-	KEY_EVENT_RECORD key;
-	for (;;)
-	{
-		yield();
+    KEY_EVENT_RECORD key;
+    for (;;)
+    {
+        yield();
 
-		memset(&key, 0, sizeof(KEY_EVENT_RECORD));
-		getconchar(&key);
+        memset(&key, 0, sizeof(KEY_EVENT_RECORD));
+        getconchar(&key);
 
-		//if (key.uChar.AsciiChar == 's')
-		//	StartTransientsChangefeedUpdate();
-		//CreateUserQuery(user_email, user_name, user_password, _reqlConn);
+        //if (key.uChar.AsciiChar == 's')
+        //	StartTransientsChangefeedUpdate();
+        //CreateUserQuery(user_email, user_name, user_password, _reqlConn);
 
-		if (key.uChar.AsciiChar == 'g')
-			SendHTTPRequest();
-		else if (key.uChar.AsciiChar == 'r')		
-			LoadGameStateQuery();		
-		else if (key.uChar.AsciiChar == 'y')
-			yield();
-		else if (key.uChar.AsciiChar == 'q')
-			break;
+        if (key.uChar.AsciiChar == 'g')
+            SendHTTPRequest();
+        else if (key.uChar.AsciiChar == 'r')
+            LoadGameStateQuery();
+        else if (key.uChar.AsciiChar == 'y')
+            yield();
+        else if (key.uChar.AsciiChar == 'q')
+            break;
 
-		yield();
+        yield();
 
-	}
+    }
 #endif
 
 }
@@ -512,8 +515,8 @@ void CTPlatformInit(void)
      *  create windows on threads other than main, or we will get an error that RegisterApplication() hasn't been called
      *  Since this is usual startup behavior for User Interactive NSApplication anyway that's fine
      ***/
-    //pid_t pid;
-    //CGSInitialize();
+     //pid_t pid;
+     //CGSInitialize();
 
     ProcessSerialNumber psn = { 0, kCurrentProcess };
     //GetCurrentProcess(&psn);  //this is deprecated, all non-deprecated calls to make other process foreground must route through Cocoa
@@ -525,23 +528,23 @@ void CTPlatformInit(void)
 }
 
 
-int StartPlatformEventLoop(int argc, const char * argv[])
+int StartPlatformEventLoop(int argc, const char* argv[])
 {
     //CoreTransport Gratuitous Client App Event Queue Initialization (not strictly needed for CoreTransport usage)
     CTPlatformInit();
 
 #if defined(__APPLE__) //&& TARGET_IOS
-    
+
 #if TARGET_OS_OSX
     atexit(&ExitHandler);
     NSApplicationMain(argc, argv);       //Cocoa Application Event Loop
 #else //defined(CR_TARGET_IOS) || defined(CR_TARGET_TVOS)
-    NSString * appClassName;
-    NSString * appDelegateClassName;
-    @autoreleasepool {
+    NSString* appClassName;
+    NSString* appDelegateClassName;
+    @autoreleasepool{
         // Setup code that might create autoreleased objects goes here.
-        appClassName = [NSString stringWithUTF8String:CocoaAppClassName];
-        appDelegateClassName = [NSString stringWithUTF8String:CocoaAppDelegateClassName];
+        appClassName = [NSString stringWithUTF8String : CocoaAppClassName];
+        appDelegateClassName = [NSString stringWithUTF8String : CocoaAppDelegateClassName];
     }
     return UIApplicationMain(argc, (char* _Nullable*)argv, appClassName, appDelegateClassName);
 #endif
@@ -551,7 +554,7 @@ int StartPlatformEventLoop(int argc, const char * argv[])
     return -1;
 }
 
-int main(int argc, const char * argv[])
+int main(int argc, const char* argv[])
 {
     //Declare Coroutine Bundle Handle
     //Needed for dill global couroutine malloc cleanup on application exit, while just a meaningless int on Win32 platforms
@@ -564,14 +567,14 @@ int main(int argc, const char * argv[])
     CTThread cxThread, txThread, rxThread;
 
     //Declare Targets (ie specify TCP connection endpoints + options)
-    CTTarget httpTarget  = { 0 };
+    CTTarget httpTarget = { 0 };
     CTTarget reqlService = { 0 };
     CTKernelQueue emptyQueue = { 0 };
-    
+
     //Connection & Cursor Pool Initialization
     CTCreateConnectionPool(&(CT_APP_CONNECTIONS[0]), CT_APP_MAX_INFLIGHT_CONNECTIONS);
     CTCreateCursorPool(&(CT_APP_CURSORS[0]), CT_APP_MAX_INFLIGHT_CURSORS);
-    
+
     //Kernel FileDescriptor Event Queue Initialization
     //If cq is *NOT* specified as input to a connection target, [DNS + Connect + TLS Handshake] will occur on the current thread.
     //If cq is specified as input to a connection target, [DNS + Connect] will occur asynchronously on a background thread(pool) and handshake delegated to tq + rq.
@@ -588,7 +591,7 @@ int main(int argc, const char * argv[])
     txThread = CTThreadCreate(&tq, CX_Dequeue_Encrypt_Send);
 
     //TO DO:  check thread failure
-    
+
 #ifdef __APPLE__
     CTBundleFilePath("Keys/resolv.conf", "", resolvConfPath);
     CTBundleFilePath("Keys/nsswitch.conf", "", nsswitchConfPath);
@@ -598,7 +601,7 @@ int main(int argc, const char * argv[])
     fprintf(stderr, "%s\n", nsswitchConfPath);
     fprintf(stderr, "%s\n", certPath);
 #endif
-    
+
     //Define https connection target
     httpTarget.url.host = (char*)http_server;
     httpTarget.url.port = http_port;
@@ -630,11 +633,43 @@ int main(int argc, const char * argv[])
     reqlService.tq = tq;
     reqlService.rq = rq;
 
-	//Use CXTransport CXURL C++ API to connect to our HTTPS target server
-	coroutine_bundle = CXURL.connect(&httpTarget, _cxURLConnectionClosure);
+    auto _cxURLConnectionClosure = [&](CTError* err, CXConnection* conn) 
+    {
+        if (err->id == CTSuccess && conn)
+        {
+            _httpConn = conn;
+        }
+        else { assert(1 == 0); } //process errors
 
-	//User CXTransport CXReQL C++ API to connect to our RethinkDB service
-	//coroutine_bundle = CXReQL.connect(&reqlService, _cxReQLConnectionClosure);
+        fprintf(stderr, "HTTP Connection Success\n");
+
+        for (int i = 0; i < 30; i++)
+            SendHTTPRequest();
+
+        return err->id;
+    };
+
+    auto _cxReQLonnectionClosure = [&](CTError* err, CXConnection* conn) 
+    {
+        if (err->id == CTSuccess && conn)
+        {
+            _reqlConn = conn;
+        }
+        else { assert(1 == 0); } //process errors
+
+        fprintf(stderr, "ReQL Connection Success\n");
+
+        for (int i = 0; i < 30; i++)
+            LoadGameStateQuery();
+
+        return err->id;
+    };
+
+    //Use CXTransport CXURL C++ API to connect to our HTTPS target server
+    coroutine_bundle = CXURL.connect(&httpTarget, _cxURLConnectionClosure);
+
+    //User CXTransport CXReQL C++ API to connect to our RethinkDB service
+    //coroutine_bundle = CXReQL.connect(&reqlService, _cxReQLConnectionClosure);
 
     //Start a runloop on the main thread for the duration of the application
     //SystemKeyboardEventLoop(argc, argv);
@@ -643,8 +678,8 @@ int main(int argc, const char * argv[])
     //TO DO:  Wait for asynchronous threads to shutdown
 
     //Clean up socket connections (Note: closing a socket will remove all associated kevents on kqueues)
-    if(_httpConn) delete _httpConn;
-    if(_reqlConn)  delete _reqlConn;
+    if (_httpConn) delete _httpConn;
+    if (_reqlConn)  delete _reqlConn;
 
     //Clean Up Global/Thread Auth Memory
     ca_scram_cleanup();
@@ -661,9 +696,9 @@ int main(int argc, const char * argv[])
     CTRoutineClose(coroutine_bundle);
 
     fprintf(stderr, "Exiting via Main...\n");
-    
+
     //pause for leaks
     //fscanf(stdin, "c");
-    
+
     return 0;
 }

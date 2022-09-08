@@ -39,7 +39,10 @@
     <ClInclude Include="CTDeviceInput.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.c" />
+    <ClCompile Include="main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="main.mm" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{2EFB457E-9543-49A0-A0E6-6552EEAA6B4E}</ProjectGuid>
