@@ -28,7 +28,7 @@ CoreTransport is a no-compromise cross-platform pure C library (with wrapper API
     <td width="17%"><s>Kernel TLS,</s>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>WolfSSL</td>
   </tr>
   <tr width ="100%">
-    <td width="49%">Lock-Free, Wait-Free Tx/Rx scheduling & completion operation dequeuing with fewest userspace context switches</td>
+    <td width="49%">Lock-Free, Wait-Free Tx/Rx scheduling & completion operation dequeuing with fewest system calls</td>
     <td width="17%">IOCP,<br/>PeekMessage</td>
     <td width="17%">kqueue,<br/>Cursor pipe</td>
     <td width="17%">AIO,<br/>Cursor pipe</td>
