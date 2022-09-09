@@ -267,7 +267,7 @@ The general pattern for establishing and consuming from client connections using
 	return err->id;
    };
 
-   //Use CXTransport CXURL C++ API to connect to our RethinkDB service
+   //Use CXTransport CXURL C++ API to connect to our HTTP(S) service
    CXURL.connect(&httpTarget, _cxURLconnectionClosure);
 ```
 
@@ -343,7 +343,7 @@ The general pattern for establishing and consuming from client connections using
 	return err->id;
    };
 
-   //Use NSTransport NSTURL Obj-C API to connect to our RethinkDB service
+   //Use NSTransport NSTURL Obj-C API to connect to our HTTP(S) service
    NSTURL.connect(&httpTarget, _nstURLConnectionClosure);
 ```
 
