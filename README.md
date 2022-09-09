@@ -6,7 +6,7 @@ CoreTransport is a no-compromise cross-platform pure C library (with wrapper API
   <tr width ="100%">
     <td align="center" width="49%"><strong>Motivating Feature</strong></td>
     <td align="center" width="17%"><strong>Win32, Xbox</strong></td>
-    <td align="center" width="17%"><strong>Darwin</strong></td>
+    <td align="center" width="17%"><strong>OSX, iOS, tvOS</strong></td>
     <td align="center" width="17%"><strong>FreeBSD</strong></td>
   </tr>
   <tr width ="100%">
