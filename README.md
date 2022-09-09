@@ -75,7 +75,7 @@ CoreTransport is a no-compromise cross-platform pure C library (with wrapper API
 | <div style="width:49%">Motivating Feature</div> | <div style="width:17%">Win32, Xbox</div> | <div style="width:17%">Darwin</div> | <div style="width:17%">FreeBSD</div> |
 | --------------------------------------------------- | ----------------- | ----------------- | ----------------- |
 | Structured concurrency to promote simultaneous asynchronous non-blocking socket connections from a single thread | IOCP | Coroutines | Coroutines |
-| Lock-Free, Wait-Free Tx/Rx scheduling & completion operation dequeuing with fewest userspace context switches | IOCP,<br/>PeekMessage | kqueue,<br/>Cursor pipe | kqueue,<br/>Cursor pipe |
+| Lock-Free, Wait-Free Tx/Rx scheduling & completion operation dequeuing with fewest system calls | IOCP,<br/>PeekMessage | kqueue,<br/>Cursor pipe | kqueue,<br/>Cursor pipe |
 | Closures to delegate response buffers back to caller | Clang Blocks,<br/>C++ Lambdas | Clang Blocks,<br/>C++ Lambdas | Clang Blocks,<br/>C++ Lambdas |
 | Memory management that supports in-place processing and optional response caching | Memory Pools, Mapped Files | Memory Pools, Mapped Files | Memory Pools, Mapped Files |
 | Asynchronous TLS negotiation via platform provided encryption with fallback to 3rd party embedded support | SCHANNEL,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>WolfSSL | SecureTransport,<br/>MBEDTLS | In&nbsp;Progress&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |
