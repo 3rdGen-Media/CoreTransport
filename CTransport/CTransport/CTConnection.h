@@ -165,7 +165,7 @@ typedef struct CTConnection
 	void * object_wrapper;
 
 	//BSD Socket Event Queue
-	int event_queue;
+	int  id;
 	char padding[4];
 }CTConnection;
 

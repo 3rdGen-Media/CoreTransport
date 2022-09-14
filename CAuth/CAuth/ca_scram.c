@@ -541,6 +541,9 @@ void ca_scram_init_hmac_algorithm(void)
 
 #if defined(_WIN32)
 	DWORD cbData = 0;
+
+    if (g_pbHMACHashObject) return;
+
 	//Init BCrypt Algorithm Handle
 	//Beginning with Windows 8 and Windows Server 2012, you can create a reusable hashing object for scenarios 
 	//that require you to compute multiple hashes or HMACs in rapid succession. Do this by specifying the BCRYPT_HASH_REUSABLE_FLAG 
@@ -586,6 +589,8 @@ void ca_scram_init_hash_algorithm(void)
 {
 #if defined(_WIN32)
 	DWORD cbData = 0;
+
+    if (g_pbHashObject) return;
 	//Init BCrypt Algorithm Handle
 	//Beginning with Windows 8 and Windows Server 2012, you can create a reusable hashing object for scenarios 
 	//that require you to compute multiple hashes or HMACs in rapid succession. Do this by specifying the BCRYPT_HASH_REUSABLE_FLAG 

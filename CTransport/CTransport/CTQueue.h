@@ -19,6 +19,7 @@
 #define __stdcall 
 #endif
 
+extern volatile int64_t inflightResponseCount;
 //there does not seem to be any way to avoid a win32 iocp queue + thread requiring callback to return unsigned long
 //vs pthread_create requiring to the callback to return void*
 #ifdef _WIN32

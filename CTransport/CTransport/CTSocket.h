@@ -98,6 +98,7 @@ typedef LPTHREAD_START_ROUTINE  CTThreadRoutine; //Win32 CRT Thread Routine
 typedef struct CTKernelQueue
 {
 	CTKernelQueueType kq;
+	intptr_t		  pnInflightCursors;
 }CTKernelQueue;
 
 typedef HANDLE CTKernelQueueEvent;
@@ -159,6 +160,7 @@ typedef struct CTSocketContext
 #ifndef _WIN32
 			CTKernelQueueType cxPipe[2];
 #endif
+			intptr_t	  pncxInflightTargets;
 		};
 		CTKernelQueue cq;
 	};
@@ -171,6 +173,7 @@ typedef struct CTSocketContext
 #ifndef _WIN32
 			CTKernelQueueType txPipe[2];
 #endif
+			intptr_t	      pntxInflightCursors;
 		};
 		CTKernelQueue tq;
 	};
@@ -182,6 +185,7 @@ typedef struct CTSocketContext
 #ifndef _WIN32
 			CTKernelQueueType rxPipe[2];
 #endif
+			intptr_t	  pnrxInflightCursors;
 		};
 		CTKernelQueue rq;
 	};

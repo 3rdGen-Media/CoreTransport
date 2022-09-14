@@ -649,7 +649,7 @@ int main(int argc, const char* argv[])
         return err->id;
     };
 
-    auto _cxReQLonnectionClosure = [&](CTError* err, CXConnection* conn) 
+    auto _cxReQLConnectionClosure = [&](CTError* err, CXConnection* conn) 
     {
         if (err->id == CTSuccess && conn)
         {
@@ -669,7 +669,7 @@ int main(int argc, const char* argv[])
     coroutine_bundle = CXURL.connect(&httpTarget, _cxURLConnectionClosure);
 
     //User CXTransport CXReQL C++ API to connect to our RethinkDB service
-    //coroutine_bundle = CXReQL.connect(&reqlService, _cxReQLConnectionClosure);
+    coroutine_bundle = CXReQL.connect(&reqlService, _cxReQLConnectionClosure);
 
     //Start a runloop on the main thread for the duration of the application
     //SystemKeyboardEventLoop(argc, argv);
@@ -679,7 +679,7 @@ int main(int argc, const char* argv[])
 
     //Clean up socket connections (Note: closing a socket will remove all associated kevents on kqueues)
     if (_httpConn) delete _httpConn;
-    if (_reqlConn)  delete _reqlConn;
+    if (_reqlConn) delete _reqlConn;
 
     //Clean Up Global/Thread Auth Memory
     ca_scram_cleanup();

@@ -205,10 +205,10 @@ static const char*          proxy_server = "http://172.20.10.1";//"54.241.100.16
 static const unsigned short proxy_port   = 443;
 
 //Define a CTransport API ReqlService (ie CTTarget) C style struct to initiate a RethinkDB TLS connection with a CTransport API CTConnection
-static const char*          rdb_server   = "rdb.server.net";
+static const char*          rdb_server   = "rdb.3rd-gen.net";
 static const unsigned short rdb_port     = 28015;
-static const char*          rdb_user     = "rdb_username";
-static const char*          rdb_pass     = "rdb_password";
+static const char*          rdb_user     = "admin";
+static const char*          rdb_pass     = "3rdgen.rdb.4.$";
 
 //These are only relevant for custom DNS resolution libdill, loading the data from these files has not yet been implemented for WIN32 platforms
 static char resolvConfPath[1024]         = "../Samples/HappyEyeballs/Resources/Keys/resolv.conf";

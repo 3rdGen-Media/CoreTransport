@@ -39,10 +39,7 @@
     <ClInclude Include="CTDeviceInput.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="main.mm" />
+    <ClCompile Include="main.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{2EFB457E-9543-49A0-A0E6-6552EEAA6B4E}</ProjectGuid>
@@ -212,7 +209,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>$(VLD_DIR)\include;..\..\include;$(WOLFSSL_DIR);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>CTRANSPORT_WOLFSSL;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalOptions>-fblocks %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -277,7 +274,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <AdditionalIncludeDirectories>..\..\include;$(WOLFSSL_DIR);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>CTRANSPORT_WOLFSSL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalOptions>-fblocks %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>

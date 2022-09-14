@@ -71,6 +71,7 @@ CTKernelQueue CTKernelQueueCreate(void)
 #else
     queue.kq = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, (ULONG_PTR)NULL, 0);
 #endif
+    queue.pnInflightCursors = (intptr_t)&(queue.pnInflightCursors); //voodoo!
     return queue;
 }
 

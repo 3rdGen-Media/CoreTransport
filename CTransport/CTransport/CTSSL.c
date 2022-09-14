@@ -2209,7 +2209,7 @@ CTSSLStatus CTSSLDecryptMessage2(CTSSLContextRef sslContextRef, void*msg, unsign
 	//*extraBuffer = NULL;
 	//*msgLength = 0;
 
-	scRet = DecryptMessage(&(sslContextRef->hCtxt), &Message, 0, NULL);
+ 	scRet = DecryptMessage(&(sslContextRef->hCtxt), &Message, 0, NULL);
 
 #ifdef _DEBUGS
 	if (scRet != SEC_E_OK && scRet != SEC_I_RENEGOTIATE && scRet != SEC_I_CONTEXT_EXPIRED)
@@ -2578,6 +2578,10 @@ SECURITY_STATUS CTSSLHandshakeProcessSecondResponse(CTCursor* cursor, CTSocket s
 			cursor->contentLength = 0;// transient.bytesToDecrypt;
 			NumBytesRemaining = 32768;// NumBytesRecv + NumBytesRemaining;
 
+			assert(overlappedResponse->stage == CT_OVERLAPPED_RECV);
+			cursor->conn->responseCount++;
+			(*(intptr_t*)(cursor->conn->socketContext.rq.pnInflightCursors))++;
+			inflightResponseCount++;
 			if ((scRet = CTCursorAsyncRecv(&(overlappedResponse), cursor->file.buffer, NumBytesRecv, &NumBytesRemaining)) != CTSocketIOPending)
 			{
 				//the async operation returned immediately
@@ -2909,7 +2913,59 @@ SECURITY_STATUS CTSSLHandshakeProcessSecondResponse(CTCursor* cursor, CTSocket s
 					cbIoBuffer = 0;
 				//buffer = cursor->file.buffer;;
 
-			//fprintf(stderr, " CTSSLHandhsakeProcessFirstResponse:: recvd %d bytes of handshake data \n\n", cursor->overlappedResponse.buf - cursor->file.buffer);
+				/*
+				DWORD recvLength = (DWORD)(NumBytesRemaining);
+				//if message length is greater than 0, subtract offset
+				//NumBytesRemaining -= cbIoBuffer;
+				//if message length was zero then so its recvLength, use the overlappedResponse->len property as input to get the recv length
+				//recvLength = (DWORD)(NumBytesRemaining);
+
+				//Our CoreTransport housekeeping properties (cursor, cursor->conn, and queryToken) have already been set on the Overlapped struct as part of CTCursor initialization
+				//Now populate the overlapped struct's WSABUF needed for IOCP to read socket buffer into (as well as our references to buf/len pointing to the start of the buffer to help as we decrypt [in place])
+				//Question:  Can we avoid zeroing this memory every time?
+				//Anser:	 Yes -- sort of -- we only need to zero the overlapped portion (whether we are reusing the OVERLAPPED struct or not...and we are) 
+				//ZeroMemory(olResponse, sizeof(WSAOVERLAPPED)); //this is critical!
+
+				olResponse->stage = CT_OVERLAPPED_SCHEDULE_RECV;
+				olResponse->cursor = (void*)cursor;
+
+				olResponse->wsaBuf.buf = cursor->file.buffer + cbIoBuffer;
+				olResponse->wsaBuf.len = NumBytesRemaining - cbIoBuffer;
+				olResponse->buf = cursor->file.buffer;
+				olResponse->len = NumBytesRemaining;
+				olResponse->cursor = cursor;
+				olResponse->Flags = 0;
+				olResponse->conn = cursor->conn;
+				olResponse->queryToken = cursor->queryToken;
+				//CTCursorSendOnQueue(cursor, (char**)&(cursor->overlappedResponse.buf), cursor->overlappedResponse.len);
+				//CTCursorRecvOnQueue(&olResponse, cursor->file.buffer, cbIoBuffer, &NumBytesRemaining);
+				CTCursorRecvOnQueue(&olResponse, cursor->file.buffer, cbIoBuffer, &NumBytesRemaining);
+				*/
+
+				/*
+				ZeroMemory(olResponse, sizeof(WSAOVERLAPPED)); //this is critical!
+				//olResponse->stage = CT_OVERLAPPED_SEND; //we need to bypass encrypt bc sthis is the ssl handshake
+
+				olResponse->stage = CT_OVERLAPPED_SCHEDULE_RECV;
+				olResponse->cursor = (void*)cursor;
+
+				olResponse->wsaBuf.buf = cursor->file.buffer + cbIoBuffer;
+				olResponse->wsaBuf.len = NumBytesRemaining;
+				olResponse->buf = cursor->file.buffer + cbIoBuffer;
+				olResponse->len = NumBytesRemaining;
+				olResponse->cursor = cursor;
+				olResponse->Flags = 0;
+				olResponse->conn = cursor->conn;
+				olResponse->queryToken = cursor->queryToken;
+				//CTCursorRecvOnQueue(cursor, (char**)&(cursor->overlappedResponse.buf), cursor->overlappedResponse.len);
+				CTCursorRecvOnQueue(&olResponse, cursor->file.buffer + cbIoBuffer, 0, &NumBytesRemaining);
+				*/
+				
+				assert(olResponse->stage == CT_OVERLAPPED_RECV);
+				cursor->conn->responseCount++;
+				(*(intptr_t*)(cursor->conn->socketContext.rq.pnInflightCursors))++;
+				inflightResponseCount++;
+				//fprintf(stderr, " CTSSLHandhsakeProcessFirstResponse:: recvd %d bytes of handshake data \n\n", cursor->overlappedResponse.buf - cursor->file.buffer);
 				if ((ret = CTCursorAsyncRecv(&olResponse, cursor->file.buffer, cbIoBuffer, &NumBytesRemaining)) != CTSocketIOPending)
 				{
 					//the async operation returned immediately
@@ -2925,6 +2981,7 @@ SECURITY_STATUS CTSSLHandshakeProcessSecondResponse(CTCursor* cursor, CTSocket s
 					}
 
 				}
+				
 				return scRet;
 
 			}
@@ -3072,7 +3129,7 @@ CTCursorCompletionClosure SSLSecondMessageResponseCallback = ^void(CTError * err
 
 	cursor->conn->responseCount = 0;  //we incremented this for the handshake, it iscritical to reset this for the client before returning the connection
 	cursor->conn->queryCount = 0;
-	CT_CURSOR_INDEX = 0;
+	//CT_CURSOR_INDEX = 0;
 
 	cursor->conn->target->callback(err, cursor->conn);
 };
@@ -3788,9 +3845,13 @@ SECURITY_STATUS CTSSLHandshakeProcessFirstResponse(struct CTCursor * cursor, CTS
 				//this is an odd case wherein we are using the same cursor with CTCursorAsyncRecv, 
 				//but treating it like a new request (which is typically started with CTCursorRecvOnQueue )
 				//SO... we need to reset the stage in order for the queue event loops to properly increment conn->responseCount as if it were a new request
-				overlappedResponse->stage = CT_OVERLAPPED_RECV;//CT_OVERLAPPED_SCHEDULE_RECV + 4;
-				cursor->conn->responseCount++;
 #endif
+				//overlappedResponse->stage = CT_OVERLAPPED_RECV;//CT_OVERLAPPED_SCHEDULE_RECV + 4;
+				assert(overlappedResponse->stage == CT_OVERLAPPED_RECV);
+				cursor->conn->responseCount++;
+				(*(intptr_t*)(cursor->conn->socketContext.rq.pnInflightCursors))++;
+				inflightResponseCount++;
+
 				//The commented out line reflects the way Win32 pipeline had implemented reading more bytes for the WolfSSL for the async TLS handshake
 				//But the BSD kqueue pipeline demands that we don't use the offset parameter (due to the voodoo CTCursorAsyncRecv does with it) and Win32 seems fine with it
 				if ((scRet = CTCursorAsyncRecv(&(overlappedResponse), cursor->file.buffer + NumBytesRecv, 0, &NumBytesRemaining)) != CTSocketIOPending) {
@@ -4160,7 +4221,7 @@ SECURITY_STATUS CTSSLHandshakeProcessFirstResponse(struct CTCursor * cursor, CTS
 		{
 			// Check for fatal error.
 			//if (FAILED(scRet)) { fprintf(stderr, "**** Error 0x%x returned by InitializeSecurityContext (2)\n", scRet); }
-			fprintf(stderr, "**** Error 0x%lx returned by InitializeSecurityContext (2)\n", scRet);
+			fprintf(stderr, "**** Error 0x%lx returned by InitializeSecurityContext (1)\n", scRet);
 
 			assert(scRet != (LONG)2148074278L);
 
@@ -4228,13 +4289,43 @@ SECURITY_STATUS CTSSLHandshakeProcessFirstResponse(struct CTCursor * cursor, CTS
 				//	NumBytesRemaining -= cbIoBuffer;
 				if (scRet == SEC_I_CONTINUE_NEEDED)
 					cbIoBuffer = 0;
-					//buffer = cursor->file.buffer;;
+				//buffer = cursor->file.buffer;;
 
+				
 				//The following 3 lines are critical for matching SCHANNEL Async TLS handshake cursor operation with WolFSSL on ALL platforms (see SSLFirstMessageHeaderLengthCallback):
 				cursor->headerLength = 0;
 				cursor->contentLength = cbIoBuffer;
+
+				/*
+				//ZeroMemory(olResponse, sizeof(WSAOVERLAPPED)); //this is critical!
+				//olResponse->stage = CT_OVERLAPPED_SEND; //we need to bypass encrypt bc sthis is the ssl handshake
+
+				olResponse->stage = CT_OVERLAPPED_SCHEDULE_RECV;
+				olResponse->cursor = (void*)cursor;
+
+				olResponse->wsaBuf.buf = cursor->file.buffer + cbIoBuffer;
+				olResponse->wsaBuf.len = NumBytesRemaining;
+				olResponse->buf = cursor->file.buffer + cbIoBuffer;
+				olResponse->len = NumBytesRemaining;
+				olResponse->cursor = cursor;
+				olResponse->Flags = 0;
+				olResponse->conn = cursor->conn;
+				olResponse->queryToken = cursor->queryToken;
+				//CTCursorRecvOnQueue(cursor, (char**)&(cursor->overlappedResponse.buf), cursor->overlappedResponse.len);
+				olResponse->stage = CT_OVERLAPPED_SCHEDULE_RECV;
+
+				CTCursorRecvOnQueue(&olResponse, cursor->file.buffer + cbIoBuffer, 0, &NumBytesRemaining);
+				*/
+				
+				
+				assert(olResponse->stage == CT_OVERLAPPED_RECV);
+				
+				cursor->conn->responseCount++;
+				(*(intptr_t*)(cursor->conn->socketContext.rq.pnInflightCursors))++;
+				inflightResponseCount++;
+
+				//if ((ret = CTCursorAsyncRecv(&olResponse, cursor->file.buffer, cbIoBuffer, &NumBytesRemaining)) != CTSocketIOPending) {
 				if ((ret = CTCursorAsyncRecv(&olResponse, cursor->file.buffer + cbIoBuffer, 0, &NumBytesRemaining)) != CTSocketIOPending) {
-				//if ((ret = CTCursorAsyncRecv(&olResponse, cursor->file.buffer + cbIoBuffer, 0, &NumBytesRemaining)) != CTSocketIOPending) {
 
 					//the async operation returned immediately
 					if (ret == CTSuccess)
@@ -4249,6 +4340,8 @@ SECURITY_STATUS CTSSLHandshakeProcessFirstResponse(struct CTCursor * cursor, CTS
 					}
 
 				}
+				
+
 				return scRet;
 
 			}
@@ -4716,8 +4809,6 @@ int CTSSLHandshake(CTSocket socketfd, CTSSLContextRef sslContextRef, CTSecCertif
             }
             break; // Bail out to quit
         }
-
-
 
         // Check for fatal error.
         if(FAILED(scRet)) { fprintf(stderr, "**** Error 0x%lx returned by InitializeSecurityContext (2)\n", scRet); break; }
@@ -5444,7 +5535,8 @@ int CTSSLWrite( CTSocket socketfd, CTSSLContextRef sslContextRef, void * msg, un
 // http://msdn.microsoft.com/en-us/library/aa375378(VS.85).aspx
 // The encrypted message is encrypted in place, overwriting the original contents of its buffer.
 {
-	fprintf(stderr, "CTSSLWrite::preparing to send: \n\n%.*s\n", (int)(*msgLength), (char*)msg);
+	//FYI This print statement results in a system chime on the 8th ReQL call
+	//fprintf(stderr, "CTSSLWrite::preparing to send: \n\n%.*s\n", (int)(*msgLength), (char*)msg);
     
 #ifdef CTRANSPORT_WOLFSSL
     int errOrBytesWritten = 0;

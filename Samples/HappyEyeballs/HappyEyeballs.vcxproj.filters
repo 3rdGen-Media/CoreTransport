@@ -23,13 +23,8 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
+    <ClCompile Include="main.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="main.mm">
-      <Filter>Source Files</Filter>
-    </None>
   </ItemGroup>
 </Project>

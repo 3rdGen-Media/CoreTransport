@@ -14,6 +14,7 @@
 
 //Globals
 static int httpRequestCount = 0;
+static int reqlQueryCount = 0;
 
 //Predefine ReQL query to use with CTransport C Style API (because message support is not provided at the CTransport/C level)
 char* gamestateTableQuery = "[1,[15,[[14,[\"GameState\"]],\"Scene\"]]]\0";
@@ -187,7 +188,7 @@ void sendHTTPRequest(CTCursor* cursor)
     //cursor->file.buffer = cursor->requestBuffer;
 
     cursor->headerLengthCallback =  httpHeaderLengthCallback;
-    cursor->responseCallback =         httpResponseClosure;
+    cursor->responseCallback     =  httpResponseClosure;
 
     //printf("_conn.sslContextRef->Sizes.cbHeader = %d\n", _conn.sslContext->Sizes.cbHeader);
     //printf("_conn.sslContextRef->Sizes.cbTrailer = %d\n", _conn.sslContext->Sizes.cbTrailer);
@@ -216,11 +217,11 @@ CTConnectionClosure _httpConnectionClosure = ^int(CTError * err, CTConnection * 
     //FYI, do not use the pointer memory after this!!!
     _httpConn = *conn;
     _httpConn.response_overlap_buffer_length = 0;
-    
+
     fprintf(stderr, "HTTP Connection Success\n");
     
-    for(i=0; i<30; i++)
-        sendHTTPRequest(&CT_APP_CURSORS[httpRequestCount % CT_APP_MAX_INFLIGHT_CURSORS]);
+    //for(i=0; i<15; i++)
+    //    sendHTTPRequest(CTGetNextPoolCursor());
 
     return err->id;
 };
@@ -244,10 +245,10 @@ char* reqlHeaderLengthCallback(struct CTCursor* cursor, char* buffer, unsigned l
 
 CTCursorCompletionClosure reqlResponseClosure = ^void(CTError * err, CTCursor * cursor)
 {
-    printf("reqlCompletionCallback body:  \n\n%.*s\n\n", (int)cursor->contentLength, cursor->file.buffer);
+    fprintf(stderr, "reqlCompletionCallback body:  \n\n%.*s\n\n", (int)cursor->contentLength, cursor->file.buffer);
     //fprintf(stderr, "reqlResponseClosure (%d) header:  \n\n%.*s\n\n", (int)cursor->queryToken, (int)cursor->headerLength, cursor->requestBuffer);
-    CTCursorCloseMappingWithSize(cursor, cursor->contentLength); //overlappedResponse->buf - cursor->file.buffer);
-    CTCursorCloseFile(cursor);
+    //CTCursorCloseMappingWithSize(cursor, cursor->contentLength); //overlappedResponse->buf - cursor->file.buffer);
+    //CTCursorCloseFile(cursor);
 };
 
 void sendReqlQuery(CTCursor* cursor)
@@ -279,15 +280,15 @@ void sendReqlQuery(CTCursor* cursor)
     memset(cursor, 0, sizeof(CTCursor));
 
     //_itoa(httpRequestCount, filepath + strlen(filepath), 10);
-    snprintf(filepath + strlen(filepath), strlen(filepath), "%d", httpRequestCount);
+    snprintf(filepath + strlen(filepath), strlen(filepath), "%d\0", reqlQueryCount);
 
     strcat(filepath, ".txt");
-    httpRequestCount++;
+    reqlQueryCount++;
 
     //CoreTransport provides support for each cursor to read responses into memory mapped files
     //however, if this is not desired, simply cursor's file.buffer slot to your own memory
-    createCursorResponseBuffers(cursor, filepath);
-    //cursor->file.buffer = cursor->requestBuffer;
+    //createCursorResponseBuffers(cursor, filepath);
+    cursor->file.buffer = cursor->requestBuffer;
     
     assert(cursor->file.buffer);
     //if (!cursor->file.buffer)
@@ -310,7 +311,7 @@ void sendReqlQuery(CTCursor* cursor)
 
         //CTCursorSendRequestOnQueue(cursor, _reqlConn.queryCount++);
 
-        CTCursorRunQueryOnQueue(cursor, _reqlConn.queryCount++);
+        CTCursorRunQueryOnQueue(cursor, _reqlConn.queryCount);
         ////CTReQLRunQueryOnQueue(&_reqlConn, (const char**)&queryBuffer, queryStrLength, _reqlConn.queryCount++);
     }
 
@@ -333,18 +334,21 @@ CTConnectionClosure _reqlHandshakeClosure = ^ int(CTError * err, CTConnection * 
     //createConnectionResponsBufferQueue(_reqlConn);
     printf("CTReQLAsyncLHandshake Success\n");
 
-    for(int i=0; i<30; i++)
-        sendReqlQuery(CTGetNextPoolCursor());
+    //for(int i=0; i<30; i++)
+    //    sendReqlQuery(CTGetNextPoolCursor());
 
     return err->id;
 };
 
+static int rCount = 0;
 //int _reqlConnectionClosure(CTError* err, CTConnection* conn) {
-CTConnectionClosure _reqlConnectionClosure = ^ int(CTError * err, CTConnection * conn) {
+CTConnectionClosure _reqlConnectionClosure = ^int(CTError * err, CTConnection * conn) {
 
     //status
     int status;
 
+    rCount++;
+    fprintf(stderr, "rcount = %d\n", rCount);
     //TO DO:  Parse error status
     if (err->id == 0 && conn) { /*_reqlConn = conn;*/ }
     else
@@ -732,7 +736,7 @@ void SystemKeyboardEventLoop(int argc, const char * argv[])
         memset(&key, 0, sizeof(KEY_EVENT_RECORD));
         getconchar(&key);
         if (key.uChar.AsciiChar == 'g')
-            sendHTTPRequest(&CT_APP_CURSORS[httpRequestCount % CT_APP_MAX_INFLIGHT_CURSORS]);
+            sendHTTPRequest(CTGetNextPoolCursor());
         else if (key.uChar.AsciiChar == 'r')
             sendReqlQuery(CTGetNextPoolCursor());// &_httpCursor[httpRequestCount % CT_MAX_INFLIGHT_CURSORS]);
         else if (key.uChar.AsciiChar == 'y')
@@ -842,8 +846,8 @@ int main(int argc, const char * argv[])
     CTThread cxThread, txThread, rxThread;
 
     //Declare Targets (ie specify TCP connection endpoints + options)
-    CTTarget httpTarget  = { 0 };
-    CTTarget reqlService = { 0 };
+    CTTarget httpTarget      = { 0 };
+    CTTarget reqlService     = { 0 };
     CTKernelQueue emptyQueue = { 0 };
     
     //Connection & Cursor Pool Initialization
@@ -909,9 +913,24 @@ int main(int argc, const char * argv[])
     reqlService.rq = rq;
 
     //Demonstrate CTransport C API Connection (No JSON support)
-    coroutine_bundle = CTransport.connect(&httpTarget, _httpConnectionClosure);
-    //coroutine_bundle = CTransport.connect(&reqlService, _reqlConnectionClosure);
+    coroutine_bundle = CTransport.connect(&reqlService, _reqlConnectionClosure);
+    coroutine_bundle = CTransport.connect(&httpTarget,  _httpConnectionClosure);
     
+    
+
+    Sleep(2000);
+    for (int i = 0; i < 15; i++)
+        sendHTTPRequest(CTGetNextPoolCursor());
+    for (int i = 0; i < 30; i++)
+        sendReqlQuery(CTGetNextPoolCursor());
+    for (int i = 0; i < 15; i++)
+        sendReqlQuery(CTGetNextPoolCursor());
+    for (int i = 0; i < 15; i++)
+        sendHTTPRequest(CTGetNextPoolCursor());
+    
+
+   // for (int i = 0; i < 15; i++)
+    //    sendReqlQuery(CTGetNextPoolCursor());
     //Start a runloop on the main thread for the duration of the application
     //SystemKeyboardEventLoop(argc, argv);
     StartPlatformEventLoop(argc, argv);
@@ -920,7 +939,7 @@ int main(int argc, const char * argv[])
 
     //Clean up socket connections (Note: closing a socket will remove all associated kevents on kqueues)
     CTCloseConnection(&_httpConn);
-    //CTCloseConnection(&_reqlConn);
+    CTCloseConnection(&_reqlConn);
 
     //Clean Up Global/Thread Auth Memory
     ca_scram_cleanup();

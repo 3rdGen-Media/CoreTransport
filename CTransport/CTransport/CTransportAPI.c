@@ -226,7 +226,7 @@ CTConnection * CTGetNextPoolConnection()
 {
 	CTConnection * conn = &(CT_CONNECTION_POOL[CT_NUM_CONNECTIONS]);
 	assert(CT_MAX_CONNECTIONS > 0 && conn);
-	CT_NUM_CONNECTIONS++;
+	conn->id = CT_NUM_CONNECTIONS++;
 	return conn;
 }
 
@@ -2373,7 +2373,7 @@ CTCursorCompletionClosure ReQLFinalMessageResponseCallback = ^ void(CTError * er
 
 	cursor->conn->responseCount = 0;  //we incremented this for the handshake, it is critical to reset this for the client before returning the connection
 	cursor->conn->queryCount = 0;
-	CT_CURSOR_INDEX = 0;
+	//CT_CURSOR_INDEX = 0;
 	cursor->conn->target->callback(&error, cursor->conn);
 };
 
@@ -2523,6 +2523,7 @@ int CTReQLAsyncHandshake(CTConnection* conn, CTTarget* service, CTConnectionClos
 
 	handshakeCursor->conn = conn; //assume conn is permanent memory from core transport connection pool
 	handshakeCursor->overlappedResponse.stage = CT_OVERLAPPED_SCHEDULE; //we need to bypass encrypt bc sthis is the ssl handshake
+	firstMsgCursor->queryToken = 0;
 	assert(handshakeCursor->overlappedResponse.buf);
 	CTCursorSendOnQueue(handshakeCursor, (char**)&(handshakeCursor->overlappedResponse.buf), handshakeCursor->overlappedResponse.len);
 
@@ -2630,7 +2631,7 @@ char* SSLFirstMessageHeaderLengthCallback(struct CTCursor* cursor, char* buffer,
 }
 
 //void SSLFirstMessageResponseCallback(CTError* err, CTCursor* cursor) {
-CTCursorCompletionClosure SSLFirstMessageResponseCallback = ^ void(CTError * err, CTCursor * cursor) {
+CTCursorCompletionClosure SSLFirstMessageResponseCallback = ^void(CTError * err, CTCursor * cursor) {
 
 	fprintf(stderr, "SSLFirstMessageResponseCallback header:  \n\n%.*s\n\n", (int)cursor->headerLength, cursor->requestBuffer);
 	SECURITY_STATUS scRet = 0;
@@ -2877,7 +2878,7 @@ CTCursorCompletionClosure HTTPProxyResponseCallback = ^ void(CTError * err, CTCu
 	err->id = CTSuccess;
 	cursor->conn->responseCount = 0;  //we incremented this for the handshake, it is critical to reset this for the client before returning the connection
 	cursor->conn->queryCount = 0;
-	CT_CURSOR_INDEX = 0;
+	//CT_CURSOR_INDEX = 0;
 	cursor->conn->target->callback(err, cursor->conn);
 
 };
@@ -2980,7 +2981,7 @@ CTCursorCompletionClosure Socks5ClientConnectResponseCallback = ^ void(CTError *
 	err->id = CTSuccess;
 	cursor->conn->responseCount = 0;  //we incremented this for the handshake, it is critical to reset this for the client before returning the connection
 	cursor->conn->queryCount = 0;
-	CT_CURSOR_INDEX = 0;
+	//CT_CURSOR_INDEX = 0;
 	cursor->conn->target->callback(err, cursor->conn);
 
 };
@@ -3607,9 +3608,9 @@ coroutine int CTConnectRoutine(CTTarget * service, CTConnectionClosure callback)
 	}
 #endif
 
-	if( (conn.event_queue = CTSocketConnect(conn.socket, service)) < 0 )
+	if( (error.id = CTSocketConnect(conn.socket, service)) < 0 )
     {
-        error.id = (int)conn.socket;
+        //error.id = (int)conn.socket;
         goto CONN_CALLBACK;
     }
 
@@ -3777,7 +3778,7 @@ CONN_CALLBACK:
     //fprintf(stderr, "before callback!\n");
 	conn.responseCount = 0;  //we incremented this for the handshake, it is critical to reset this for the client before returning the connection
 	conn.queryCount = 0;
-	CT_CURSOR_INDEX = 0;
+	//CT_CURSOR_INDEX = 0;
 	conn.target = service;
     callback(&error, &conn);
     //fprintf(stderr, "After callback!\n");
@@ -3929,7 +3930,7 @@ char* DNSResolveHeaderLengthCallback(struct CTCursor* cursor, char* buffer, unsi
 //void DNSResolveResponseCallback(CTError* err, CTCursor* cursor)
 CTCursorCompletionClosure DNSResolveResponseCallback = ^ void(CTError * err, CTCursor * cursor) {
 
-	fprintf(stderr, "DNSResolveResponseCallback header:  \n\n%.*s\n\n", (int)cursor->headerLength, cursor->requestBuffer);
+	//fprintf(stderr, "DNSResolveResponseCallback header:  \n\n%.*s\n\n", (int)cursor->headerLength, cursor->requestBuffer);
 
 	socklen_t addrlen;
 	//int DNS_PORT = 53;
