@@ -120,8 +120,8 @@ The general pattern for establishing and consuming from client connections using
 ####  Create Thread Pool 
 ```
    CTThread cxThread = CTThreadCreate(&cq, CT_Dequeue_Connect);
-   CTThread txThread = CTThreadCreate(&tq, CT_Dequeue_Recv_Decrypt);
-   CTThread rxThread = CTThreadCreate(&rq, CT_Dequeue_Encrypt_Send);
+   CTThread txThread = CTThreadCreate(&tq, CT_Dequeue_Encrypt_Send);
+   CTThread rxThread = CTThreadCreate(&rq, CT_Dequeue_Recv_Decrypt);
 ```
 
 ####  Define your target
@@ -240,8 +240,8 @@ The general pattern for establishing and consuming from client connections using
 ####  Create Thread Pool 
 ```
    CTThread cxThread = CTThreadCreate(&cq, CX_Dequeue_Connect);
-   CTThread txThread = CTThreadCreate(&tq, CX_Dequeue_Recv_Decrypt);
-   CTThread rxThread = CTThreadCreate(&rq, CX_Dequeue_Encrypt_Send);
+   CTThread txThread = CTThreadCreate(&tq, CX_Dequeue_Encrypt_Send);
+   CTThread rxThread = CTThreadCreate(&rq, CX_Dequeue_Recv_Decrypt);
 ```
 
 ####  Define your target (same as CTransport)
@@ -316,8 +316,8 @@ The general pattern for establishing and consuming from client connections using
 ####  Create Thread Pool 
 ```
    CTThread cxThread = CTThreadCreate(&cq, NST_Dequeue_Connect);
-   CTThread txThread = CTThreadCreate(&tq, NST_Dequeue_Recv_Decrypt);
-   CTThread rxThread = CTThreadCreate(&rq, NST_Dequeue_Encrypt_Send);
+   CTThread txThread = CTThreadCreate(&tq, NST_Dequeue_Encrypt_Send);
+   CTThread rxThread = CTThreadCreate(&rq, NST_Dequeue_Recv_Decrypt);
 ```
 
 ####  Define your target (same as CTransport)
